@@ -6,7 +6,7 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true)
 }
 // Define qual página será carregada no corpo
 $pagina = $_GET['pagina'] ?? 'inicio';
-$permitidas = ['inicio', 'impressoras', 'materiais', 'insumos', 'produtos', 'pintura', 'energia', 'usuarios', 'editar_usuario', 'excluir_usuario', 'adicionar_usuario', 'energia.php'];
+$permitidas = ['inicio', 'impressoras', 'materiais', 'insumos', 'produtos', 'pintura', 'energia', 'usuarios', 'editar_usuario', 'excluir_usuario', 'adicionar_usuario', 'energia.php', 'adicionar_energia', 'editar_energia', 'adicionar_impressora', 'editar_impressora', 'adicionar_material', 'editar_material', 'adicionar_insumo', 'editar_insumo', 'adicionar_produto', 'editar_produto', 'adicionar_pintura', 'editar_pintura'];
 if (!in_array($pagina, $permitidas)) {
     $pagina = 'inicio';
 }
