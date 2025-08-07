@@ -8,7 +8,8 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true)
 $pagina = $_GET['pagina'] ?? 'inicio';
 $paginas_acao = [
     'excluir_resina',
-    'excluir_usuario'
+    'excluir_usuario',
+    'excluir_filamento'
 ];
 
 if (in_array($pagina, $paginas_acao)) {

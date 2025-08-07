@@ -154,3 +154,67 @@ table.custom-table tbody tr:hover {
     display: none !important;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.btn-adicionar {
+  background-color: #5cbf6a;
+  color: #fff;
+  border: none;
+}
+.btn-adicionar:hover {
+  background-color: #6edc82;
+}
+
+.btn-editar {
+  background-color: #ffce54;
+  color: #1e1e2f;
+  border: none;
+}
+.btn-editar:hover {
+  background-color: #ffd974;
+  color: #1e1e2f;
+}
+
+.btn-excluir {
+  background-color: #ff4c4c;
+  color: #fff;
+  border: none;
+}
+.btn-excluir:hover {
+  background-color: #ff2e2e;
+}
+
+.btn-salvar {
+  background-color: #ffce54;
+  color: #1e1e2f;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+.btn-salvar:hover {
+  background-color: #e6b848;
+  color: #1e1e2f;
+}
+
+.btn-voltar {
+  background-color: #3b2f4a;
+  color: #ffce54;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+.btn-voltar:hover {
+  background-color: #5e4c66;
+  color: #ffd86b;
+}

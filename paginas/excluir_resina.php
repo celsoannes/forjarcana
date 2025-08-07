@@ -6,5 +6,5 @@ if ($id) {
     $stmt = $pdo->prepare("DELETE FROM resinas WHERE id = ?");
     $stmt->execute([$id]);
 }
-header("Location: ?pagina=resina");
+header("Location: ?pagina=resinas");
 exit;

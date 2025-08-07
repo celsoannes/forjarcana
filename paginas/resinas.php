@@ -19,8 +19,9 @@ try {
 ?>
 
 <h2 class="mb-4">Resinas</h2>
-<a href="?pagina=adicionar_resina" class="btn btn-success mb-3">Adicionar Resina</a>
+<a href="?pagina=adicionar_resina" class="btn btn-adicionar mb-3">Adicionar Resina</a>
 
+<?php if (!empty($resinas)): ?>
 <table class="custom-table">
     <thead>
         <tr>
@@ -43,9 +44,9 @@ try {
                 <td><?= number_format($resina['preco_litro'], 2, ',', '.') ?></td>
                 <td><?= htmlspecialchars($resina['ultima_atualizacao']) ?></td>
                 <td>
-                    <a href="?pagina=editar_resina&id=<?= $resina['id'] ?>" class="btn btn-sm btn-warning">Editar</a>
-                    <a href="?pagina=excluir_resina&id=<?= $resina['id'] ?>"
-                       class="btn btn-sm btn-danger"
+                    <a href="?pagina=editar_resina&id=<?= $resina['id'] ?>" class="btn btn-sm btn-editar">Editar</a>
+                    <a href="#"
+                       class="btn btn-sm btn-excluir"
                        data-bs-toggle="modal"
                        data-bs-target="#modalExcluirResina"
                        data-id="<?= $resina['id'] ?>">
@@ -54,13 +55,11 @@ try {
                 </td>
             </tr>
         <?php endforeach; ?>
-        <?php if (empty($resinas)): ?>
-            <tr>
-                <td colspan="6" class="text-center">Nenhuma resina cadastrada.</td>
-            </tr>
-        <?php endif; ?>
     </tbody>
 </table>
+<?php else: ?>
+    <div class="alert alert-info text-center">Nenhuma resina cadastrada.</div>
+<?php endif; ?>
 
 <!-- Modal de confirmação de exclusão -->
 <div class="modal fade" id="modalExcluirResina" tabindex="-1" aria-labelledby="modalExcluirResinaLabel" aria-hidden="true">

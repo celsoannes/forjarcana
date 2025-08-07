@@ -61,6 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label class="form-label">Data de Expiração (opcional)</label>
         <input type="datetime-local" name="data_expiracao" class="form-control">
     </div>
-    <button type="submit" class="btn btn-warning">Adicionar</button>
-    <a href="?pagina=usuarios" class="btn btn-secondary">Voltar</a>
+    <button type="submit" class="btn btn-adicionar">Adicionar</button>
+    <a href="?pagina=usuarios" class="btn btn-voltar">Voltar</a>
 </form>

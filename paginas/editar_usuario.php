@@ -68,6 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="datetime-local" name="data_expiracao" class="form-control"
             value="<?= $usuario['data_expiracao'] ? date('Y-m-d\TH:i', strtotime($usuario['data_expiracao'])) : '' ?>">
     </div>
-    <button type="submit" class="btn btn-warning">Salvar</button>
-    <a href="?pagina=usuarios" class="btn btn-secondary">Voltar</a>
+    <button type="submit" class="btn btn-salvar">Salvar</button>
+    <a href="?pagina=usuarios" class="btn btn-voltar">Voltar</a>
 </form>

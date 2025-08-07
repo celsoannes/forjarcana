@@ -44,6 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label class="form-label">Energia elétrica consumida (kWh)</label>
         <input type="number" name="energia_eletrica" class="form-control" required>
     </div>
-    <button type="submit" class="btn btn-success">Salvar</button>
-    <a href="?pagina=energia" class="btn btn-secondary">Voltar</a>
+    <button type="submit" class="btn btn-salvar">Salvar</button>
+    <a href="?pagina=energia" class="btn btn-voltar">Voltar</a>
 </form>

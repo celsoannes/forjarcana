@@ -31,10 +31,10 @@ $pagina_atual = $_GET['pagina'] ?? 'inicio';
     <span class="nav-link disabled" style="color:#ffce54;cursor:default;">⚙️ Materiais</span>
     <ul class="nav flex-column ms-3">
         <li class="nav-item">
-            <a class="nav-link <?= ($pagina_atual === 'resina') ? 'active' : '' ?>" href="?pagina=resina">Resinas</a>
+            <a class="nav-link <?= ($pagina_atual === 'resinas') ? 'active' : '' ?>" href="?pagina=resinas">Resinas</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?= ($pagina_atual === 'filamento') ? 'active' : '' ?>" href="?pagina=filamento">Filamentos</a>
+            <a class="nav-link <?= ($pagina_atual === 'filamentos') ? 'active' : '' ?>" href="?pagina=filamentos">Filamentos</a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?= ($pagina_atual === 'alcool') ? 'active' : '' ?>" href="?pagina=alcool">Álcool Isopropílico</a>
