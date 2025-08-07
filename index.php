@@ -4,11 +4,16 @@ if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true)
     header("Location: login.php");
     exit;
 }
-// Define qual página será carregada no corpo
+
 $pagina = $_GET['pagina'] ?? 'inicio';
-$permitidas = ['inicio', 'impressoras', 'materiais', 'insumos', 'produtos', 'pintura', 'energia', 'usuarios', 'editar_usuario', 'excluir_usuario', 'adicionar_usuario', 'energia.php', 'adicionar_energia', 'editar_energia', 'adicionar_impressora', 'editar_impressora', 'adicionar_material', 'editar_material', 'adicionar_insumo', 'editar_insumo', 'adicionar_produto', 'editar_produto', 'adicionar_pintura', 'editar_pintura'];
-if (!in_array($pagina, $permitidas)) {
-    $pagina = 'inicio';
+$paginas_acao = [
+    'excluir_resina',
+    'excluir_usuario'
+];
+
+if (in_array($pagina, $paginas_acao)) {
+    require __DIR__ . '/paginas/' . $pagina . '.php';
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -19,24 +24,6 @@ if (!in_array($pagina, $permitidas)) {
   <title>Forja Arcana - Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="css/estilo.css" rel="stylesheet">
-  <style>
-    @media (max-width: 767.98px) {
-      .sidebar {
-        display: none !important;
-      }
-      .mobile-navbar {
-        display: block !important;
-      }
-      body {
-        padding-top: 70px; /* espaço para navbar fixa */
-      }
-    }
-    @media (min-width: 768px) {
-      .mobile-navbar {
-        display: none !important;
-      }
-    }
-  </style>
 </head>
 <body>
   <!-- Navbar fixa para mobile -->
@@ -60,25 +47,28 @@ if (!in_array($pagina, $permitidas)) {
 
   <!-- Sidebar para desktop -->
   <div class="container-fluid">
-    <div class="row flex-column flex-md-row">
+    <div class="row flex-md-row">
+      <!-- Sidebar fixa à esquerda -->
       <nav class="sidebar col-12 col-md-3 col-lg-2 p-3 d-none d-md-block">
         <div class="text-center mb-4">
-          <!-- Sidebar desktop -->
           <img src="img/logo.png" alt="Forja Arcana" style="max-width: 120px;">
         </div>
         <ul class="nav flex-column">
           <?php include __DIR__ . '/core/menu.php'; ?>
         </ul>
       </nav>
-      <main class="content col-12 col-md-9 ms-sm-auto col-lg-10">
-        <?php
-          $arquivo = __DIR__ . '/paginas/' . $pagina . '.php';
-          if (file_exists($arquivo)) {
-              include $arquivo;
-          } else {
-              echo "<h1>Página não encontrada!</h1>";
-          }
-        ?>
+      <!-- Conteúdo centralizado na área restante -->
+      <main class="content col-12 col-md-9 col-lg-10 d-flex justify-content-center align-items-start" style="min-height: 100vh;">
+        <div class="container" style="max-width: 1200px; margin: 2rem auto;">
+          <?php
+            $arquivo = __DIR__ . '/paginas/' . $pagina . '.php';
+            if (file_exists($arquivo)) {
+                include $arquivo;
+            } else {
+                echo "<h1>Página não encontrada!</h1>";
+            }
+          ?>
+        </div>
       </main>
     </div>
   </div>
