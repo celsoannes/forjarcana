@@ -36,9 +36,9 @@ body {
   height: 100vh;
   background: linear-gradient(180deg, #3b2f4a, #1e1e2f);
   padding-top: 1rem;
-  width: 220px !important;
-  min-width: 220px !important;
-  max-width: 220px !important;
+  width: 250px !important;
+  min-width: 250px !important;
+  max-width: 250px !important;
 }
 
 .sidebar a {

@@ -1,45 +1,13 @@
 <?php
-require __DIR__ . '/../app/db.php';
+// alcool.php
+$acao = $_GET['acao'] ?? 'listar';
 
-// Garante que só mostra o registro do usuário logado
-if (!isset($_SESSION['usuario_logado']) || !isset($_SESSION['usuario_id'])) {
-    echo '<div class="alert alert-danger">Você precisa estar logado para visualizar seus dados de álcool.</div>';
-    return;
+if ($acao === 'editar') {
+    include 'editar_alcool.php';
+} elseif ($acao === 'adicionar') {
+    include 'adicionar_alcool.php';
+} elseif ($acao === 'excluir') {
+    include 'excluir_alcool.php';
+} else {
+    include 'listar_alcool.php';
 }
-
-$usuario_id = $_SESSION['usuario_id'];
-$stmt = $pdo->prepare("SELECT id, nome, marca, preco_litro, ultima_atualizacao FROM alcool WHERE usuario_id = ?");
-$stmt->execute([$usuario_id]);
-$registros = $stmt->fetchAll();
-?>
-<h2 class="mb-4">Álcool para Lavagem</h2>
-
-<?php if (empty($registros)): ?>
-    <a href="?pagina=adicionar_alcool" class="btn btn-adicionar mb-3">Adicionar Álcool</a>
-    <div class="alert alert-info text-center">Nenhum registro de álcool cadastrado.</div>
-<?php else: ?>
-    <table class="custom-table">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Marca</th>
-                <th>Preço por litro (R$)</th>
-                <th>Última atualização</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($registros as $r): ?>
-                <tr>
-                    <td><?= htmlspecialchars($r['nome']) ?></td>
-                    <td><?= htmlspecialchars($r['marca']) ?></td>
-                    <td><?= number_format($r['preco_litro'], 2, ',', '.') ?></td>
-                    <td><?= htmlspecialchars($r['ultima_atualizacao']) ?></td>
-                    <td>
-                        <a href="?pagina=editar_alcool&id=<?= $r['id'] ?>" class="btn btn-sm btn-editar">Editar</a>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-<?php endif;

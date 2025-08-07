@@ -1,12 +1,6 @@
 <?php
 require __DIR__ . '/../app/db.php';
 
-// Permite acesso apenas para admin
-if (!isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] !== 'admin') {
-    echo '<div class="alert alert-danger">Acesso restrito! Apenas administradores podem editar custos de energia.</div>';
-    return;
-}
-
 $id = $_GET['id'] ?? null;
 if (!$id) {
     echo '<div class="alert alert-danger">Registro não encontrado.</div>';
@@ -22,7 +16,6 @@ if (!$registro) {
     return;
 }
 
-$mensagem = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $valor_ultima_conta = str_replace(',', '.', $_POST['valor_ultima_conta'] ?? '');
     $energia_eletrica = $_POST['energia_eletrica'] ?? '';
@@ -32,15 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $stmt = $pdo->prepare("UPDATE energia SET valor_ultima_conta = ?, energia_eletrica = ? WHERE id = ?");
         $stmt->execute([$valor_ultima_conta, $energia_eletrica, $id]);
-        $mensagem = "Registro atualizado com sucesso!";
-        // Atualiza os dados exibidos
-        $registro['valor_ultima_conta'] = $valor_ultima_conta;
-        $registro['energia_eletrica'] = $energia_eletrica;
+        echo '<script>window.location.href=\'?pagina=energia\';</script>';
+        exit;
     }
 }
 ?>
 <h2 class="mb-4">Editar custo de energia elétrica</h2>
-<?php if ($mensagem): ?>
+<?php if (!empty($mensagem)): ?>
     <div class="alert alert-info"><?= htmlspecialchars($mensagem) ?></div>
 <?php endif; ?>
 <form method="POST" class="mb-4">
