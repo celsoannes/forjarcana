@@ -9,7 +9,8 @@ $pagina = $_GET['pagina'] ?? 'inicio';
 $paginas_acao = [
     'excluir_resina',
     'excluir_usuario',
-    'excluir_filamento'
+    'excluir_filamento',
+    'excluir_impressora'
 ];
 
 if (in_array($pagina, $paginas_acao)) {
@@ -60,7 +61,7 @@ if (in_array($pagina, $paginas_acao)) {
       </nav>
       <!-- Conteúdo centralizado na área restante -->
       <main class="content col-12 col-md-9 col-lg-10 d-flex justify-content-center align-items-start" style="min-height: 100vh;">
-        <div class="container" style="max-width: 1200px; margin: 2rem auto;">
+        <div class="container" style="max-width: 1400px; margin: 2rem auto;">
           <?php
             $arquivo = __DIR__ . '/paginas/' . $pagina . '.php';
             if (file_exists($arquivo)) {
