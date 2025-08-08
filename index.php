@@ -10,7 +10,8 @@ $paginas_acao = [
     'excluir_resina',
     'excluir_usuario',
     'excluir_filamento',
-    'excluir_impressora'
+    'excluir_impressora',
+    'excluir_insumo'
 ];
 
 if (in_array($pagina, $paginas_acao)) {
@@ -74,6 +75,6 @@ if (in_array($pagina, $paginas_acao)) {
       </main>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

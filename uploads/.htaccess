@@ -1,0 +1,9 @@
+# Bloqueia todo o acesso HTTP direto a esta pasta e seus arquivos
+Order Deny,Allow
+Deny from all
+
+# Desabilita a listagem de diretórios para segurança
+Options -Indexes
+
+# Redireciona para uma página 404 personalizada
+ErrorDocument 403 /forjarcana/404.php

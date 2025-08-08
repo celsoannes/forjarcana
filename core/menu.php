@@ -82,7 +82,7 @@ $pagina_atual = $_GET['pagina'] ?? 'inicio';
     <span class="nav-link disabled" style="color:#5cb85c;cursor:default;">Ferramentas</span>
     <ul class="nav flex-column ms-3">
         <li class="nav-item">
-            <a class="nav-link <?= ($pagina_atual === 'calculo_rapido') ? 'active' : '' ?>" href="?pagina=calculo_rapido">🧮 Cálculo Rápido</a>
+            <a class="nav-link <?= ($pagina_atual === 'calculo_rapido' || $pagina_atual === 'calculo_detalhado') ? 'active' : '' ?>" href="?pagina=calculo_rapido">🧮 Cálculo Rápido</a>
         </li>
     </ul>
 </li>
