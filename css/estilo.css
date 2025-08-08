@@ -218,3 +218,34 @@ table.custom-table tbody tr:hover {
   background-color: #5e4c66;
   color: #ffd86b;
 }
+
+
+
+.card {
+    background: linear-gradient(145deg, #1f1b24, #2c2433); /* fundo escuro com leve variação */
+    border: 1px solid rgba(255, 215, 0, 0.3); /* dourado suave */
+    border-radius: 12px;
+    color: #e0d6f5; /* tom claro suave para o texto */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.card-title {
+    font-family: 'Cinzel', serif; /* fonte com toque medieval */
+    font-size: 1.2rem;
+    color: #ffd700; /* dourado vivo */
+    margin-bottom: 0.75rem;
+}
+
+.card-text strong {
+    color: #c79af2; /* roxo claro para destacar os labels */
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+.card-body {
+    padding: 1.2rem;
+}
