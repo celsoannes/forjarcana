@@ -119,19 +119,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="mb-3">
         <label class="form-label">Imagem atual</label><br>
-        <?php if (!empty($insumo['imagem'])): 
+        <?php if (!empty($insumo['imagem'])):
             $thumb = str_replace('_m.png', '_t.png', $insumo['imagem']);
             $media = $insumo['imagem'];
-        ?>
-            <span class="thumb-preview-wrapper" style="position:relative;display:inline-block;">
-                <img src="/forjarcana/uploads/<?= htmlspecialchars($thumb) ?>"
-                     alt="Thumb"
-                     style="max-width:80px;max-height:80px;border-radius:8px;cursor:pointer;"
-                     onmouseenter="showThumbPopup(event, '/forjarcana/uploads/<?= htmlspecialchars($thumb) ?>')"
-                     onmouseleave="hideThumbPopup()"
-                     onclick="showModalImagem('/forjarcana/uploads/<?= htmlspecialchars($media) ?>')">
-            </span>
-        <?php else: ?>
+            $grande = str_replace('_m.png', '_g.png', $insumo['imagem']);
+            include __DIR__ . '/../componentes/imagem_preview.php';
+        else: ?>
             <span class="text-muted">Sem imagem</span>
         <?php endif; ?>
     </div>
@@ -161,115 +154,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </div>
 
-<div class="modal fade" id="modalImagemMedia" tabindex="-1" aria-labelledby="modalImagemMediaLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#2c223b;color:#ffd700;">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalImagemMediaLabel">Visualização da Imagem</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body text-center" style="position:relative;">
-        <?php
-          $media = !empty($insumo['imagem']) ? $insumo['imagem'] : '';
-          $grande = !empty($insumo['imagem']) ? str_replace('_m.png', '_g.png', $insumo['imagem']) : '';
-        ?>
-        <div id="lupa-container" style="display:inline-block;position:relative;">
-          <img id="imagemMediaModal"
-               src="/forjarcana/uploads/<?= htmlspecialchars($media) ?>"
-               alt="Imagem média"
-               style="max-width:100%;max-height:400px;border-radius:12px;border:2px solid #ffce54;box-shadow:0 4px 24px #000;background:#2c223b;cursor:zoom-in;"
-               onmousemove="lupaMove(event)"
-               onmouseenter="lupaShow()"
-               onmouseleave="lupaHide()">
-          <div id="lupa" style="display:none;position:absolute;pointer-events:none;width:120px;height:120px;border-radius:50%;border:2px solid #ffd700;box-shadow:0 2px 12px #000;background:#fff;overflow:hidden;z-index:10;">
-            <img id="imagemLupa" src="/forjarcana/uploads/<?= htmlspecialchars($grande) ?>" style="position:absolute;top:0;left:0;min-width:100%;min-height:100%;">
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="thumb-global-popup" style="display:none;position:absolute;z-index:99999;">
-  <img id="thumb-global-img" src="" alt="Preview" style="max-width:220px;max-height:220px;border-radius:10px;border:2px solid #ffce54;box-shadow:0 4px 24px #000;background:#2c223b;">
-</div>
-
-<script>
-function showThumbPopup(e, src) {
-  var popup = document.getElementById('thumb-global-popup');
-  var img = document.getElementById('thumb-global-img');
-  img.src = src;
-  popup.style.display = 'block';
-  var x = e.clientX + 20 + window.scrollX;
-  var y = e.clientY - 20 + window.scrollY;
-  popup.style.left = x + 'px';
-  popup.style.top = y + 'px';
-}
-function hideThumbPopup() {
-  document.getElementById('thumb-global-popup').style.display = 'none';
-}
-
-var imagemMediaSrc = '/forjarcana/uploads/<?= isset($media) ? htmlspecialchars($media) : '' ?>';
-var imagemGrandeSrc = '/forjarcana/uploads/<?= isset($grande) ? htmlspecialchars($grande) : '' ?>';
-var mostrandoGrande = false;
-
-function showModalImagem(src) {
-  document.getElementById('imagemMediaModal').src = src;
-  mostrandoGrande = false;
-  var modal = new bootstrap.Modal(document.getElementById('modalImagemMedia'));
-  modal.show();
-}
-
-function trocarImagemModal() {
-  var img = document.getElementById('imagemMediaModal');
-  if (!mostrandoGrande) {
-    img.src = imagemGrandeSrc;
-    mostrandoGrande = true;
-  } else {
-    img.src = imagemMediaSrc;
-    mostrandoGrande = false;
-  }
-}
-
-// Lupa
-function lupaShow() {
-  document.getElementById('lupa').style.display = 'block';
-}
-function lupaHide() {
-  document.getElementById('lupa').style.display = 'none';
-}
-function lupaMove(e) {
-  var img = document.getElementById('imagemMediaModal');
-  var lupa = document.getElementById('lupa');
-  var imgLupa = document.getElementById('imagemLupa');
-  var rect = img.getBoundingClientRect();
-  var x = e.clientX - rect.left;
-  var y = e.clientY - rect.top;
-
-  // Tamanho da lupa e fator de zoom
-  var lupaSize = 120;
-  var zoom = 2.5;
-
-  // Posiciona a lupa
-  lupa.style.left = (x - lupaSize/2) + "px";
-  lupa.style.top = (y - lupaSize/2) + "px";
-
-  // Tamanho real da imagem grande
-  var imgNaturalWidth = img.naturalWidth;
-  var imgNaturalHeight = img.naturalHeight;
-
-  // Tamanho exibido
-  var imgWidth = img.width;
-  var imgHeight = img.height;
-
-  // Calcula posição proporcional
-  var propX = x / imgWidth;
-  var propY = y / imgHeight;
-
-  // Move a imagem dentro da lupa
-  imgLupa.style.width = (imgWidth * zoom) + "px";
-  imgLupa.style.height = (imgHeight * zoom) + "px";
-  imgLupa.style.left = -(propX * imgWidth * zoom - lupaSize/2) + "px";
-  imgLupa.style.top = -(propY * imgHeight * zoom - lupaSize/2) + "px";
-}
-</script>
+<?php include __DIR__ . '/../componentes/imagem_modal.php'; ?>
