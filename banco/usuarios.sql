@@ -5,5 +5,6 @@ CREATE TABLE usuarios (
     senha VARCHAR(255) NOT NULL,
     cargo ENUM('user', 'admin') NOT NULL DEFAULT 'user',
     data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    data_expiracao DATETIME DEFAULT NULL
+    data_expiracao DATETIME DEFAULT NULL,
+    uuid CHAR(36) NOT NULL UNIQUE DEFAULT (UUID())
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

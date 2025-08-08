@@ -132,48 +132,104 @@ $mensagem = $mensagens[array_rand($mensagens)];
 <head>
   <meta charset="UTF-8">
   <title>404 - Página não encontrada</title>
+  <link href="/forjarcana/css/estilo.css" rel="stylesheet">
   <style>
     body {
-      background-color: #1e1e1e;
-      color: #f5f5f5;
-      font-family: 'MedievalSharp', cursive, sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #3b2f4a);
+      color: #ffce54;
+      font-family: 'Cinzel', 'Segoe UI', sans-serif;
       text-align: center;
-      padding: 5rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
     }
-
     h1 {
       font-size: 5rem;
-      color: #e63946;
+      color: #ff4c4c;
       margin-bottom: 1rem;
+      font-family: 'Cinzel', serif;
+      text-shadow: 2px 2px 8px #1e1e2f;
     }
-
     p {
       font-size: 1.5rem;
       max-width: 600px;
       margin: 0 auto 2rem;
+      color: #ffce54;
+      font-family: 'Segoe UI', sans-serif;
     }
-
     a {
-      color: #ffd166;
+      color: #ffd700;
       font-weight: bold;
       text-decoration: none;
+      font-family: 'Cinzel', serif;
+      transition: color 0.2s;
     }
-
     a:hover {
+      color: #ffce54;
       text-decoration: underline;
     }
-
-    .illustration {
-      margin-top: 2rem;
-      max-width: 400px;
-      height: auto;
+  .illustration {
+  margin-top: 2rem;
+  max-width: 320px;
+  height: auto;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+    .card-404 {
+      background: linear-gradient(145deg, #1f1b24, #2c2433);
+      border: 1px solid rgba(255, 215, 0, 0.18);
+      border-radius: 14px;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+      padding: 2.5rem 2rem;
+      max-width: 500px;
+      margin: 0 auto;
+      margin-bottom: 2rem;
     }
+    /* Adicione ao final do seu arquivo de estilos (estilo.css) */
+.btn-voltar-home {
+  display: inline-block;
+  background-color: #ffce54;
+  color: #1e1e2f;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.75rem 2rem;
+  box-shadow: 0 0 12px 0 rgba(255, 206, 84, 0.5);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  animation: brilho-feitico 1.2s infinite alternate;
+}
+
+.btn-voltar-home:hover {
+  background-color: #ffd974;
+  color: #1e1e2f;
+  box-shadow: 0 0 24px 4px #ffd700;
+  text-decoration: none;
+}
+
+@keyframes brilho-feitico {
+  0% {
+    box-shadow: 0 0 12px 0 #ffce54, 0 0 0px 0 #ffd700;
+  }
+  100% {
+    box-shadow: 0 0 32px 8px #ffd700, 0 0 16px 4px #ffce54;
+  }
+}
   </style>
 </head>
 <body>
-  <h1>404</h1>
-  <p><?= $mensagem ?></p>
-  <p><a href="/forjarcana">⤴️ Voltar ao início da aventura</a></p>
-  <img class="illustration" src="img/404-dragon.png" alt="Dragão segurando uma placa de erro 404">
+  <div class="card-404">
+    <h1>404</h1>
+    <p><?= $mensagem ?></p>
+    <p><a class="btn-voltar-home" href="/forjarcana">Volte ao coração da Forja.</a></p>
+    <img class="illustration" src="/forjarcana/img/404-dragon.png" alt="Dragão segurando uma placa de erro 404">
+  </div>
 </body>
 </html>

@@ -25,13 +25,13 @@ try {
 <table class="custom-table">
     <thead>
         <tr>
+            <th>Imagem</th>
             <th>Nome</th>
             <th>Tipo</th>
             <th>Descrição</th>
             <th>Unidade</th>
             <th>Valor unitário (R$)</th>
             <th>Fornecedor</th>
-            <th>Imagem</th>
             <th>Última atualização</th>
             <th>Ações</th>
         </tr>
@@ -39,19 +39,23 @@ try {
     <tbody>
         <?php foreach ($insumos as $insumo): ?>
             <tr>
+                <td>
+                    <?php
+                    if (!empty($insumo['imagem'])) {
+                        // Exibe a thumbnail
+                        $thumb = str_replace('_m.png', '_t.png', $insumo['imagem']);
+                        ?>
+                        <img src="/forjarcana/uploads/<?= htmlspecialchars($thumb) ?>" alt="Imagem" style="max-width:48px;max-height:48px;border-radius:4px;">
+                    <?php } else { ?>
+                        <span class="text-muted">Sem imagem</span>
+                    <?php } ?>
+                </td>
                 <td><?= htmlspecialchars($insumo['nome_material']) ?></td>
                 <td><?= htmlspecialchars($insumo['tipo_material']) ?></td>
                 <td><?= htmlspecialchars($insumo['descricao']) ?></td>
                 <td><?= htmlspecialchars($insumo['unidade_medida']) ?></td>
                 <td><?= number_format($insumo['valor_unitario'], 2, ',', '.') ?></td>
                 <td><?= htmlspecialchars($insumo['fornecedor']) ?></td>
-                <td>
-                    <?php if (!empty($insumo['imagem'])): ?>
-                        <img src="/forjarcana/uploads/<?= htmlspecialchars($insumo['imagem']) ?>" alt="Imagem" style="max-width:48px;max-height:48px;border-radius:4px;">
-                    <?php else: ?>
-                        <span class="text-muted">Sem imagem</span>
-                    <?php endif; ?>
-                </td>
                 <td><?= htmlspecialchars($insumo['ultima_atualizacao']) ?></td>
                 <td>
                     <a href="?pagina=insumos&acao=editar&id=<?= $insumo['id'] ?>" class="btn btn-sm btn-editar">Editar</a>
