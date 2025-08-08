@@ -91,8 +91,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="mb-3">
         <label class="form-label">Imagem</label>
-        <input type="file" name="imagem" class="form-control" accept="image/*" id="inputImagem">
+        <input type="file" name="imagem" class="form-control" accept=".png,.jpg,.jpeg,.gif,.webp" id="inputImagem">
     </div>
     <button type="submit" class="btn btn-success">Adicionar</button>
     <a href="?pagina=insumos" class="btn btn-secondary">Cancelar</a>
 </form>
+
+<div class="modal fade" id="modalFormatoImagem" tabindex="-1" aria-labelledby="modalFormatoImagemLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#2c223b;color:#ffd700;">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalFormatoImagemLabel">Formato não suportado</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        Formato de imagem não suportado.<br>
+        Use PNG, JPG, JPEG, GIF ou WEBP.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-magic" data-bs-dismiss="modal">Ok</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    var input = document.getElementById('inputImagem');
+    if (input.files.length > 0) {
+        var file = input.files[0];
+        var formatosPermitidos = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+        var ext = file.name.split('.').pop().toLowerCase();
+        if (formatosPermitidos.indexOf(ext) === -1) {
+            var modal = new bootstrap.Modal(document.getElementById('modalFormatoImagem'));
+            modal.show();
+            e.preventDefault();
+            return false;
+        }
+    }
+});
+</script>

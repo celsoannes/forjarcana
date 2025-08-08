@@ -13,14 +13,17 @@ function salvarImagemUsuario($arquivo, $usuario_uuid, $destino_base) {
         mkdir($user_dir, 0755, true);
     }
 
+    // Suporte a mais formatos
     if ($extensao === 'png') {
         $img = imagecreatefrompng($tmp);
     } elseif ($extensao === 'jpg' || $extensao === 'jpeg') {
         $img = imagecreatefromjpeg($tmp);
     } elseif ($extensao === 'gif') {
         $img = imagecreatefromgif($tmp);
+    } elseif ($extensao === 'webp' && function_exists('imagecreatefromwebp')) {
+        $img = imagecreatefromwebp($tmp);
     } else {
-        return '';
+        return ''; // Ou retorne uma mensagem de erro
     }
 
     // Média
