@@ -337,3 +337,37 @@ table.custom-table tbody tr:hover {
 .card-body {
     padding: 1.2rem;
 }
+
+/* Adicione ao final do seu arquivo de estilos (estilo.css) */
+.thumb-preview-wrapper {
+  position: relative;
+  z-index: 100;
+}
+
+.thumb-preview-wrapper .thumb-popup {
+  display: none;
+  position: absolute;
+  left: 60px;
+  top: -20px;
+  z-index: 9999;
+  background: #2c223b;
+  padding: 8px;
+  border-radius: 10px;
+  border: 2px solid #ffce54;
+  box-shadow: 0 4px 24px #000;
+  min-width: 200px;
+  min-height: 200px;
+  white-space: nowrap;
+}
+
+.thumb-preview-wrapper:hover .thumb-popup {
+  display: block;
+}
+
+.custom-table {
+  overflow: visible !important;
+}
+.custom-table td {
+  overflow: visible !important;
+  position: relative;
+}

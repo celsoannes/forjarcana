@@ -42,10 +42,16 @@ try {
                 <td>
                     <?php
                     if (!empty($insumo['imagem'])) {
-                        // Exibe a thumbnail
                         $thumb = str_replace('_m.png', '_t.png', $insumo['imagem']);
                         ?>
-                        <img src="/forjarcana/uploads/<?= htmlspecialchars($thumb) ?>" alt="Imagem" style="max-width:48px;max-height:48px;border-radius:4px;">
+                        <span class="thumb-preview-wrapper" style="position:relative;display:inline-block;">
+                            <img src="/forjarcana/uploads/<?= htmlspecialchars($thumb) ?>" 
+                                 alt="Imagem" 
+                                 class="thumb-img" 
+                                 style="max-width:48px;max-height:48px;border-radius:4px;cursor:pointer;"
+                                 onmouseenter="showThumbPopup(event, '/forjarcana/uploads/<?= htmlspecialchars($thumb) ?>')"
+                                 onmouseleave="hideThumbPopup()">
+                        </span>
                     <?php } else { ?>
                         <span class="text-muted">Sem imagem</span>
                     <?php } ?>
@@ -94,6 +100,11 @@ try {
   </div>
 </div>
 
+<!-- Popup global para preview da thumb -->
+<div id="thumb-global-popup" style="display:none;position:absolute;z-index:99999;">
+  <img id="thumb-global-img" src="" alt="Preview" style="max-width:220px;max-height:220px;border-radius:10px;border:2px solid #ffce54;box-shadow:0 4px 24px #000;background:#2c223b;">
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var modalExcluir = document.getElementById('modalExcluirInsumo');
@@ -103,5 +114,36 @@ document.addEventListener('DOMContentLoaded', function() {
     var btnConfirmar = document.getElementById('btnConfirmarExcluirInsumo');
     btnConfirmar.href = '?pagina=excluir_insumo&id=' + id;
   });
+
+  // Preview da imagem da thumb global
+  var thumbGlobalPopup = document.getElementById('thumb-global-popup');
+  var thumbGlobalImg = document.getElementById('thumb-global-img');
+
+  document.querySelectorAll('.thumb-img').forEach(function(img) {
+    img.addEventListener('click', function() {
+      var src = this.src.replace('_t.png', '_m.png');
+      thumbGlobalImg.src = src;
+      thumbGlobalPopup.style.display = 'block';
+    });
+  });
+
+  thumbGlobalPopup.addEventListener('click', function() {
+    thumbGlobalPopup.style.display = 'none';
+  });
 });
+
+function showThumbPopup(e, src) {
+  var popup = document.getElementById('thumb-global-popup');
+  var img = document.getElementById('thumb-global-img');
+  img.src = src;
+  popup.style.display = 'block';
+  // Calcula posição: abaixo e à direita do mouse
+  var x = e.clientX + 20 + window.scrollX;
+  var y = e.clientY - 20 + window.scrollY;
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+}
+function hideThumbPopup() {
+  document.getElementById('thumb-global-popup').style.display = 'none';
+}
 </script>
