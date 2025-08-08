@@ -19,7 +19,7 @@ try {
 ?>
 
 <h2 class="mb-4">Insumos</h2>
-<a href="?pagina=insumos&acao=adicionar" class="btn btn-success mb-3">Adicionar Insumo</a>
+<a href="?pagina=insumos&acao=adicionar" class="btn btn-adicionar mb-3">Adicionar Insumo</a>
 
 <?php if (!empty($insumos)): ?>
 <table class="custom-table">

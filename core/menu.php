@@ -86,3 +86,13 @@ $pagina_atual = $_GET['pagina'] ?? 'inicio';
         </li>
     </ul>
 </li>
+
+<!-- Sessão Cadastro -->
+<li class="nav-item">
+    <span class="nav-link disabled" style="color:#f08080;cursor:default;">Cadastro</span>
+    <ul class="nav flex-column ms-3">
+        <li class="nav-item">
+            <a class="nav-link <?= ($pagina_atual === 'estudios') ? 'active' : '' ?>" href="?pagina=estudios">🎬 Estudios</a>
+        </li>
+    </ul>
+</li>

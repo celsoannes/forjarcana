@@ -93,8 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label class="form-label">Imagem</label>
         <input type="file" name="imagem" class="form-control" accept=".png,.jpg,.jpeg,.gif,.webp" id="inputImagem">
     </div>
-    <button type="submit" class="btn btn-success">Adicionar</button>
-    <a href="?pagina=insumos" class="btn btn-secondary">Cancelar</a>
+    <button type="submit" class="btn btn-adicionar">Adicionar</button>
+    <a href="?pagina=insumos" class="btn btn-voltar">Cancelar</a>
 </form>
 
 <div class="modal fade" id="modalFormatoImagem" tabindex="-1" aria-labelledby="modalFormatoImagemLabel" aria-hidden="true">

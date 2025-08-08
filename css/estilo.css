@@ -385,3 +385,17 @@ table.custom-table tbody tr:hover {
   outline: none !important;
   transform: none !important; /* Remove o movimento para cima/baixo */
 }
+
+.card-produto-detalhe,
+.card-produto-detalhe:hover,
+.card-produto-detalhe:focus,
+.card-produto-detalhe:active {
+  box-shadow: none !important;
+  border-color: rgba(255, 215, 0, 0.3) !important; /* igual ao card padrão */
+  background: linear-gradient(145deg, #1f1b24, #2c2433) !important; /* igual ao card padrão */
+  color: #e0d6f5 !important;
+  cursor: default !important;
+  transition: none !important;
+  outline: none !important;
+  transform: none !important;
+}
