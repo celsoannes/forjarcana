@@ -371,3 +371,17 @@ table.custom-table tbody tr:hover {
   overflow: visible !important;
   position: relative;
 }
+
+/* Remove toda a interação visual e movimento do card ao passar o mouse na página de cálculo detalhado */
+.paginas-calculo-detalhado .card,
+.paginas-calculo-detalhado .card:hover,
+.paginas-calculo-detalhado .card:focus,
+.paginas-calculo-detalhado .card:active {
+  box-shadow: none !important;
+  border-color: inherit !important;
+  background: inherit !important;
+  cursor: default !important;
+  transition: none !important;
+  outline: none !important;
+  transform: none !important; /* Remove o movimento para cima/baixo */
+}

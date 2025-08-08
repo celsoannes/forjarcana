@@ -48,6 +48,7 @@ if ($tipo === 'FDM') {
 }
 ?>
 
+<body class="paginas-calculo-detalhado">
 <h2 class="mb-4">Cálculo Detalhado</h2>
 
 <div class="card mb-4">
