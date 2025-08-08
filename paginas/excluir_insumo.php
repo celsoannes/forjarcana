@@ -14,18 +14,22 @@ if ($id && $usuario_id) {
     $stmt = $pdo->prepare("DELETE FROM insumos WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $usuario_id]);
 
-    // Exclui os arquivos de imagem (média e thumbnail), se existirem
+    // Exclui os arquivos de imagem (grande, média e thumbnail), se existirem
     if ($imagem_media) {
         // $imagem_media = 'uuid/insumo_xxx_m.png'
         $base = str_replace('_m.png', '', $imagem_media);
         $media_path = __DIR__ . '/../uploads/' . $base . '_m.png';
         $thumb_path = __DIR__ . '/../uploads/' . $base . '_t.png';
+        $grande_path = __DIR__ . '/../uploads/' . $base . '_g.png';
 
         if (file_exists($media_path)) {
             unlink($media_path);
         }
         if (file_exists($thumb_path)) {
             unlink($thumb_path);
+        }
+        if (file_exists($grande_path)) {
+            unlink($grande_path);
         }
     }
 }
