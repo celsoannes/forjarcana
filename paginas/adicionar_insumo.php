@@ -19,11 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario_id = $_SESSION['usuario_id'];
     $imagem_nome = '';
 
-    // Salva imagem cortada se existir
     if (!empty($_POST['imagem_cortada'])) {
-        $data = $_POST['imagem_cortada'];
-        // Remove prefixo data:image/jpeg;base64,
-        $data = preg_replace('#^data:image/\w+;base64,#i', '', $data);
+        $data = preg_replace('#^data:image/\w+;base64,#i', '', $_POST['imagem_cortada']);
         $data = base64_decode($data);
 
         $imagem_nome = uniqid('insumo_') . '.jpg';
@@ -32,8 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
         $extensao = pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION);
         $imagem_nome = uniqid('insumo_') . '.' . $extensao;
-        $destino = __DIR__ . '/../uploads/' . $imagem_nome;
-        move_uploaded_file($_FILES['imagem']['tmp_name'], $destino);
+        move_uploaded_file($_FILES['imagem']['tmp_name'], __DIR__ . '/../uploads/' . $imagem_nome);
     }
 
     if (!$nome_material || !$tipo_material || !$unidade_medida || $valor_unitario === '') {
@@ -47,7 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+<head>
+    <!-- ...outros links e metas... -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+</head>
 
 <h2 class="mb-4">Adicionar Insumo</h2>
 <?php if ($mensagem): ?>
@@ -104,20 +103,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="mb-3">
         <label class="form-label">Imagem</label>
         <input type="file" name="imagem" class="form-control" accept="image/*" id="inputImagem">
-        <div id="croppy-container" style="display:none; margin-top:15px;">
-            <img id="image-crop" style="max-width:100%;">
-        </div>
-        <button type="button" id="btnCrop" class="btn btn-success mt-2" style="display:none;">Cortar e Usar</button>
-        <!-- Campo oculto para enviar imagem cortada -->
-        <input type="hidden" name="imagem_cortada" id="imagem_cortada">
     </div>
     <button type="submit" class="btn btn-success">Adicionar</button>
     <a href="?pagina=insumos" class="btn btn-secondary">Cancelar</a>
 </form>
 
+<!-- Modal para Crop -->
+<div class="modal fade" id="modalCrop" tabindex="-1" aria-labelledby="modalCropLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalCropLabel">Recortar Imagem</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="image-crop" style="max-width:100%; display:block; margin:auto;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btnCrop" class="btn btn-success">Cortar e Usar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Campo oculto para guardar imagem cortada -->
+<input type="hidden" name="imagem_cortada" id="imagem_cortada">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let cropper;
+const modalCrop = new bootstrap.Modal(document.getElementById('modalCrop'));
 
 document.getElementById('inputImagem').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -127,21 +144,22 @@ document.getElementById('inputImagem').addEventListener('change', function(e) {
     reader.onload = function(event) {
         const imgElement = document.getElementById('image-crop');
         imgElement.src = event.target.result;
-        document.getElementById('croppy-container').style.display = 'block';
-        document.getElementById('btnCrop').style.display = 'inline-block';
+
+        // Abre modal
+        modalCrop.show();
 
         // Destroi cropper antigo, se existir
         if (cropper) cropper.destroy();
 
-        // Inicializa cropper
-        cropper = new Cropper(imgElement, {
-            aspectRatio: 1, // Ajuste conforme necessário
-            viewMode: 1,
-            movable: true,
-            zoomable: true,
-            rotatable: false,
-            scalable: false
-        });
+        // Inicializa Cropper.js quando imagem carregar
+        imgElement.onload = function() {
+            cropper = new Cropper(imgElement, {
+                aspectRatio: 1, // ajusta conforme necessidade
+                viewMode: 1,
+                movable: true,
+                zoomable: true
+            });
+        };
     };
     reader.readAsDataURL(file);
 });
@@ -149,20 +167,18 @@ document.getElementById('inputImagem').addEventListener('change', function(e) {
 document.getElementById('btnCrop').addEventListener('click', function() {
     if (!cropper) return;
 
-    // Converte o recorte para base64
     const canvas = cropper.getCroppedCanvas({
-        width: 500, // largura final
-        height: 500 // altura final
+        width: 500,
+        height: 500
     });
 
     canvas.toBlob(function(blob) {
         const reader = new FileReader();
         reader.onloadend = function() {
             document.getElementById('imagem_cortada').value = reader.result; // base64
-            document.getElementById('croppy-container').style.display = 'none';
-            document.getElementById('btnCrop').style.display = 'none';
+            modalCrop.hide();
         };
         reader.readAsDataURL(blob);
-    });
+    }, 'image/jpeg');
 });
 </script>
