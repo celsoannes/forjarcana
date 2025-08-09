@@ -64,6 +64,9 @@ $pagina_atual = $_GET['pagina'] ?? 'inicio';
     <a class="nav-link <?= ($pagina_atual === 'inicio') ? 'active' : '' ?>" href="?pagina=inicio">🏠 Início</a>
 </li>
 <li class="nav-item">
+    <a class="nav-link <?= ($pagina_atual === 'impressoes') ? 'active' : '' ?>" href="?pagina=impressoes">🖼️ Impressões</a>
+</li>
+<li class="nav-item">
     <a class="nav-link <?= ($pagina_atual === 'pintura') ? 'active' : '' ?>" href="?pagina=pintura">🎨 Pintura</a>
 </li>
 
