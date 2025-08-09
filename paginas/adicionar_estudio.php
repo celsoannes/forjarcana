@@ -32,6 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label class="form-label">Site *</label>
         <input type="text" name="site" class="form-control" required>
     </div>
-    <button type="submit" class="btn btn-adicionar">Salvar</button>
+    <button type="submit" class="btn btn-adicionar">Adicionar</button>
     <a href="?pagina=estudios" class="btn btn-voltar">Cancelar</a>
 </form>

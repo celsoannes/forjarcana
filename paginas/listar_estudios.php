@@ -18,7 +18,7 @@ try {
 ?>
 
 <h2 class="mb-4">Estudios</h2>
-<a href="?pagina=estudios&acao=adicionar" class="btn btn-success mb-3">Adicionar Estudio</a>
+<a href="?pagina=estudios&acao=adicionar" class="btn btn-adicionar mb-3">Adicionar Estudio</a>
 
 <?php if (!empty($estudios)): ?>
 <table class="custom-table">
