@@ -1,0 +1,25 @@
+CREATE TABLE usuarios (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    sobrenome VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    cargo ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+    data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_expiracao DATETIME DEFAULT NULL,
+    uuid CHAR(36) NOT NULL UNIQUE,
+    foto VARCHAR(255) NULL,
+    celular VARCHAR(20) NOT NULL,
+    cpf VARCHAR(14) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DELIMITER $$
+CREATE TRIGGER usuarios_before_insert
+BEFORE INSERT ON usuarios
+FOR EACH ROW
+BEGIN
+  IF NEW.uuid IS NULL OR NEW.uuid = '' THEN
+    SET NEW.uuid = UUID();
+  END IF;
+END$$
+DELIMITER ;
