@@ -208,18 +208,18 @@ require_once __DIR__ . '/app/menu.php';
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image">
           <?php
-            // Exibe a thumbnail do usuário autenticado, se existir
             $foto = isset($_SESSION['usuario_foto']) ? $_SESSION['usuario_foto'] : '';
             if ($foto && file_exists(__DIR__ . '/' . $foto)) {
-              // Tenta usar a thumbnail, se existir
               $thumb = str_replace('foto_media.png', 'foto_thumb.png', $foto);
               if (file_exists(__DIR__ . '/' . $thumb)) {
                 $foto = $thumb;
               }
               echo '<img src="' . htmlspecialchars($foto) . '" class="img-circle elevation-2" alt="Foto do Usuário" style="width:40px;height:40px;">';
             } else {
-              // Imagem padrão se não houver foto
-              echo '<img src="dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">';
+              // Ícone padrão se não houver foto
+              echo '<span class="img-circle elevation-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:#f4f6f9;">
+                      <i class="fas fa-user" style="font-size:24px;color:#888;"></i>
+                    </span>';
             }
           ?>
         </div>
@@ -304,6 +304,8 @@ require_once __DIR__ . '/app/menu.php';
 
 <!-- jQuery -->
 <script src="plugins/jquery/jquery.min.js"></script>
+<!-- Inputmask -->
+<script src="plugins/inputmask/jquery.inputmask.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
 <script src="plugins/jquery-ui/jquery-ui.min.js"></script>
 <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->

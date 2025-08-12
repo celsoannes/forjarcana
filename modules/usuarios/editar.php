@@ -195,13 +195,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!-- Scripts -->
 <script src="plugins/jquery/jquery.min.js"></script>
-<script src="plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="plugins/inputmask/jquery.inputmask.min.js"></script>
-<script src="dist/js/adminlte.min.js"></script>
 <script src="plugins/bs-custom-file-input/bs-custom-file-input.min.js"></script>
 <script>
   $(function () {
-    $('[data-mask]').inputmask();
+    bsCustomFileInput.init();
+  });
+</script>
+<script src="plugins/inputmask/jquery.inputmask.min.js"></script>
+<script>
+  $(function () {
+    if ($.fn.inputmask) {
+      $('[data-mask]').inputmask();
+    } else {
+      console.warn('Inputmask não está carregado!');
+    }
   });
 </script>
 <script>
@@ -231,11 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
-});
-</script>
-<script>
-$(function () {
-  bsCustomFileInput.init();
 });
 </script>
 <link rel="stylesheet" href="plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css">
