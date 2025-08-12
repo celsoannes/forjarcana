@@ -62,6 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("UPDATE usuarios SET nome = ?, sobrenome = ?, email = ?, cargo = ?, celular = ?, cpf = ?, data_expiracao = ? WHERE id = ?");
             $stmt->execute([$nome, $sobrenome, $email, $cargo, $celular, $cpf, $data_expiracao, $usuario_id]);
 
+            // Atualiza os dados na sessão
+            $_SESSION['usuario_nome'] = $nome;
+            $_SESSION['usuario_sobrenome'] = $sobrenome;
+            $_SESSION['usuario_foto'] = $foto_nome;
+
             // Recupera o uuid do usuário
             $stmtUuid = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ?");
             $stmtUuid->execute([$usuario_id]);
@@ -90,6 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($foto_nome) {
                 $stmtFoto = $pdo->prepare("UPDATE usuarios SET foto = ? WHERE id = ?");
                 $stmtFoto->execute([$foto_nome, $usuario_id]);
+                // Atualiza a sessão com a nova foto
+                $_SESSION['usuario_foto'] = $foto_nome;
             }
 
             echo '<script>window.location.href="?pagina=usuarios";</script>';
@@ -158,11 +165,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <div class="form-group">
         <label for="customFile">Foto (PNG, JPG, WEBP ou GIF)</label>
-        <div class="custom-file">
+        <div class="custom-file mb-2">
           <input type="file" class="custom-file-input" id="customFile" name="foto" accept="image/png,image/jpeg,image/webp,image/gif">
           <label class="custom-file-label" for="customFile">Selecione uma foto</label>
         </div>
-        <!-- Removido o preview da foto atual -->
+        <?php
+          // Exibe a foto atual, se existir
+          if (!empty($usuario['foto']) && file_exists(__DIR__ . '/../../uploads/usuarios/' . $usuario['uuid'] . '/' . $usuario['foto'])) {
+            $fotoUrl = 'uploads/usuarios/' . $usuario['uuid'] . '/' . $usuario['foto'];
+            echo '<div class="mb-2"><img src="' . htmlspecialchars($fotoUrl) . '" alt="Foto do usuário" class="img-thumbnail" style="max-width:120px;"></div>';
+          }
+        ?>
       </div>
     </div>
     <div class="card-footer">
@@ -215,6 +228,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $(function () {
   $('#dataExpiracaoPicker').datetimepicker({
     format: 'DD/MM/YYYY'
+  });
+
+  // Ao clicar em qualquer parte do grupo, foca o input e abre o datepicker
+  $('#dataExpiracaoPicker').on('click', function(e) {
+    $(this).find('input').focus();
+    $(this).data('datetimepicker').show();
   });
 });
 </script>

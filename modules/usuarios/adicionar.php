@@ -195,6 +195,12 @@ $(function () {
   $('#dataExpiracaoPicker').datetimepicker({
     format: 'DD/MM/YYYY'
   });
+
+  // Ao clicar em qualquer parte do grupo, foca o input e abre o datepicker
+  $('#dataExpiracaoPicker').on('click', function(e) {
+    $(this).find('input').focus();
+    $(this).data('datetimepicker').show();
+  });
 });
 </script>
 <script>
