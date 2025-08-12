@@ -38,7 +38,7 @@ require_once __DIR__ . '/app/menu.php';
   <!-- JQVMap -->
   <link rel="stylesheet" href="plugins/jqvmap/jqvmap.min.css">
   <!-- Theme style -->
-  <link rel="stylesheet" href="dist/css/adminlte.min.css">
+  <link rel="stylesheet" href="../../dist/css/adminlte.min.css">
   <!-- overlayScrollbars -->
   <link rel="stylesheet" href="plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
   <!-- Daterange picker -->
@@ -47,6 +47,9 @@ require_once __DIR__ . '/app/menu.php';
   <link rel="stylesheet" href="plugins/summernote/summernote-bs4.min.css">
   <!-- Bootstrap Colorpicker CSS -->
   <link rel="stylesheet" href="plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.min.css">
+  <!-- Select2 -->
+  <link rel="stylesheet" href="plugins/select2/css/select2.min.css">
+  <link rel="stylesheet" href="plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
@@ -339,5 +342,7 @@ require_once __DIR__ . '/app/menu.php';
     });
   });
 </script>
+<!-- Select2 -->
+<script src="plugins/select2/js/select2.full.min.js"></script>
 </body>
 </html>

@@ -46,6 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+<!-- Select2 CSS já está correto -->
+<link rel="stylesheet" href="plugins/select2/css/select2.min.css">
+<link rel="stylesheet" href="plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
+<link rel="stylesheet" href="dist/css/adminlte.min.css">
 <div class="card card-primary">
   <div class="card-header">
     <h3 class="card-title">Adicionar Coleção</h3>
@@ -55,19 +59,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php if ($erro): ?>
         <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
       <?php endif; ?>
-      <div class="form-group">
-        <label for="nome">Nome</label>
-        <input type="text" class="form-control" id="nome" name="nome" required>
-      </div>
-      <div class="form-group">
-        <label for="estudio_nome">Estudio</label>
-        <input type="text" class="form-control" id="estudio_nome" name="estudio_nome" list="lista_estudios" required autocomplete="off">
-        <datalist id="lista_estudios">
-          <?php foreach ($estudios as $estudio): ?>
-            <option value="<?= htmlspecialchars($estudio['nome']) ?>">
-          <?php endforeach; ?>
-        </datalist>
-        <small id="estudio-msg" class="form-text text-danger" style="display:none;"></small>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="nome">Nome</label>
+            <input type="text" class="form-control" id="nome" name="nome" required>
+          </div>
+          <div class="form-group">
+            <label for="estudio_nome">Estudio</label>
+            <select class="form-control select2" id="estudio_nome" name="estudio_nome" required style="width: 100%;">
+              <option value="">Selecione...</option>
+              <?php foreach ($estudios as $estudio): ?>
+                <option value="<?= htmlspecialchars($estudio['nome']) ?>"><?= htmlspecialchars($estudio['nome']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card-footer">
@@ -76,22 +83,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </form>
 </div>
+<script src="plugins/jquery/jquery.min.js"></script>
+<script src="plugins/select2/js/select2.full.min.js"></script>
 <script>
-  const estudios = [
-    <?php foreach ($estudios as $estudio): ?>
-      "<?= addslashes($estudio['nome']) ?>",
-    <?php endforeach; ?>
-  ];
-
-  document.getElementById('estudio_nome').addEventListener('input', function() {
-    const valor = this.value.trim();
-    const msg = document.getElementById('estudio-msg');
-    if (valor.length > 0 && !estudios.some(e => e.toLowerCase() === valor.toLowerCase())) {
-      msg.textContent = 'Valor ainda não cadastrado';
-      msg.style.display = 'block';
-    } else {
-      msg.textContent = '';
-      msg.style.display = 'none';
-    }
+  $(function () {
+    $('.select2').select2({
+      width: '100%',
+      placeholder: 'Selecione...',
+      allowClear: true
+    });
   });
 </script>
