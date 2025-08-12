@@ -63,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Processa o upload da foto
             if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+                // Antes de processar, sanitize o nome do arquivo
+                $_FILES['foto']['name'] = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $_FILES['foto']['name']);
+                
                 $foto_nome = uploadImagem($_FILES['foto'], $uuid, 'usuarios');
                 if (!$foto_nome) {
                     $erro = 'Formato de imagem não suportado. Use apenas PNG, JPG, WEBP ou GIF.';
@@ -73,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($foto_nome) {
                 $stmtFoto = $pdo->prepare("UPDATE usuarios SET foto = ? WHERE id = ?");
                 $stmtFoto->execute([$foto_nome, $usuario_id]);
+                error_log('Foto salva no banco: ' . $foto_nome);
             }
 
             echo '<script>window.location.href="?pagina=usuarios";</script>';
