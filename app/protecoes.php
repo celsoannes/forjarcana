@@ -101,7 +101,7 @@ if ($pagina_atual === 'colecoes' && $acao === 'editar') {
 // Protege edição de impressora para o próprio usuário
 if ($pagina_atual === 'impressoras3d' && $acao === 'editar') {
     $usuario_id = $_SESSION['usuario_id'] ?? 0;
-    $stmt = $pdo->prepare("SELECT * FROM impressoras3d WHERE id = ? AND usuario_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM impressoras WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $usuario_id]);
     $impressora = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$impressora) {
@@ -113,7 +113,7 @@ if ($pagina_atual === 'impressoras3d' && $acao === 'editar') {
 // Protege exclusão de impressora para o próprio usuário
 if ($pagina_atual === 'impressoras3d' && $acao === 'excluir') {
     $usuario_id = $_SESSION['usuario_id'] ?? 0;
-    $stmt = $pdo->prepare("SELECT * FROM impressoras3d WHERE id = ? AND usuario_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM impressoras WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $usuario_id]);
     $impressora = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$impressora) {
