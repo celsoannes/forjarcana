@@ -422,9 +422,6 @@ if ($pagina_atual === 'energia' && $acao === 'editar') {
 <script src="plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
 <!-- AdminLTE App -->
 <script src="dist/js/adminlte.js"></script>
-<!-- AdminLTE for demo purposes -->
-<script src="dist/js/demo.js"></script>
-<!-- AdminLTE dashboard demo (This is only for demo purposes) -->
 <!-- Bootstrap Colorpicker JS -->
 <script src="plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js"></script>
 <script>

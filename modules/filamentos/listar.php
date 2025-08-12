@@ -111,4 +111,6 @@ document.getElementById('btn-confirmar-excluir-filamento').addEventListener('cli
         document.getElementById('modal-excluir-erro-filamento').classList.remove('d-none');
       }
     });
+  }
+});
 </script>

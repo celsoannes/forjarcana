@@ -47,10 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-group">
         <label for="cor">Cor (HEX, ex: #FF0000)</label>
         <div class="input-group my-colorpicker2">
-          <input type="text" class="form-control" id="cor" name="cor" required placeholder="#RRGGBB">
-          <div class="input-group-append">
+          <div class="input-group-prepend">
             <span class="input-group-text"><i class="fas fa-square"></i></span>
           </div>
+          <input type="text" class="form-control" id="cor" name="cor" required placeholder="#RRGGBB">
         </div>
       </div>
       <div class="form-group">
@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </form>
 </div>
 <link rel="stylesheet" href="<?= $baseUrl ?>/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.min.css">
+<script src="<?= $baseUrl ?>/plugins/jquery/jquery.min.js"></script>
 <script src="<?= $baseUrl ?>/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="<?= $baseUrl ?>/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js"></script>
 <script>
