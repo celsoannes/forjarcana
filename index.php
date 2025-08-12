@@ -80,6 +80,8 @@ if ($pagina_atual === 'energia' && $acao === 'editar') {
   <link rel="stylesheet" href="plugins/daterangepicker/daterangepicker.css">
   <!-- summernote -->
   <link rel="stylesheet" href="plugins/summernote/summernote-bs4.min.css">
+  <!-- Bootstrap Colorpicker CSS -->
+  <link rel="stylesheet" href="plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.min.css">
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
@@ -423,5 +425,15 @@ if ($pagina_atual === 'energia' && $acao === 'editar') {
 <!-- AdminLTE for demo purposes -->
 <script src="dist/js/demo.js"></script>
 <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
+<!-- Bootstrap Colorpicker JS -->
+<script src="plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js"></script>
+<script>
+  $(function () {
+    $('.my-colorpicker2').colorpicker();
+    $('.my-colorpicker2').on('colorpickerChange', function(event) {
+      $('.my-colorpicker2 .fa-square').css('color', event.color.toString());
+    });
+  });
+</script>
 </body>
 </html>

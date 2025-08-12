@@ -9,6 +9,8 @@ function getTituloPagina($pagina) {
             return 'Impressoras 3D';
         case 'componentes':
             return 'Componentes';
+        case 'filamentos':
+            return 'Filamentos';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -25,6 +27,8 @@ function getBreadcrumbPagina($pagina) {
             return 'Impressoras 3D';
         case 'componentes':
             return 'Componentes';
+        case 'filamentos':
+            return 'Filamentos';
         // ... outros casos ...
         default:
             return 'Dashboard';

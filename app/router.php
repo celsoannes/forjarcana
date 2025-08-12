@@ -72,6 +72,21 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/componentes/listar.php';
         }
         break;
+    case 'filamentos':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/filamentos/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/filamentos/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/filamentos/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/filamentos/listar.php';
+        }
+        break;
     default:
         include __DIR__ . '/../modules/dashboard.php';
 }
