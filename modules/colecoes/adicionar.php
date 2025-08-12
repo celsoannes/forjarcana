@@ -71,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="<?= htmlspecialchars($estudio['nome']) ?>"><?= htmlspecialchars($estudio['nome']) ?></option>
           <?php endforeach; ?>
         </select>
+        <small id="estudio-msg" class="form-text text-danger" style="display:none;"></small>
       </div>
     </div>
     <div class="card-footer">
@@ -83,15 +84,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="plugins/select2/js/select2.full.min.js"></script>
 <script>
   $(function () {
+    var estudios = [
+      <?php foreach ($estudios as $estudio): ?>
+        "<?= addslashes($estudio['nome']) ?>",
+      <?php endforeach; ?>
+    ];
+
     $('.select2').select2({
       width: '100%',
       placeholder: 'Selecione...',
       allowClear: true,
-      tags: true, // Permite adicionar novo valor digitado
+      tags: true,
       language: {
         noResults: function() {
           return "Nenhum resultado encontrado";
         }
+      }
+    });
+
+    $('#estudio_nome').on('change input', function() {
+      var valor = $(this).val().trim();
+      var msg = $('#estudio-msg');
+      if (valor.length > 0 && !estudios.some(e => e.toLowerCase() === valor.toLowerCase())) {
+        msg.text('Este estudio ainda não está cadastrado. Será criado ao salvar.');
+        msg.show();
+      } else {
+        msg.hide();
       }
     });
   });
