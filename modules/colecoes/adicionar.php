@@ -86,7 +86,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $('.select2').select2({
       width: '100%',
       placeholder: 'Selecione...',
-      allowClear: true
+      allowClear: true,
+      language: {
+        noResults: function() {
+          return "Nenhum resultado encontrado";
+        }
+      }
     });
   });
 </script>
