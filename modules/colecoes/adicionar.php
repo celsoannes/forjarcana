@@ -59,22 +59,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php if ($erro): ?>
         <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
       <?php endif; ?>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group">
-            <label for="nome">Nome</label>
-            <input type="text" class="form-control" id="nome" name="nome" required>
-          </div>
-          <div class="form-group">
-            <label for="estudio_nome">Estudio</label>
-            <select class="form-control select2" id="estudio_nome" name="estudio_nome" required style="width: 100%;">
-              <option value="">Selecione...</option>
-              <?php foreach ($estudios as $estudio): ?>
-                <option value="<?= htmlspecialchars($estudio['nome']) ?>"><?= htmlspecialchars($estudio['nome']) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-        </div>
+      <div class="form-group">
+        <label for="nome">Nome</label>
+        <input type="text" class="form-control" id="nome" name="nome" required>
+      </div>
+      <div class="form-group">
+        <label for="estudio_nome">Estudio</label>
+        <select class="form-control select2" id="estudio_nome" name="estudio_nome" required style="width: 100%;">
+          <option value="">Selecione...</option>
+          <?php foreach ($estudios as $estudio): ?>
+            <option value="<?= htmlspecialchars($estudio['nome']) ?>"><?= htmlspecialchars($estudio['nome']) ?></option>
+          <?php endforeach; ?>
+        </select>
       </div>
     </div>
     <div class="card-footer">
