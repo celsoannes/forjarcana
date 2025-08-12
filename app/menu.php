@@ -49,9 +49,9 @@ function renderMenu($pagina_atual) {
       </a>
     </li>
     <li class="nav-item">
-      <a href="?pagina=alcool_isopropilico" class="nav-link <?= ($pagina_atual === 'alcool_isopropilico') ? 'active' : '' ?>">
+      <a href="?pagina=alcool" class="nav-link <?= ($pagina_atual === 'alcool') ? 'active' : '' ?>">
         <i class="nav-icon fas fa-tint"></i>
-        <p>Álcool Isopropílico</p>
+        <p>Álcool</p>
       </a>
     </li>
   </ul>

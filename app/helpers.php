@@ -13,6 +13,8 @@ function getTituloPagina($pagina) {
             return 'Filamentos';
         case 'resinas':
             return 'Resinas';
+        case 'alcool':
+            return 'Álcool';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -33,6 +35,8 @@ function getBreadcrumbPagina($pagina) {
             return 'Filamentos';
         case 'resinas':
             return 'Resinas';
+        case 'alcool':
+            return 'Álcool';
         // ... outros casos ...
         default:
             return 'Dashboard';

@@ -102,6 +102,18 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/resinas/listar.php';
         }
         break;
+    case 'alcool':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/alcool/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/alcool/editar.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/alcool/listar.php';
+        }
+        break;
     default:
         include __DIR__ . '/../modules/dashboard.php';
 }

@@ -61,4 +61,16 @@ if ($pagina_atual === 'resinas' && $acao === 'editar') {
         exit;
     }
 }
+
+// Protege edição de álcool para o próprio usuário
+if ($pagina_atual === 'alcool' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM alcool WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $alcool = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$alcool) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
 ?>
