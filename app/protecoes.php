@@ -49,4 +49,16 @@ if ($pagina_atual === 'filamentos' && $acao === 'editar') {
         exit;
     }
 }
+
+// Protege edição de resina para o próprio usuário
+if ($pagina_atual === 'resinas' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM resinas WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $resina = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$resina) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
 ?>

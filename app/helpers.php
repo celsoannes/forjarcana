@@ -11,6 +11,8 @@ function getTituloPagina($pagina) {
             return 'Componentes';
         case 'filamentos':
             return 'Filamentos';
+        case 'resinas':
+            return 'Resinas';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -29,6 +31,8 @@ function getBreadcrumbPagina($pagina) {
             return 'Componentes';
         case 'filamentos':
             return 'Filamentos';
+        case 'resinas':
+            return 'Resinas';
         // ... outros casos ...
         default:
             return 'Dashboard';

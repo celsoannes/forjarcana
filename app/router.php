@@ -87,6 +87,21 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/filamentos/listar.php';
         }
         break;
+    case 'resinas':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/resinas/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/resinas/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/resinas/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/resinas/listar.php';
+        }
+        break;
     default:
         include __DIR__ . '/../modules/dashboard.php';
 }
