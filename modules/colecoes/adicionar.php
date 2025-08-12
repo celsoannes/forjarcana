@@ -21,6 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $estudio = $stmt->fetch(PDO::FETCH_ASSOC);
     $estudio_id = $estudio ? $estudio['id'] : 0;
 
+    // Se não existe, cria o estudio e pega o id
+    if (!$estudio_id && $estudio_nome) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO estudios (usuario_id, nome, site, ultima_atualizacao) VALUES (?, ?, ?, NOW())");
+            $stmt->execute([$usuario_id, $estudio_nome, '']);
+            $estudio_id = $pdo->lastInsertId();
+        } catch (PDOException $e) {
+            $erro = 'Erro ao cadastrar estudio: ' . $e->getMessage();
+        }
+    }
+
     if (!$nome || !$estudio_id) {
         $erro = 'Preencha todos os campos obrigatórios.';
     } else {
@@ -30,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo '<script>window.location.href="?pagina=colecoes";</script>';
             exit;
         } catch (PDOException $e) {
-            $erro = 'Erro ao cadastrar: ' . $e->getMessage();
+            $erro = 'Erro ao cadastrar coleção: ' . $e->getMessage();
         }
     }
 }
@@ -56,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="<?= htmlspecialchars($estudio['nome']) ?>">
           <?php endforeach; ?>
         </datalist>
+        <small id="estudio-msg" class="form-text text-danger" style="display:none;"></small>
       </div>
     </div>
     <div class="card-footer">
@@ -64,3 +76,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </form>
 </div>
+<script>
+  const estudios = [
+    <?php foreach ($estudios as $estudio): ?>
+      "<?= addslashes($estudio['nome']) ?>",
+    <?php endforeach; ?>
+  ];
+
+  document.getElementById('estudio_nome').addEventListener('input', function() {
+    const valor = this.value.trim();
+    const msg = document.getElementById('estudio-msg');
+    if (valor.length > 0 && !estudios.some(e => e.toLowerCase() === valor.toLowerCase())) {
+      msg.textContent = 'Valor ainda não cadastrado';
+      msg.style.display = 'block';
+    } else {
+      msg.textContent = '';
+      msg.style.display = 'none';
+    }
+  });
+</script>
