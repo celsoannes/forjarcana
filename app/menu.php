@@ -16,7 +16,7 @@ function renderMenu($pagina_atual) {
     <li class="nav-header">EQUIPAMENTOS</li>
     <li class="nav-item">
       <a href="?pagina=impressoras3d" class="nav-link <?= ($pagina_atual === 'impressoras3d') ? 'active' : '' ?>">
-        <i class="nav-icon fas fa-cube"></i>
+        <i class="nav-icon fas fa-microscope"></i>
         <p>Impressoras 3D</p>
       </a>
     </li>
@@ -58,7 +58,7 @@ function renderMenu($pagina_atual) {
     <li class="nav-header">BIBLIOTECA</li>
     <li class="nav-item">
       <a href="?pagina=estudios" class="nav-link <?= ($pagina_atual === 'estudios') ? 'active' : '' ?>">
-        <i class="nav-icon fas fa-university"></i>
+        <i class="nav-icon fas fa-cube"></i>
         <p>Estudios</p>
       </a>
     </li>
