@@ -13,7 +13,13 @@ $estudios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim($_POST['nome'] ?? '');
-    $estudio_id = intval($_POST['estudio_id'] ?? 0);
+    $estudio_nome = trim($_POST['estudio_nome'] ?? '');
+
+    // Busca o id do estudio pelo nome
+    $stmt = $pdo->prepare("SELECT id FROM estudios WHERE nome = ? AND usuario_id = ?");
+    $stmt->execute([$estudio_nome, $usuario_id]);
+    $estudio = $stmt->fetch(PDO::FETCH_ASSOC);
+    $estudio_id = $estudio ? $estudio['id'] : 0;
 
     if (!$nome || !$estudio_id) {
         $erro = 'Preencha todos os campos obrigatórios.';
@@ -43,13 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="text" class="form-control" id="nome" name="nome" required>
       </div>
       <div class="form-group">
-        <label for="estudio_id">Estudio</label>
-        <select class="form-control" id="estudio_id" name="estudio_id" required>
-          <option value="">Selecione...</option>
+        <label for="estudio_nome">Estudio</label>
+        <input type="text" class="form-control" id="estudio_nome" name="estudio_nome" list="lista_estudios" required autocomplete="off">
+        <datalist id="lista_estudios">
           <?php foreach ($estudios as $estudio): ?>
-            <option value="<?= $estudio['id'] ?>"><?= htmlspecialchars($estudio['nome']) ?></option>
+            <option value="<?= htmlspecialchars($estudio['nome']) ?>">
           <?php endforeach; ?>
-        </select>
+        </datalist>
       </div>
     </div>
     <div class="card-footer">
