@@ -87,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       width: '100%',
       placeholder: 'Selecione...',
       allowClear: true,
+      tags: true, // Permite adicionar novo valor digitado
       language: {
         noResults: function() {
           return "Nenhum resultado encontrado";
