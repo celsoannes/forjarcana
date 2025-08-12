@@ -83,5 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $('.my-colorpicker2').on('colorpickerChange', function(event) {
       $('.my-colorpicker2 .fa-square').css('color', event.color.toString());
     });
+    // Ao clicar em qualquer parte do grupo, abre o colorpicker
+    $('.my-colorpicker2').on('click', function(e) {
+      // Evita abrir duas vezes se clicar no input
+      if (!$(e.target).is('input')) {
+        $(this).find('input').focus().trigger('click');
+      }
+    });
   });
 </script>
