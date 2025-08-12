@@ -73,4 +73,28 @@ if ($pagina_atual === 'alcool' && $acao === 'editar') {
         exit;
     }
 }
+
+// Protege edição de estudio para o próprio usuário
+if ($pagina_atual === 'estudios' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM estudios WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $estudio = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$estudio) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
+
+// Protege edição de coleção para o próprio usuário
+if ($pagina_atual === 'colecoes' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM colecoes WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $colecao = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$colecao) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
 ?>

@@ -114,6 +114,36 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/alcool/listar.php';
         }
         break;
+    case 'estudios':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/estudios/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/estudios/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/estudios/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/estudios/listar.php';
+        }
+        break;
+    case 'colecoes':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/colecoes/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/colecoes/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/colecoes/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/colecoes/listar.php';
+        }
+        break;
     default:
         include __DIR__ . '/../modules/dashboard.php';
 }

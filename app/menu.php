@@ -54,6 +54,20 @@ function renderMenu($pagina_atual) {
         <p>Álcool</p>
       </a>
     </li>
+
+    <li class="nav-header">BIBLIOTECA</li>
+    <li class="nav-item">
+      <a href="?pagina=estudios" class="nav-link <?= ($pagina_atual === 'estudios') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-university"></i>
+        <p>Estudios</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="?pagina=colecoes" class="nav-link <?= ($pagina_atual === 'colecoes') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-folder-open"></i>
+        <p>Coleções</p>
+      </a>
+    </li>
   </ul>
 </nav>
 <?php
