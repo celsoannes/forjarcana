@@ -53,6 +53,9 @@ switch ($pagina) {
             case 'editar':
                 include __DIR__ . '/../modules/impressoras3d/editar.php';
                 break;
+            case 'excluir':
+                include __DIR__ . '/../modules/impressoras3d/excluir.php';
+                break;
             default:
                 include __DIR__ . '/../modules/impressoras3d/listar.php';
         }

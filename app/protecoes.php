@@ -97,4 +97,28 @@ if ($pagina_atual === 'colecoes' && $acao === 'editar') {
         exit;
     }
 }
+
+// Protege edição de impressora para o próprio usuário
+if ($pagina_atual === 'impressoras3d' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM impressoras3d WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $impressora = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$impressora) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
+
+// Protege exclusão de impressora para o próprio usuário
+if ($pagina_atual === 'impressoras3d' && $acao === 'excluir') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM impressoras3d WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $impressora = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$impressora) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
 ?>
