@@ -1,0 +1,52 @@
+<?php
+// filepath: /var/www/html/forjarcana/app/protecoes.php
+
+// Redireciona para login se não estiver autenticado
+
+if (!usuario_logado()) {
+    header('Location: app/login.php');
+    exit;
+}
+
+// Protege todas as rotas de usuários para admin
+if ($pagina_atual === 'usuarios' && (!isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] !== 'admin')) {
+    require_once __DIR__ . '/../404.php';
+    exit;
+}
+
+// Protege edição de componente para o próprio usuário
+if ($pagina_atual === 'componentes' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM componentes WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $componente = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$componente) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
+
+// Protege edição de energia para o próprio usuário
+if ($pagina_atual === 'energia' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM energia WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $energia = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$energia) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
+
+// Protege edição de filamento para o próprio usuário
+if ($pagina_atual === 'filamentos' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM filamento WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $filamento = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$filamento) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
+?>

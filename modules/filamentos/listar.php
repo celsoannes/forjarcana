@@ -38,7 +38,7 @@ $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <td><?= htmlspecialchars($filamento['marca']) ?></td>
               <td>
                 <?php if (!empty($filamento['cor'])): ?>
-                  <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($filamento['cor']) ?>;"></i>
+                  <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($filamento['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
                 <?php else: ?>
                   <span class="text-muted">-</span>
                 <?php endif; ?>
