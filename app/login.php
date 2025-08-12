@@ -33,9 +33,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_sobrenome'] = $usuario['sobrenome'];
             $_SESSION['usuario_cargo'] = $usuario['cargo'];
             $_SESSION['usuario_uuid'] = $usuario['uuid'];
-            $_SESSION['usuario_foto'] = $usuario['foto'];
             $_SESSION['usuario_celular'] = $usuario['celular'];
             $_SESSION['usuario_cpf'] = $usuario['cpf'];
+
+            // Carrega a thumbnail da foto, se existir
+            if (!empty($usuario['foto'])) {
+                $foto = $usuario['foto'];
+                $thumb = str_replace('_media.png', '_thumb.png', $foto);
+                $thumbPath = __DIR__ . '/../' . $thumb;
+                if (file_exists($thumbPath)) {
+                    $_SESSION['usuario_foto'] = $thumb;
+                } else {
+                    $_SESSION['usuario_foto'] = $foto;
+                }
+            } else {
+                $_SESSION['usuario_foto'] = '';
+            }
+
             header("Location: ../index.php");
             exit;
         }

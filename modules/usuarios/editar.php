@@ -95,8 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($foto_nome) {
                 $stmtFoto = $pdo->prepare("UPDATE usuarios SET foto = ? WHERE id = ?");
                 $stmtFoto->execute([$foto_nome, $usuario_id]);
-                // Atualiza a sessão com a nova foto
-                $_SESSION['usuario_foto'] = $foto_nome;
+                // Carrega a thumbnail na sessão
+                $thumb = str_replace('_media.png', '_thumb.png', $foto_nome);
+                $thumbPath = __DIR__ . '/../../' . $thumb;
+                if (file_exists($thumbPath)) {
+                    $_SESSION['usuario_foto'] = $thumb;
+                } else {
+                    $_SESSION['usuario_foto'] = $foto_nome;
+                }
             }
 
             echo '<script>window.location.href="?pagina=usuarios";</script>';
