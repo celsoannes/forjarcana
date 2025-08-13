@@ -16,18 +16,18 @@ CREATE TABLE impressoes (
     imagens_impressao INT,
     data_criacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ultima_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    valor_energia DECIMAL(10,8) NOT NULL,
+    valor_energia DECIMAL(10,8),
     peso_material INT NOT NULL,
-    custo_material DECIMAL(10,2) NOT NULL,
+    custo_material DECIMAL(10,2),
     custo_lavagem_alcool DECIMAL(10,2),
-    custo_energia DECIMAL(10,2) NOT NULL,
-    depreciacao DECIMAL(10,2) NOT NULL,
-    custo_total_impressao DECIMAL(10,2) NOT NULL,
-    custo_por_unidade DECIMAL(10,2) NOT NULL,
-    lucro DECIMAL(10,2) NOT NULL,
-    porcentagem_lucro INT NOT NULL,
-    preco_venda_sugerido DECIMAL(10,2) NOT NULL,
-    preco_venda_sugerido_unidade DECIMAL(10,2) NOT NULL,
+    custo_energia DECIMAL(10,2),
+    depreciacao DECIMAL(10,2),
+    custo_total_impressao DECIMAL(10,2),
+    custo_por_unidade DECIMAL(10,2),
+    lucro DECIMAL(10,2),
+    porcentagem_lucro INT,
+    preco_venda_sugerido DECIMAL(10,2),
+    preco_venda_sugerido_unidade DECIMAL(10,2),
     observacoes TEXT,
     sku VARCHAR(50) UNIQUE,
     usuario_id INT UNSIGNED NOT NULL,
@@ -259,6 +259,34 @@ BEGIN
         SET custo_lavagem = custo_ml * NEW.peso_material;
         UPDATE impressoes SET custo_lavagem_alcool = custo_lavagem WHERE id = NEW.id;
     END IF;
+END;
+//
+
+CREATE TRIGGER impressoes_set_valor_energia_after_insert
+AFTER INSERT ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE valor_kwh DECIMAL(10,8);
+
+    -- Busca o valor do kWh do usuário
+    SELECT valor_kwh INTO valor_kwh FROM energia WHERE usuario_id = NEW.usuario_id;
+
+    -- Atualiza o valor na tabela impressoes
+    UPDATE impressoes SET valor_energia = valor_kwh WHERE id = NEW.id;
+END;
+//
+
+CREATE TRIGGER impressoes_set_valor_energia_after_update
+AFTER UPDATE ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE valor_kwh DECIMAL(10,8);
+
+    -- Busca o valor do kWh do usuário
+    SELECT valor_kwh INTO valor_kwh FROM energia WHERE usuario_id = NEW.usuario_id;
+
+    -- Atualiza o valor na tabela impressoes
+    UPDATE impressoes SET valor_energia = valor_kwh WHERE id = NEW.id;
 END;
 //
 
