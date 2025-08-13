@@ -144,23 +144,121 @@ BEGIN
 END;
 //
 
-CREATE TRIGGER atualiza_depreciacao_impressoes_after_insert
-AFTER INSERT ON impressoras
+CREATE TRIGGER impressoes_set_depreciacao_after_insert
+AFTER INSERT ON impressoes
 FOR EACH ROW
 BEGIN
-    UPDATE impressoes
-    SET depreciacao = NEW.depreciacao
-    WHERE impressora_id = NEW.id;
+    DECLARE valor_depreciacao INT;
+    SELECT depreciacao INTO valor_depreciacao
+    FROM impressoras WHERE id = NEW.impressora_id;
+    UPDATE impressoes SET depreciacao = valor_depreciacao WHERE id = NEW.id;
 END;
 //
 
-CREATE TRIGGER atualiza_depreciacao_impressoes_after_update
-AFTER UPDATE ON impressoras
+CREATE TRIGGER impressoes_set_depreciacao_after_update
+AFTER UPDATE ON impressoes
 FOR EACH ROW
 BEGIN
-    UPDATE impressoes
-    SET depreciacao = NEW.depreciacao
-    WHERE impressora_id = NEW.id;
+    DECLARE valor_depreciacao INT;
+    SELECT depreciacao INTO valor_depreciacao
+    FROM impressoras WHERE id = NEW.impressora_id;
+    UPDATE impressoes SET depreciacao = valor_depreciacao WHERE id = NEW.id;
+END;
+//
+
+CREATE TRIGGER impressoes_set_custo_material_after_insert
+AFTER INSERT ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE tipo_impressora ENUM('FDM', 'Resina');
+    DECLARE valor_material DECIMAL(10,2);
+    DECLARE custo_material_calc DECIMAL(10,2);
+
+    -- Busca o tipo da impressora
+    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
+
+    -- Busca o valor do material conforme o tipo
+    IF tipo_impressora = 'FDM' THEN
+        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
+    ELSEIF tipo_impressora = 'Resina' THEN
+        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
+    END IF;
+
+    -- Calcula o custo do material
+    SET custo_material_calc = NEW.peso_material * valor_material;
+
+    -- Atualiza o valor na tabela impressoes
+    UPDATE impressoes SET custo_material = custo_material_calc WHERE id = NEW.id;
+END;
+//
+
+CREATE TRIGGER impressoes_set_custo_material_after_update
+AFTER UPDATE ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE tipo_impressora ENUM('FDM', 'Resina');
+    DECLARE valor_material DECIMAL(10,2);
+    DECLARE custo_material_calc DECIMAL(10,2);
+
+    -- Busca o tipo da impressora
+    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
+
+    -- Busca o valor do material conforme o tipo
+    IF tipo_impressora = 'FDM' THEN
+        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
+    ELSEIF tipo_impressora = 'Resina' THEN
+        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
+    END IF;
+
+    -- Calcula o custo do material
+    SET custo_material_calc = NEW.peso_material * valor_material;
+
+    -- Atualiza o valor na tabela impressoes
+    UPDATE impressoes SET custo_material = custo_material_calc WHERE id = NEW.id;
+END;
+//
+
+CREATE TRIGGER impressoes_set_custo_lavagem_alcool_after_insert
+AFTER INSERT ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE tipo_impressora ENUM('FDM', 'Resina');
+    DECLARE preco_litro DECIMAL(10,2);
+    DECLARE custo_ml DECIMAL(10,4);
+    DECLARE custo_lavagem DECIMAL(10,2);
+
+    -- Busca o tipo da impressora
+    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
+
+    IF tipo_impressora = 'Resina' THEN
+        -- Busca o preço do litro do álcool do usuário
+        SELECT preco_litro INTO preco_litro FROM alcool WHERE usuario_id = NEW.usuario_id;
+        SET custo_ml = preco_litro / 1000;
+        SET custo_lavagem = custo_ml * NEW.peso_material;
+        UPDATE impressoes SET custo_lavagem_alcool = custo_lavagem WHERE id = NEW.id;
+    END IF;
+END;
+//
+
+CREATE TRIGGER impressoes_set_custo_lavagem_alcool_after_update
+AFTER UPDATE ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE tipo_impressora ENUM('FDM', 'Resina');
+    DECLARE preco_litro DECIMAL(10,2);
+    DECLARE custo_ml DECIMAL(10,4);
+    DECLARE custo_lavagem DECIMAL(10,2);
+
+    -- Busca o tipo da impressora
+    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
+
+    IF tipo_impressora = 'Resina' THEN
+        -- Busca o preço do litro do álcool do usuário
+        SELECT preco_litro INTO preco_litro FROM alcool WHERE usuario_id = NEW.usuario_id;
+        SET custo_ml = preco_litro / 1000;
+        SET custo_lavagem = custo_ml * NEW.peso_material;
+        UPDATE impressoes SET custo_lavagem_alcool = custo_lavagem WHERE id = NEW.id;
+    END IF;
 END;
 //
 
