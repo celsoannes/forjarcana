@@ -17,7 +17,6 @@ $energia = $stmt->fetch(PDO::FETCH_ASSOC);
             <th>Valor Última Conta (R$)</th>
             <th>Energia Elétrica (kWh)</th>
             <th>Valor kWh (R$)</th>
-            <th>Fator de uso (%)</th>
             <th>Última Atualização</th>
             <th class="text-right">Ações</th>
           </tr>
@@ -28,7 +27,6 @@ $energia = $stmt->fetch(PDO::FETCH_ASSOC);
             <td><?= number_format($energia['valor_ultima_conta'], 2, ',', '.') ?></td>
             <td><?= htmlspecialchars($energia['energia_eletrica']) ?></td>
             <td><?= number_format($energia['valor_kwh'], 8, ',', '.') ?></td>
-            <td><?= isset($energia['fator_uso']) ? htmlspecialchars($energia['fator_uso']) : '-' ?></td>
             <td>
               <?php
                 if (!empty($energia['ultima_atualizacao'])) {
