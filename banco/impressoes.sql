@@ -37,3 +37,131 @@ CREATE TABLE impressoes (
     FOREIGN KEY (material_id) REFERENCES filamento(id) ON DELETE CASCADE,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DELIMITER //
+
+CREATE TRIGGER impressoes_before_insert
+BEFORE INSERT ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE potencia_watts INT;
+    DECLARE fator_uso DECIMAL(5,2);
+    DECLARE custo_kwh DECIMAL(10,8);
+    DECLARE tempo_horas DECIMAL(10,4);
+
+    -- Busca os valores necessários
+    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
+    FROM impressoras WHERE id = NEW.impressora_id;
+
+    SELECT valor_kwh INTO custo_kwh
+    FROM energia WHERE usuario_id = NEW.usuario_id;
+
+    -- Converte tempo de minutos para horas
+    SET tempo_horas = NEW.tempo_impressao / 60;
+
+    -- Converte fator_uso de porcentagem para decimal
+    SET fator_uso = fator_uso / 100;
+
+    -- Calcula o custo de energia
+    SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
+END;
+//
+
+CREATE TRIGGER impressoes_before_update
+BEFORE UPDATE ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE potencia_watts INT;
+    DECLARE fator_uso DECIMAL(5,2);
+    DECLARE custo_kwh DECIMAL(10,8);
+    DECLARE tempo_horas DECIMAL(10,4);
+
+    -- Busca os valores necessários
+    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
+    FROM impressoras WHERE id = NEW.impressora_id;
+
+    SELECT valor_kwh INTO custo_kwh
+    FROM energia WHERE usuario_id = NEW.usuario_id;
+
+    -- Converte tempo de minutos para horas
+    SET tempo_horas = NEW.tempo_impressao / 60;
+
+    -- Converte fator_uso de porcentagem para decimal
+    SET fator_uso = fator_uso / 100;
+
+    -- Calcula o custo de energia
+    SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
+END;
+//
+
+CREATE TRIGGER impressoes_after_insert
+AFTER INSERT ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE potencia_watts INT;
+    DECLARE fator_uso DECIMAL(5,2);
+    DECLARE custo_kwh DECIMAL(10,8);
+    DECLARE tempo_horas DECIMAL(10,4);
+    DECLARE custo_energia_calc DECIMAL(10,2);
+
+    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
+    FROM impressoras WHERE id = NEW.impressora_id;
+
+    SELECT valor_kwh INTO custo_kwh
+    FROM energia WHERE usuario_id = NEW.usuario_id;
+
+    SET tempo_horas = NEW.tempo_impressao / 60;
+    SET fator_uso = fator_uso / 100;
+
+    SET custo_energia_calc = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
+
+    UPDATE impressoes SET custo_energia = custo_energia_calc WHERE id = NEW.id;
+END;
+//
+
+CREATE TRIGGER impressoes_after_update
+AFTER UPDATE ON impressoes
+FOR EACH ROW
+BEGIN
+    DECLARE potencia_watts INT;
+    DECLARE fator_uso DECIMAL(5,2);
+    DECLARE custo_kwh DECIMAL(10,8);
+    DECLARE tempo_horas DECIMAL(10,4);
+    DECLARE custo_energia_calc DECIMAL(10,2);
+
+    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
+    FROM impressoras WHERE id = NEW.impressora_id;
+
+    SELECT valor_kwh INTO custo_kwh
+    FROM energia WHERE usuario_id = NEW.usuario_id;
+
+    SET tempo_horas = NEW.tempo_impressao / 60;
+    SET fator_uso = fator_uso / 100;
+
+    SET custo_energia_calc = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
+
+    UPDATE impressoes SET custo_energia = custo_energia_calc WHERE id = NEW.id;
+END;
+//
+
+CREATE TRIGGER atualiza_depreciacao_impressoes_after_insert
+AFTER INSERT ON impressoras
+FOR EACH ROW
+BEGIN
+    UPDATE impressoes
+    SET depreciacao = NEW.depreciacao
+    WHERE impressora_id = NEW.id;
+END;
+//
+
+CREATE TRIGGER atualiza_depreciacao_impressoes_after_update
+AFTER UPDATE ON impressoras
+FOR EACH ROW
+BEGIN
+    UPDATE impressoes
+    SET depreciacao = NEW.depreciacao
+    WHERE impressora_id = NEW.id;
+END;
+//
+
+DELIMITER ;

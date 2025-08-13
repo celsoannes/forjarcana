@@ -58,18 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     $taxa_falha = intval($_POST['taxa_falha'] ?? 0);
     $observacoes = trim($_POST['observacoes'] ?? '');
     $peso_material = intval($_POST['peso_material'] ?? 0);
-    $custo_material = 0.0;
-
-    // Calcular custo do material
-    if ($material_tipo === 'filamento' && $material) {
-        // preco_kilo está em reais por 1000g
-        $preco_kilo = floatval($material['preco_kilo']);
-        $custo_material = ($peso_material / 1000) * $preco_kilo;
-    } elseif ($material_tipo === 'resina' && $material) {
-        // preco_litro está em reais por 1000ml
-        $preco_litro = floatval($material['preco_litro']);
-        $custo_material = ($peso_material / 1000) * $preco_litro;
-    }
 
     $campos_faltando = [];
     if ($margem_lucro <= 0) $campos_faltando[] = 'Margem de Lucro';
@@ -80,25 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
         $erro = 'Preencha os campos obrigatórios: ' . implode(', ', $campos_faltando) . '.';
     } else {
         try {
-            $stmt = $pdo->prepare("SELECT valor_ultima_conta, energia_eletrica FROM energia WHERE usuario_id = ?");
-            $stmt->execute([$usuario_id]);
-            $energia = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            $valor_ultima_conta = isset($energia['valor_ultima_conta']) ? floatval($energia['valor_ultima_conta']) : 0;
-            $energia_eletrica = isset($energia['energia_eletrica']) ? floatval($energia['energia_eletrica']) : 0;
-
-            // Calcula o valor do kWh
-            $valor_kwh = ($energia_eletrica > 0) ? ($valor_ultima_conta / $energia_eletrica) : 0;
-
-            // Cálculo do custo de energia
-            $potencia_watts = intval($impressora_escolhida['potencia']);
-            $potencia_kw = $potencia_watts / 1000;
-            $horas_uso = $tempo_impressao / 60;
-            $custo_energia = $potencia_kw * $horas_uso * $valor_kwh;
-
             $stmt = $pdo->prepare("INSERT INTO impressoes 
-                (nome, nome_original, arquivo_impressao, impressora_id, material_id, tempo_impressao, imagem_capa, unidades_produzidas, margem_lucro, taxa_falha, estudio_id, colecao_id, usuario_id, valor_energia, peso_material, custo_material, custo_energia, ultima_atualizacao) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                (nome, nome_original, arquivo_impressao, impressora_id, material_id, tempo_impressao, imagem_capa, unidades_produzidas, margem_lucro, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $nome,
                 $nome_original,
@@ -113,10 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                 $estudio_id ?: null,
                 $colecao_id ?: null,
                 $usuario_id,
-                $valor_kwh, // agora valor_energia é o valor calculado do kWh
-                $peso_material,
-                $custo_material,
-                $custo_energia
+                $peso_material
             ]);
             echo '<script>window.location.href="?pagina=impressoes";</script>';
             exit;
