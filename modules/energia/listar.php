@@ -13,6 +13,7 @@ $energia = $stmt->fetch(PDO::FETCH_ASSOC);
       <table class="table table-hover text-nowrap">
         <thead>
           <tr>
+            <th>Prestadora</th>
             <th>Valor Última Conta (R$)</th>
             <th>Energia Elétrica (kWh)</th>
             <th>Valor kWh (R$)</th>
@@ -22,6 +23,7 @@ $energia = $stmt->fetch(PDO::FETCH_ASSOC);
         </thead>
         <tbody>
           <tr>
+            <td><?= htmlspecialchars($energia['prestadora']) ?></td>
             <td><?= number_format($energia['valor_ultima_conta'], 2, ',', '.') ?></td>
             <td><?= htmlspecialchars($energia['energia_eletrica']) ?></td>
             <td><?= number_format($energia['valor_kwh'], 8, ',', '.') ?></td>
