@@ -68,11 +68,11 @@ BEGIN
     -- Converte fator_uso de porcentagem para decimal
     SET fator_uso = fator_uso / 100;
 
-    -- Calcula o custo de energia
-    SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
-
     -- Preenche valor_energia
     SET NEW.valor_energia = custo_kwh;
+
+    -- Calcula o custo de energia
+    SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
 
     -- Calcula custo_material
     IF tipo_impressora = 'FDM' THEN
@@ -119,19 +119,19 @@ BEGIN
     -- Converte fator_uso de porcentagem para decimal
     SET fator_uso = fator_uso / 100;
 
-    -- Calcula o custo de energia
-    SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
-
     -- Preenche valor_energia
     SET NEW.valor_energia = custo_kwh;
+
+    -- Calcula o custo de energia
+    SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
 
     -- Calcula custo_material
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
-        SET NEW.custo_material = NEW.peso_material * valor_material;
+        SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
     ELSEIF tipo_impressora = 'Resina' THEN
         SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
-        SET NEW.custo_material = NEW.peso_material * valor_material;
+        SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
 
         -- Calcula custo_lavagem_alcool
         SELECT preco_litro INTO preco_litro_alcool FROM alcool WHERE usuario_id = NEW.usuario_id;
