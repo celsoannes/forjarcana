@@ -46,12 +46,18 @@ FOR EACH ROW
 BEGIN
     DECLARE potencia_watts INT;
     DECLARE fator_uso DECIMAL(5,2);
+    DECLARE tipo_impressora ENUM('FDM', 'Resina');
+    DECLARE valor_material DECIMAL(10,2);
+    DECLARE preco_litro_alcool DECIMAL(10,2);
     DECLARE custo_kwh DECIMAL(10,8);
     DECLARE tempo_horas DECIMAL(10,4);
+    DECLARE valor_depreciacao DECIMAL(10,2);
 
     -- Busca os valores necessários
-    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
+    SELECT potencia, fator_uso, tipo, depreciacao INTO potencia_watts, fator_uso, tipo_impressora, valor_depreciacao
     FROM impressoras WHERE id = NEW.impressora_id;
+
+    SET NEW.depreciacao = valor_depreciacao;
 
     SELECT valor_kwh INTO custo_kwh
     FROM energia WHERE usuario_id = NEW.usuario_id;
@@ -64,6 +70,24 @@ BEGIN
 
     -- Calcula o custo de energia
     SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
+
+    -- Preenche valor_energia
+    SET NEW.valor_energia = custo_kwh;
+
+    -- Calcula custo_material
+    IF tipo_impressora = 'FDM' THEN
+        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
+        SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
+    ELSEIF tipo_impressora = 'Resina' THEN
+        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
+        SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
+
+        -- Calcula custo_lavagem_alcool
+        SELECT preco_litro INTO preco_litro_alcool FROM alcool WHERE usuario_id = NEW.usuario_id;
+        SET NEW.custo_lavagem_alcool = (preco_litro_alcool / 1000) * NEW.peso_material;
+    ELSE
+        SET NEW.custo_lavagem_alcool = NULL;
+    END IF;
 END;
 //
 
@@ -73,12 +97,18 @@ FOR EACH ROW
 BEGIN
     DECLARE potencia_watts INT;
     DECLARE fator_uso DECIMAL(5,2);
+    DECLARE tipo_impressora ENUM('FDM', 'Resina');
+    DECLARE valor_material DECIMAL(10,2);
+    DECLARE preco_litro_alcool DECIMAL(10,2);
     DECLARE custo_kwh DECIMAL(10,8);
     DECLARE tempo_horas DECIMAL(10,4);
+    DECLARE valor_depreciacao DECIMAL(10,2);
 
     -- Busca os valores necessários
-    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
+    SELECT potencia, fator_uso, tipo, depreciacao INTO potencia_watts, fator_uso, tipo_impressora, valor_depreciacao
     FROM impressoras WHERE id = NEW.impressora_id;
+
+    SET NEW.depreciacao = valor_depreciacao;
 
     SELECT valor_kwh INTO custo_kwh
     FROM energia WHERE usuario_id = NEW.usuario_id;
@@ -91,202 +121,24 @@ BEGIN
 
     -- Calcula o custo de energia
     SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
-END;
-//
 
-CREATE TRIGGER impressoes_after_insert
-AFTER INSERT ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE potencia_watts INT;
-    DECLARE fator_uso DECIMAL(5,2);
-    DECLARE custo_kwh DECIMAL(10,8);
-    DECLARE tempo_horas DECIMAL(10,4);
-    DECLARE custo_energia_calc DECIMAL(10,2);
+    -- Preenche valor_energia
+    SET NEW.valor_energia = custo_kwh;
 
-    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
-    FROM impressoras WHERE id = NEW.impressora_id;
-
-    SELECT valor_kwh INTO custo_kwh
-    FROM energia WHERE usuario_id = NEW.usuario_id;
-
-    SET tempo_horas = NEW.tempo_impressao / 60;
-    SET fator_uso = fator_uso / 100;
-
-    SET custo_energia_calc = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
-
-    UPDATE impressoes SET custo_energia = custo_energia_calc WHERE id = NEW.id;
-END;
-//
-
-CREATE TRIGGER impressoes_after_update
-AFTER UPDATE ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE potencia_watts INT;
-    DECLARE fator_uso DECIMAL(5,2);
-    DECLARE custo_kwh DECIMAL(10,8);
-    DECLARE tempo_horas DECIMAL(10,4);
-    DECLARE custo_energia_calc DECIMAL(10,2);
-
-    SELECT potencia, fator_uso INTO potencia_watts, fator_uso
-    FROM impressoras WHERE id = NEW.impressora_id;
-
-    SELECT valor_kwh INTO custo_kwh
-    FROM energia WHERE usuario_id = NEW.usuario_id;
-
-    SET tempo_horas = NEW.tempo_impressao / 60;
-    SET fator_uso = fator_uso / 100;
-
-    SET custo_energia_calc = (potencia_watts * tempo_horas * fator_uso * custo_kwh) / 1000;
-
-    UPDATE impressoes SET custo_energia = custo_energia_calc WHERE id = NEW.id;
-END;
-//
-
-CREATE TRIGGER impressoes_set_depreciacao_after_insert
-AFTER INSERT ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE valor_depreciacao INT;
-    SELECT depreciacao INTO valor_depreciacao
-    FROM impressoras WHERE id = NEW.impressora_id;
-    UPDATE impressoes SET depreciacao = valor_depreciacao WHERE id = NEW.id;
-END;
-//
-
-CREATE TRIGGER impressoes_set_depreciacao_after_update
-AFTER UPDATE ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE valor_depreciacao INT;
-    SELECT depreciacao INTO valor_depreciacao
-    FROM impressoras WHERE id = NEW.impressora_id;
-    UPDATE impressoes SET depreciacao = valor_depreciacao WHERE id = NEW.id;
-END;
-//
-
-CREATE TRIGGER impressoes_set_custo_material_after_insert
-AFTER INSERT ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE tipo_impressora ENUM('FDM', 'Resina');
-    DECLARE valor_material DECIMAL(10,2);
-    DECLARE custo_material_calc DECIMAL(10,2);
-
-    -- Busca o tipo da impressora
-    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
-
-    -- Busca o valor do material conforme o tipo
+    -- Calcula custo_material
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
+        SET NEW.custo_material = NEW.peso_material * valor_material;
     ELSEIF tipo_impressora = 'Resina' THEN
         SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
+        SET NEW.custo_material = NEW.peso_material * valor_material;
+
+        -- Calcula custo_lavagem_alcool
+        SELECT preco_litro INTO preco_litro_alcool FROM alcool WHERE usuario_id = NEW.usuario_id;
+        SET NEW.custo_lavagem_alcool = (preco_litro_alcool / 1000) * NEW.peso_material;
+    ELSE
+        SET NEW.custo_lavagem_alcool = NULL;
     END IF;
-
-    -- Calcula o custo do material
-    SET custo_material_calc = NEW.peso_material * valor_material;
-
-    -- Atualiza o valor na tabela impressoes
-    UPDATE impressoes SET custo_material = custo_material_calc WHERE id = NEW.id;
-END;
-//
-
-CREATE TRIGGER impressoes_set_custo_material_after_update
-AFTER UPDATE ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE tipo_impressora ENUM('FDM', 'Resina');
-    DECLARE valor_material DECIMAL(10,2);
-    DECLARE custo_material_calc DECIMAL(10,2);
-
-    -- Busca o tipo da impressora
-    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
-
-    -- Busca o valor do material conforme o tipo
-    IF tipo_impressora = 'FDM' THEN
-        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
-    ELSEIF tipo_impressora = 'Resina' THEN
-        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
-    END IF;
-
-    -- Calcula o custo do material
-    SET custo_material_calc = NEW.peso_material * valor_material;
-
-    -- Atualiza o valor na tabela impressoes
-    UPDATE impressoes SET custo_material = custo_material_calc WHERE id = NEW.id;
-END;
-//
-
-CREATE TRIGGER impressoes_set_custo_lavagem_alcool_after_insert
-AFTER INSERT ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE tipo_impressora ENUM('FDM', 'Resina');
-    DECLARE preco_litro DECIMAL(10,2);
-    DECLARE custo_ml DECIMAL(10,4);
-    DECLARE custo_lavagem DECIMAL(10,2);
-
-    -- Busca o tipo da impressora
-    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
-
-    IF tipo_impressora = 'Resina' THEN
-        -- Busca o preço do litro do álcool do usuário
-        SELECT preco_litro INTO preco_litro FROM alcool WHERE usuario_id = NEW.usuario_id;
-        SET custo_ml = preco_litro / 1000;
-        SET custo_lavagem = custo_ml * NEW.peso_material;
-        UPDATE impressoes SET custo_lavagem_alcool = custo_lavagem WHERE id = NEW.id;
-    END IF;
-END;
-//
-
-CREATE TRIGGER impressoes_set_custo_lavagem_alcool_after_update
-AFTER UPDATE ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE tipo_impressora ENUM('FDM', 'Resina');
-    DECLARE preco_litro DECIMAL(10,2);
-    DECLARE custo_ml DECIMAL(10,4);
-    DECLARE custo_lavagem DECIMAL(10,2);
-
-    -- Busca o tipo da impressora
-    SELECT tipo INTO tipo_impressora FROM impressoras WHERE id = NEW.impressora_id;
-
-    IF tipo_impressora = 'Resina' THEN
-        -- Busca o preço do litro do álcool do usuário
-        SELECT preco_litro INTO preco_litro FROM alcool WHERE usuario_id = NEW.usuario_id;
-        SET custo_ml = preco_litro / 1000;
-        SET custo_lavagem = custo_ml * NEW.peso_material;
-        UPDATE impressoes SET custo_lavagem_alcool = custo_lavagem WHERE id = NEW.id;
-    END IF;
-END;
-//
-
-CREATE TRIGGER impressoes_set_valor_energia_after_insert
-AFTER INSERT ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE valor_kwh DECIMAL(10,8);
-
-    -- Busca o valor do kWh do usuário
-    SELECT valor_kwh INTO valor_kwh FROM energia WHERE usuario_id = NEW.usuario_id;
-
-    -- Atualiza o valor na tabela impressoes
-    UPDATE impressoes SET valor_energia = valor_kwh WHERE id = NEW.id;
-END;
-//
-
-CREATE TRIGGER impressoes_set_valor_energia_after_update
-AFTER UPDATE ON impressoes
-FOR EACH ROW
-BEGIN
-    DECLARE valor_kwh DECIMAL(10,8);
-
-    -- Busca o valor do kWh do usuário
-    SELECT valor_kwh INTO valor_kwh FROM energia WHERE usuario_id = NEW.usuario_id;
-
-    -- Atualiza o valor na tabela impressoes
-    UPDATE impressoes SET valor_energia = valor_kwh WHERE id = NEW.id;
 END;
 //
 
