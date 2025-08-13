@@ -5,9 +5,9 @@ CREATE TABLE impressoras (
     tipo ENUM('FDM', 'Resina') NOT NULL,
     preco_aquisicao DECIMAL(10,2) NOT NULL,
     potencia INT NOT NULL,
+    fator_uso DECIMAL(4,2) NOT NULL DEFAULT 0.5,
     depreciacao INT NOT NULL, -- porcentagem, ex: 10 para 10%
     tempo_vida_util INT NOT NULL,
-    fator_uso INT NOT NULL DEFAULT 50,
     custo_hora DECIMAL(10,4) AS ((preco_aquisicao / tempo_vida_util) * (depreciacao / 100)) STORED,
     ultima_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     usuario_id INT UNSIGNED NOT NULL,
