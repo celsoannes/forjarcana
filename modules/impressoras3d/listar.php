@@ -27,6 +27,7 @@ $impressoras = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <th>Preço Aquisição</th>
             <th>Potência (W)</th>
             <th>Depreciação (%)</th>
+            <th>Fator de Uso (%)</th>
             <th>Tempo Vida Útil (h)</th>
             <th>Custo Hora</th>
             <th>Última Atualização</th>
@@ -41,7 +42,8 @@ $impressoras = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <td><?= htmlspecialchars($imp['tipo']) ?></td>
               <td>R$ <?= number_format($imp['preco_aquisicao'], 2, ',', '.') ?></td>
               <td><?= htmlspecialchars($imp['potencia']) ?> W</td>
-              <td><?= htmlspecialchars($imp['depreciacao']) ?></td>
+              <td><?= htmlspecialchars($imp['depreciacao']) ?>%</td>
+              <td><?= htmlspecialchars($imp['fator_uso']) ?>%</td>
               <td><?= htmlspecialchars($imp['tempo_vida_util']) ?> h</td>
               <td>R$ <?= number_format($imp['custo_hora'], 4, ',', '.') ?></td>
               <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($imp['ultima_atualizacao']))) ?></td>
