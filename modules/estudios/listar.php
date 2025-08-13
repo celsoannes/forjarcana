@@ -106,5 +106,4 @@ document.getElementById('btn-confirmar-excluir-estudio').addEventListener('click
     });
   }
 });
-
 </script>
