@@ -64,8 +64,16 @@ function renderMenu($pagina_atual) {
     </li>
     <li class="nav-item">
       <a href="?pagina=colecoes" class="nav-link <?= ($pagina_atual === 'colecoes') ? 'active' : '' ?>">
-        <i class="nav-icon fas fa-folder-open"></i>
+        <i class="nav-icon fas fa-layer-group"></i>
         <p>Coleções</p>
+      </a>
+    </li>
+
+    <li class="nav-header">PRODUÇÃO</li>
+    <li class="nav-item">
+      <a href="?pagina=impressoes" class="nav-link <?= ($pagina_atual === 'impressoes') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-boxes"></i>
+        <p>Impressões</p>
       </a>
     </li>
   </ul>

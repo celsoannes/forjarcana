@@ -147,6 +147,21 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/colecoes/listar.php';
         }
         break;
+    case 'impressoes':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/impressoes/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/impressoes/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/impressoes/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/impressoes/listar.php';
+        }
+        break;
     default:
         include __DIR__ . '/../modules/dashboard.php';
 }

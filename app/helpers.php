@@ -19,6 +19,8 @@ function getTituloPagina($pagina) {
             return 'Estudios';
         case 'colecoes':
             return 'Coleções';
+        case 'impressoes':
+            return 'Impressões';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -45,6 +47,8 @@ function getBreadcrumbPagina($pagina) {
             return 'Estudios';
         case 'colecoes':
             return 'Coleções';
+        case 'impressoes':
+            return 'Impressões';
         // ... outros casos ...
         default:
             return 'Dashboard';
