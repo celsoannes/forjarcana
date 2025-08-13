@@ -76,6 +76,14 @@ function renderMenu($pagina_atual) {
         <p>Impressões</p>
       </a>
     </li>
+
+    <li class="nav-header">CONTA</li>
+    <li class="nav-item">
+      <a href="pages/auth/logout.php" class="nav-link">
+        <i class="nav-icon fas fa-sign-out-alt"></i>
+        <p>Sair</p>
+      </a>
+    </li>
   </ul>
 </nav>
 <?php
