@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     }
 }
 ?>
-
+<h5 class="mb-2">Escolha a impressora</h5>
 <?php if (!$impressora_escolhida): ?>
     <!-- Escolha da impressora -->
     <div class="card">
