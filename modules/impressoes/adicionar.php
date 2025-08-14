@@ -372,30 +372,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <hr>
           <!-- Título Dados Técnicos da Impressão -->
           <h5>Dados Técnicos da Impressão</h5>
-          <!-- Conteúdo do card Dados Técnicos da Impressão -->
+          <!-- Campo Peso/Volume conforme tipo de material -->
           <div class="form-row">
             <div class="form-group col-md-2">
-              <label for="peso_material">Peso (g)</label>
-              <input
-                type="number"
-                class="form-control"
-                id="peso_material"
-                name="peso_material"
-                placeholder="Peso"
-                required
-              >
+              <?php if ($material_tipo === 'filamento'): ?>
+                <label for="peso_material">Peso (g)</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="peso_material"
+                  name="peso_material"
+                  placeholder="Peso"
+                  required
+                  value="<?= isset($_POST['peso_material']) ? htmlspecialchars($_POST['peso_material']) : '' ?>"
+                >
+              <?php elseif ($material_tipo === 'resina'): ?>
+                <label for="peso_material">Volume (ml)</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="peso_material"
+                  name="peso_material"
+                  placeholder="Volume"
+                  required
+                  value="<?= isset($_POST['peso_material']) ? htmlspecialchars($_POST['peso_material']) : '' ?>"
+                >
+              <?php endif; ?>
             </div>
             <div class="form-group col-md-2">
               <label>Tempo de Impressão</label>
               <div class="form-row">
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0">
+                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0" value="<?= isset($_POST['tempo_dias']) ? htmlspecialchars($_POST['tempo_dias']) : '' ?>">
                 </div>
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23">
+                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23" value="<?= isset($_POST['tempo_horas']) ? htmlspecialchars($_POST['tempo_horas']) : '' ?>">
                 </div>
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59">
+                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59" value="<?= isset($_POST['tempo_minutos']) ? htmlspecialchars($_POST['tempo_minutos']) : '' ?>">
                 </div>
               </div>
             </div>
@@ -408,17 +422,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                 name="unidades_produzidas"
                 placeholder="Unidades"
                 required
+                value="<?= isset($_POST['unidades_produzidas']) ? htmlspecialchars($_POST['unidades_produzidas']) : '' ?>"
               >
             </div>
             <div class="form-group col-md-2">
               <label for="taxa_falha">Taxa de Falha (%)</label>
-              <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="" placeholder="10">
+              <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="<?= isset($_POST['taxa_falha']) ? htmlspecialchars($_POST['taxa_falha']) : '' ?>" placeholder="10">
             </div>
             <div class="form-group col-md-2">
               <label for="markup">Markup</label>
               <select class="form-control" id="markup" name="markup" required>
                 <?php for ($i = 1; $i <= 10; $i++): ?>
-                    <option value="<?= $i ?>" <?= $i == 5 ? 'selected' : '' ?>><?= $i ?></option>
+                    <option value="<?= $i ?>" <?= (isset($_POST['markup']) && $_POST['markup'] == $i) ? 'selected' : ($i == 5 ? 'selected' : '') ?>><?= $i ?></option>
                 <?php endfor; ?>
               </select>
             </div>
