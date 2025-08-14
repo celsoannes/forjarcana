@@ -363,6 +363,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
               </div>
             </div>
           </div>
+          <!-- Título entre os cards -->
+          <h5 class="mt-3 mb-3">Identificação da Impressão</h5>
           <!-- Card Arquivos e Mídia -->
           <div class="card">
             <div class="card-header">
@@ -457,8 +459,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <!-- Botões Salvar e Voltar -->
       </div>
       <div class="card-footer">
-        <button type="submit" class="btn btn-primary">Salvar</button>
         <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>" class="btn btn-secondary">Voltar</a>
+        <button type="submit" class="btn btn-primary">Salvar</button>
       </div>
         </form>
     </div>
