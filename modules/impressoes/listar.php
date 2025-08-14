@@ -60,7 +60,19 @@ $impressoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                   <span class="text-muted">-</span>
                 <?php endif; ?>
               </td>
-              <td><?= htmlspecialchars($imp['tempo_impressao']) ?></td>
+              <td>
+                <?php
+                  $min = (int)$imp['tempo_impressao'];
+                  $dias = floor($min / 1440);
+                  $horas = floor(($min % 1440) / 60);
+                  $minutos = $min % 60;
+                  $tempo_formatado = [];
+                  if ($dias > 0) $tempo_formatado[] = $dias . 'd';
+                  if ($horas > 0) $tempo_formatado[] = $horas . 'h';
+                  if ($minutos > 0 || empty($tempo_formatado)) $tempo_formatado[] = $minutos . 'min';
+                  echo implode(' ', $tempo_formatado);
+                ?>
+              </td>
               <td><?= htmlspecialchars($imp['unidades_produzidas']) ?></td>
               <td><?= number_format($imp['custo_por_unidade'], 2, ',', '.') ?></td>
               <td><?= number_format($imp['lucro_por_unidade'], 2, ',', '.') ?></td>
