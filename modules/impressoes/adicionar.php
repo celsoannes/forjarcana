@@ -397,27 +397,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <!-- Conteúdo do card Dados Técnicos da Impressão -->
           <div class="form-row">
             <div class="form-group col-md-2">
-              <label for="peso_material">Peso (g)</label>
+              <label for="peso_material">
+                <?php if ($material_tipo === 'filamento'): ?>
+                  Peso Material (g)
+                <?php else: ?>
+                  Volume Material (ml)
+                <?php endif; ?>
+              </label>
               <input
                 type="number"
                 class="form-control"
                 id="peso_material"
                 name="peso_material"
-                placeholder="Peso"
+                placeholder="<?php echo $material_tipo === 'filamento' ? 'Peso' : 'Volume'; ?>"
                 required
+                value="<?= isset($_POST['peso_material']) ? htmlspecialchars($_POST['peso_material']) : '' ?>"
               >
             </div>
             <div class="form-group col-md-2">
-              <label>Tempo de Impressão</label>
+              <label>Tempo Impressão (min)</label>
               <div class="form-row">
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0">
+                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0" value="<?= isset($_POST['tempo_dias']) ? htmlspecialchars($_POST['tempo_dias']) : '' ?>">
                 </div>
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23">
+                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23" value="<?= isset($_POST['tempo_horas']) ? htmlspecialchars($_POST['tempo_horas']) : '' ?>">
                 </div>
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59">
+                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59" value="<?= isset($_POST['tempo_minutos']) ? htmlspecialchars($_POST['tempo_minutos']) : '' ?>">
                 </div>
               </div>
             </div>
