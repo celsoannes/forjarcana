@@ -112,32 +112,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
 
 <?php if (!$impressora_escolhida): ?>
     <!-- Escolha da impressora -->
-    <h5 class="mb-2">Escolha a impressora</h5>
-    <div class="row">
-      <?php if ($impressoras): ?>
-        <?php foreach ($impressoras as $imp): ?>
-          <div class="col-md-3">
-            <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $imp['id'] ?>" style="text-decoration: none;">
-              <div class="card card-primary card-hover" style="cursor:pointer;">
-                <div class="card-header">
-                  <h3 class="card-title"><?= htmlspecialchars($imp['marca'] . ' ' . $imp['modelo']) ?></h3>
-                </div>
-                <div class="card-body">
-                  <strong>Tipo:</strong> <?= htmlspecialchars($imp['tipo']) ?><br>
-                  <strong>Depreciação:</strong> <?= htmlspecialchars($imp['depreciacao']) ?>%<br>
-                  <strong>Custo Hora:</strong> R$ <?= number_format($imp['custo_hora'], 4, ',', '.') ?>
-                </div>
+    <div class="card card-primary mb-3">
+      <div class="card-header">
+        <h3 class="card-title">Escolha da impressora</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <?php if ($impressoras): ?>
+            <?php foreach ($impressoras as $imp): ?>
+              <div class="col-md-3">
+                <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $imp['id'] ?>" style="text-decoration: none;">
+                  <div class="card card-primary card-hover" style="cursor:pointer;">
+                    <div class="card-header">
+                      <h3 class="card-title"><?= htmlspecialchars($imp['marca'] . ' ' . $imp['modelo']) ?></h3>
+                    </div>
+                    <div class="card-body">
+                      <strong>Tipo:</strong> <?= htmlspecialchars($imp['tipo']) ?><br>
+                      <strong>Depreciação:</strong> <?= htmlspecialchars($imp['depreciacao']) ?>%<br>
+                      <strong>Custo Hora:</strong> R$ <?= number_format($imp['custo_hora'], 4, ',', '.') ?>
+                    </div>
+                  </div>
+                </a>
               </div>
-            </a>
-          </div>
-        <?php endforeach; ?>
-      <?php else: ?>
-        <div class="col-12">
-          <div class="alert alert-info text-center">Nenhuma impressora cadastrada.</div>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div class="col-12">
+              <div class="alert alert-info text-center">Nenhuma impressora cadastrada.</div>
+            </div>
+          <?php endif; ?>
         </div>
-      <?php endif; ?>
+      </div>
+      <div class="card-footer">
+        <a href="?pagina=impressoes" class="btn btn-secondary">Voltar</a>
+      </div>
     </div>
-    <a href="?pagina=impressoes" class="btn btn-secondary mt-3">Voltar</a>
 <?php elseif (!$material): ?>
     <!-- Escolha do material -->
     <div class="card card-warning mb-3">
@@ -170,36 +178,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                 $stmt->execute([$usuario_id]);
                 $resinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 ?>
-                <h6 class="mb-2">Escolha a resina</h6>
-                <div class="row">
-                  <?php if ($resinas): ?>
-                    <?php foreach ($resinas as $resina): ?>
-                      <div class="col-md-3">
-                        <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>&resina_id=<?= $resina['id'] ?>" style="text-decoration: none;">
-                          <div class="card card-success card-hover" style="cursor:pointer;">
-                            <div class="card-header">
-                              <h3 class="card-title"><?= htmlspecialchars($resina['nome']) ?></h3>
-                            </div>
-                            <div class="card-body">
-                              <strong>Marca:</strong> <?= htmlspecialchars($resina['marca']) ?><br>
-                              <strong>Cor:</strong>
-                              <?php if (!empty($resina['cor'])): ?>
-                                <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($resina['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
-                              <?php else: ?>
-                                <span class="text-muted">-</span>
-                              <?php endif; ?>
-                              <br>
-                              <strong>Preço/Litro:</strong> R$ <?= number_format($resina['preco_litro'], 2, ',', '.') ?>
-                            </div>
+                <div class="card card-success mb-3">
+                  <div class="card-header">
+                    <h3 class="card-title">Escolha a resina</h3>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <?php if ($resinas): ?>
+                        <?php foreach ($resinas as $resina): ?>
+                          <div class="col-md-3">
+                            <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>&resina_id=<?= $resina['id'] ?>" style="text-decoration: none;">
+                              <div class="card card-success card-hover" style="cursor:pointer;">
+                                <div class="card-header">
+                                  <h3 class="card-title"><?= htmlspecialchars($resina['nome']) ?></h3>
+                                </div>
+                                <div class="card-body">
+                                  <strong>Marca:</strong> <?= htmlspecialchars($resina['marca']) ?><br>
+                                  <strong>Cor:</strong>
+                                  <?php if (!empty($resina['cor'])): ?>
+                                    <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($resina['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                                  <?php else: ?>
+                                    <span class="text-muted">-</span>
+                                  <?php endif; ?>
+                                  <br>
+                                  <strong>Preço/Litro:</strong> R$ <?= number_format($resina['preco_litro'], 2, ',', '.') ?>
+                                </div>
+                              </div>
+                            </a>
                           </div>
-                        </a>
-                      </div>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <div class="col-12">
-                      <div class="alert alert-info text-center">Nenhuma resina cadastrada.</div>
+                        <?php endforeach; ?>
+                      <?php else: ?>
+                        <div class="col-12">
+                          <div class="alert alert-info text-center">Nenhuma resina cadastrada.</div>
+                        </div>
+                      <?php endif; ?>
                     </div>
-                  <?php endif; ?>
+                  </div>
                 </div>
             <?php elseif ($impressora_escolhida['tipo'] === 'FDM'): ?>
                 <?php
@@ -241,6 +255,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
             <?php endif; ?>
           </div>
         </div>
+      </div>
+      <div class="card-footer">
+        <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary">Voltar</a>
       </div>
     </div>
 <?php else: ?>
@@ -482,9 +499,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
         <?php endif; ?>
       </div>
     </div>
-    <div class="card-footer">
-      <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary">Voltar</a>
-    </div>
+    <!-- Removido o card-footer com botão Voltar -->
   </div>
 <?php endif; ?>
 
