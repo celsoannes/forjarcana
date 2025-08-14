@@ -220,44 +220,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     <?php endif; ?>
     <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary mt-3">Voltar</a>
 <?php else: ?>
-    <!-- Formulário de cadastro da impressão -->
-    <h5 class="mb-2">Cadastrar Impressão</h5>
-    <div class="row mb-3">
-      <div class="col-md-3">
-        <div class="card card-primary">
-          <div class="card-header">
-            <h3 class="card-title"><?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?></h3>
-          </div>
-          <div class="card-body">
-            <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
-            <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
-            <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
-          </div>
-        </div>
+    <!-- Card Cadastrar Impressão -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Cadastrar Impressão</h3>
       </div>
-      <div class="col-md-3">
-        <div class="card <?= $material_tipo === 'resina' ? 'card-success' : 'card-info' ?>">
-          <div class="card-header">
-            <h3 class="card-title">
-              <?= $material_tipo === 'filamento'
-                ? htmlspecialchars($material['tipo'] . ' ' . $material['nome'])
-                : htmlspecialchars($material['nome']) ?>
-            </h3>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card card-primary">
+              <div class="card-header">
+                <h3 class="card-title"><?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?></h3>
+              </div>
+              <div class="card-body">
+                <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
+                <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
+                <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
-            <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
-            <strong>Cor:</strong>
-            <?php if (!empty($material['cor'])): ?>
-              <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($material['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
-            <?php else: ?>
-              <span class="text-muted">-</span>
-            <?php endif; ?>
-            <br>
-            <?php if ($material_tipo === 'filamento'): ?>
-              <strong>Preço/Kg:</strong> R$ <?= number_format($material['preco_kilo'], 2, ',', '.') ?>
-            <?php else: ?>
-              <strong>Preço/Litro:</strong> R$ <?= number_format($material['preco_litro'], 2, ',', '.') ?>
-            <?php endif; ?>
+          <div class="col-md-6">
+            <div class="card <?= $material_tipo === 'resina' ? 'card-success' : 'card-info' ?>">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <?= $material_tipo === 'filamento'
+                    ? htmlspecialchars($material['tipo'] . ' ' . $material['nome'])
+                    : htmlspecialchars($material['nome']) ?>
+                </h3>
+              </div>
+              <div class="card-body">
+                <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
+                <strong>Cor:</strong>
+                <?php if (!empty($material['cor'])): ?>
+                  <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($material['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                <?php else: ?>
+                  <span class="text-muted">-</span>
+                <?php endif; ?>
+                <br>
+                <?php if ($material_tipo === 'filamento'): ?>
+                  <strong>Preço/Kg:</strong> R$ <?= number_format($material['preco_kilo'], 2, ',', '.') ?>
+                <?php else: ?>
+                  <strong>Preço/Litro:</strong> R$ <?= number_format($material['preco_litro'], 2, ',', '.') ?>
+                <?php endif; ?>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -331,68 +337,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           </div>
         </div>
       </div>
-      <div class="card card-primary">
+      <!-- Card Dados Técnicos da Impressão -->
+      <div class="card card-secondary mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Dados Técnicos da Impressão</h3>
+        </div>
         <div class="card-body">
-          <div class="form-group">
-            <?php if ($material_tipo === 'filamento'): ?>
+          <div class="form-row">
+            <div class="form-group col-md-2">
               <label for="peso_material">Peso (g)</label>
               <input
                 type="number"
                 class="form-control"
                 id="peso_material"
                 name="peso_material"
-                placeholder="Informe o peso do filamento utilizado em gramas"
+                placeholder="Peso"
                 required
               >
-            <?php elseif ($material_tipo === 'resina'): ?>
-              <label for="peso_material">Volume (ml)</label>
+            </div>
+            <div class="form-group col-md-2">
+              <label>Tempo de Impressão</label>
+              <div class="form-row">
+                <div class="col">
+                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0">
+                </div>
+                <div class="col">
+                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23">
+                </div>
+                <div class="col">
+                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59">
+                </div>
+              </div>
+            </div>
+            <div class="form-group col-md-2">
+              <label for="unidades_produzidas">Unidades Produzidas</label>
               <input
                 type="number"
                 class="form-control"
-                id="peso_material"
-                name="peso_material"
-                placeholder="Informe o volume de resina utilizado em mililitros"
+                id="unidades_produzidas"
+                name="unidades_produzidas"
+                placeholder="Unidades"
                 required
               >
-            <?php endif; ?>
-          </div>
-          <div class="form-group">
-            <label>Tempo de Impressão</label>
-            <div class="form-row">
-              <div class="col">
-                <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0">
-              </div>
-              <div class="col">
-                <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23">
-              </div>
-              <div class="col">
-                <input type="number" class="form-control" name="tempo_minutos" placeholder="Minutos" min="0" max="59">
-              </div>
             </div>
-          </div>
-          <div class="form-group">
-            <label for="unidades_produzidas">Unidades Produzidas</label>
-            <input
-              type="number"
-              class="form-control"
-              id="unidades_produzidas"
-              name="unidades_produzidas"
-              placeholder="Informe o número de peças idênticas que a impressão gerou. Se for apenas uma, coloque 1"
-              required
-            >
-          </div>
-          <div class="form-group">
-            <label for="markup">Markup</label>
-            <select class="form-control" id="markup" name="markup" required>
+            <div class="form-group col-md-2">
+              <label for="taxa_falha">Taxa de Falha (%)</label>
+              <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="" placeholder="10">
+            </div>
+            <div class="form-group col-md-2">
+              <label for="markup">Markup</label>
+              <select class="form-control" id="markup" name="markup" required>
                 <?php for ($i = 1; $i <= 10; $i++): ?>
                     <option value="<?= $i ?>" <?= $i == 5 ? 'selected' : '' ?>><?= $i ?></option>
                 <?php endfor; ?>
-            </select>
+              </select>
+            </div>
           </div>
+        </div>
+      </div>
+      <!-- Card Observações -->
+      <div class="card card-light mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Observações</h3>
+        </div>
+        <div class="card-body">
           <div class="form-group">
-            <label for="taxa_falha">Taxa de Falha (%)</label>
-            <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="" placeholder="10">
+            <label for="observacoes">Observações</label>
+            <textarea class="form-control" id="observacoes" name="observacoes" rows="2" style="width:100%;"></textarea>
           </div>
+        </div>
+      </div>
+      <div class="card card-primary">
+        <div class="card-body">
           <div class="form-group">
             <label for="observacoes">Observações</label>
             <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
