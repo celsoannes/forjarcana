@@ -82,47 +82,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
         $erro = 'Preencha os campos obrigatórios: ' . implode(', ', $campos_faltando) . '.';
     } else if (!$erro) {
         try {
-            if ($material_tipo === 'filamento') {
-                $stmt = $pdo->prepare("INSERT INTO impressoes 
-                    (nome, nome_original, arquivo_impressao, impressora_id, filamento_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([
-                    $nome,
-                    $nome_original,
-                    $arquivo_impressao,
-                    $impressora_escolhida['id'],
-                    $material_id, // filamento_id
-                    $tempo_impressao,
-                    $imagem_capa,
-                    $unidades_produzidas,
-                    $markup,
-                    $taxa_falha,
-                    $estudio_id ?: null,
-                    $colecao_id ?: null,
-                    $usuario_id,
-                    $peso_material
-                ]);
-            } elseif ($material_tipo === 'resina') {
-                $stmt = $pdo->prepare("INSERT INTO impressoes 
-                    (nome, nome_original, arquivo_impressao, impressora_id, resina_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([
-                    $nome,
-                    $nome_original,
-                    $arquivo_impressao,
-                    $impressora_escolhida['id'],
-                    $material_id, // resina_id
-                    $tempo_impressao,
-                    $imagem_capa,
-                    $unidades_produzidas,
-                    $markup,
-                    $taxa_falha,
-                    $estudio_id ?: null,
-                    $colecao_id ?: null,
-                    $usuario_id,
-                    $peso_material
-                ]);
-            }
+            $stmt = $pdo->prepare("INSERT INTO impressoes 
+                (nome, nome_original, arquivo_impressao, impressora_id, material_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $nome,
+                $nome_original,
+                $arquivo_impressao,
+                $impressora_escolhida['id'],
+                $material_id,
+                $tempo_impressao,
+                $imagem_capa,
+                $unidades_produzidas,
+                $markup,
+                $taxa_falha,
+                $estudio_id ?: null,
+                $colecao_id ?: null,
+                $usuario_id,
+                $peso_material
+            ]);
             echo '<script>window.location.href="?pagina=impressoes";</script>';
             exit;
         } catch (PDOException $e) {
@@ -131,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     }
 }
 ?>
-<h5 class="mb-2">Escolha a impressora</h5>
+
 <?php if (!$impressora_escolhida): ?>
     <!-- Escolha da impressora -->
     <div class="card">
@@ -397,34 +375,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <!-- Conteúdo do card Dados Técnicos da Impressão -->
           <div class="form-row">
             <div class="form-group col-md-2">
-              <label for="peso_material">
-                <?php if ($material_tipo === 'filamento'): ?>
-                  Peso Material (g)
-                <?php else: ?>
-                  Volume Material (ml)
-                <?php endif; ?>
-              </label>
+              <label for="peso_material">Peso (g)</label>
               <input
                 type="number"
                 class="form-control"
                 id="peso_material"
                 name="peso_material"
-                placeholder="<?php echo $material_tipo === 'filamento' ? 'Peso' : 'Volume'; ?>"
+                placeholder="Peso"
                 required
-                value="<?= isset($_POST['peso_material']) ? htmlspecialchars($_POST['peso_material']) : '' ?>"
               >
             </div>
             <div class="form-group col-md-2">
-              <label>Tempo Impressão (min)</label>
+              <label>Tempo de Impressão</label>
               <div class="form-row">
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0" value="<?= isset($_POST['tempo_dias']) ? htmlspecialchars($_POST['tempo_dias']) : '' ?>">
+                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0">
                 </div>
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23" value="<?= isset($_POST['tempo_horas']) ? htmlspecialchars($_POST['tempo_horas']) : '' ?>">
+                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23">
                 </div>
                 <div class="col">
-                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59" value="<?= isset($_POST['tempo_minutos']) ? htmlspecialchars($_POST['tempo_minutos']) : '' ?>">
+                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59">
                 </div>
               </div>
             </div>
