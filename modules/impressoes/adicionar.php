@@ -140,62 +140,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     <a href="?pagina=impressoes" class="btn btn-secondary mt-3">Voltar</a>
 <?php elseif (!$material): ?>
     <!-- Escolha do material -->
-    <div class="card card-primary mb-3">
+    <div class="card card-warning mb-3">
       <div class="card-header">
-        <h3 class="card-title">Impressora escolhida</h3>
+        <h3 class="card-title">Escolha do material</h3>
       </div>
       <div class="card-body">
-        <strong>Marca:</strong> <?= htmlspecialchars($impressora_escolhida['marca']) ?><br>
-        <strong>Modelo:</strong> <?= htmlspecialchars($impressora_escolhida['modelo']) ?><br>
-        <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
-        <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
-        <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
+        <!-- Card Impressora escolhida -->
+        <div class="card card-primary mb-3">
+          <div class="card-header">
+            <h3 class="card-title">Impressora escolhida</h3>
+          </div>
+          <div class="card-body">
+            <div class="card card-info mb-3">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?>
+                </h3>
+              </div>
+              <div class="card-body">
+                <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
+                <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
+                <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
+              </div>
+            </div>
+            <!-- Aqui segue a lógica para escolha do material -->
+            <?php if ($impressora_escolhida['tipo'] === 'Resina'): ?>
+                <?php
+                $stmt = $pdo->prepare("SELECT * FROM resinas WHERE usuario_id = ?");
+                $stmt->execute([$usuario_id]);
+                $resinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                ?>
+                <h6 class="mb-2">Escolha a resina</h6>
+                <div class="row">
+                  <?php if ($resinas): ?>
+                    <?php foreach ($resinas as $resina): ?>
+                      <div class="col-md-3">
+                        <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>&resina_id=<?= $resina['id'] ?>" style="text-decoration: none;">
+                          <div class="card card-success card-hover" style="cursor:pointer;">
+                            <div class="card-header">
+                              <h3 class="card-title"><?= htmlspecialchars($resina['nome']) ?></h3>
+                            </div>
+                            <div class="card-body">
+                              <strong>Marca:</strong> <?= htmlspecialchars($resina['marca']) ?><br>
+                              <strong>Cor:</strong>
+                              <?php if (!empty($resina['cor'])): ?>
+                                <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($resina['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                              <?php else: ?>
+                                <span class="text-muted">-</span>
+                              <?php endif; ?>
+                              <br>
+                              <strong>Preço/Litro:</strong> R$ <?= number_format($resina['preco_litro'], 2, ',', '.') ?>
+                            </div>
+                          </div>
+                        </a>
+                      </div>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <div class="col-12">
+                      <div class="alert alert-info text-center">Nenhuma resina cadastrada.</div>
+                    </div>
+                  <?php endif; ?>
+                </div>
+            <?php elseif ($impressora_escolhida['tipo'] === 'FDM'): ?>
+                <?php
+                $stmt = $pdo->prepare("SELECT * FROM filamento WHERE usuario_id = ?");
+                $stmt->execute([$usuario_id]);
+                $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                ?>
+                <h6 class="mb-2">Escolha o filamento</h6>
+                <div class="row">
+                  <?php if ($filamentos): ?>
+                    <?php foreach ($filamentos as $filamento): ?>
+                      <div class="col-md-3">
+                        <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>&filamento_id=<?= $filamento['id'] ?>" style="text-decoration: none;">
+                          <div class="card card-info card-hover" style="cursor:pointer;">
+                            <div class="card-header">
+                              <h3 class="card-title"><?= htmlspecialchars($filamento['tipo'] . ' ' . $filamento['nome']) ?></h3>
+                            </div>
+                            <div class="card-body">
+                              <strong>Marca:</strong> <?= htmlspecialchars($filamento['marca']) ?><br>
+                              <strong>Cor:</strong>
+                              <?php if (!empty($filamento['cor'])): ?>
+                                <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($filamento['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                              <?php else: ?>
+                                <span class="text-muted">-</span>
+                              <?php endif; ?>
+                              <br>
+                              <strong>Preço/Kg:</strong> R$ <?= number_format($filamento['preco_kilo'], 2, ',', '.') ?>
+                            </div>
+                          </div>
+                        </a>
+                      </div>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <div class="col-12">
+                      <div class="alert alert-info text-center">Nenhum filamento cadastrado.</div>
+                    </div>
+                  <?php endif; ?>
+                </div>
+            <?php endif; ?>
+          </div>
+        </div>
       </div>
     </div>
-    <?php if ($impressora_escolhida['tipo'] === 'Resina'): ?>
-        <?php
-        $stmt = $pdo->prepare("SELECT * FROM resinas WHERE usuario_id = ?");
-        $stmt->execute([$usuario_id]);
-        $resinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        ?>
-        <h6 class="mb-2">Escolha a resina</h6>
-        <div class="row">
-          <?php if ($resinas): ?>
-            <?php foreach ($resinas as $resina): ?>
-              <div class="col-md-3">
-                <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>&resina_id=<?= $resina['id'] ?>" style="text-decoration: none;">
-                  <div class="card card-success card-hover" style="cursor:pointer;">
-                    <div class="card-header">
-                      <h3 class="card-title"><?= htmlspecialchars($resina['nome']) ?></h3>
-                    </div>
-                    <div class="card-body">
-                      <strong>Marca:</strong> <?= htmlspecialchars($resina['marca']) ?><br>
-                      <strong>Cor:</strong>
-                      <?php if (!empty($resina['cor'])): ?>
-                        <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($resina['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
-                      <?php else: ?>
-                        <span class="text-muted">-</span>
-                      <?php endif; ?>
-                      <br>
-                      <strong>Preço/Litro:</strong> R$ <?= number_format($resina['preco_litro'], 2, ',', '.') ?>
-                    </div>
-                  </div>
-                </a>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <div class="col-12">
-              <div class="alert alert-info text-center">Nenhuma resina cadastrada.</div>
-            </div>
-          <?php endif; ?>
-        </div>
-    <?php elseif ($impressora_escolhida['tipo'] === 'FDM'): ?>
-        <?php
-        $stmt = $pdo->prepare("SELECT * FROM filamento WHERE usuario_id = ?");
-        $stmt->execute([$usuario_id]);
-        $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        ?>
-    <?php endif; ?>
 <?php else: ?>
     <!-- Card Cadastrar Impressão -->
     <div class="card">
