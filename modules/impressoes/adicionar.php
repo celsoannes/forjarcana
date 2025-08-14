@@ -416,6 +416,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     </div>
 <?php endif; ?>
 
+<?php if ($impressora_escolhida && !$material && $impressora_escolhida['tipo'] === 'FDM'): ?>
+  <div class="card card-info mb-3">
+    <div class="card-header">
+      <h3 class="card-title">Escolha o filamento</h3>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <?php
+        $stmt = $pdo->prepare("SELECT * FROM filamento WHERE usuario_id = ?");
+        $stmt->execute([$usuario_id]);
+        $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        ?>
+        <?php if ($filamentos): ?>
+          <?php foreach ($filamentos as $filamento): ?>
+            <div class="col-md-3">
+              <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>&filamento_id=<?= $filamento['id'] ?>" style="text-decoration: none;">
+                <div class="card card-info card-hover" style="cursor:pointer;">
+                  <div class="card-header">
+                    <h3 class="card-title"><?= htmlspecialchars($filamento['tipo'] . ' ' . $filamento['nome']) ?></h3>
+                  </div>
+                  <div class="card-body">
+                    <strong>Marca:</strong> <?= htmlspecialchars($filamento['marca']) ?><br>
+                    <strong>Cor:</strong>
+                    <?php if (!empty($filamento['cor'])): ?>
+                      <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($filamento['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                    <?php else: ?>
+                      <span class="text-muted">-</span>
+                    <?php endif; ?>
+                    <br>
+                    <strong>Preço/Kg:</strong> R$ <?= number_format($filamento['preco_kilo'], 2, ',', '.') ?>
+                  </div>
+                </div>
+              </a>
+            </div>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <div class="col-12">
+            <div class="alert alert-info text-center">Nenhum filamento cadastrado.</div>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+    <div class="card-footer">
+      <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary">Voltar</a>
+    </div>
+  </div>
+<?php endif; ?>
+
 <style>
 .card-hover:hover {
   box-shadow: 0 0 0.5rem #007bff;
