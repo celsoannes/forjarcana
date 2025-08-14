@@ -270,6 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
         <?php endif; ?>
         <form method="POST" enctype="multipart/form-data">
+          <!-- Cards: Identificação, Arquivos e Mídia, Dados Técnicos, Observações -->
           <!-- Card Identificação da Impressão -->
           <div class="card">
             <div class="card-header">
@@ -406,14 +407,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
             </div>
           </div>
           <!-- Botões Salvar e Voltar -->
-          <div class="card">
-            <div class="card-footer">
-              <button type="submit" class="btn btn-primary">Salvar</button>
-              <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>" class="btn btn-secondary">Voltar</a>
-            </div>
-          </div>
-        </form>
       </div>
+      <div class="card-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $impressora_escolhida['id'] ?>" class="btn btn-secondary">Voltar</a>
+      </div>
+        </form>
     </div>
 <?php endif; ?>
 
