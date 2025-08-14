@@ -310,19 +310,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           </div>
         </div>
       </div>
-      <div class="card card-primary">
+      <!-- Card Arquivos e Mídia -->
+      <div class="card card-primary mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Arquivos e Mídia</h3>
+        </div>
         <div class="card-body">
-          <div class="form-group">
-            <label for="arquivo_impressao">Arquivo de Impressão</label>
-            <input type="text" class="form-control" id="arquivo_impressao" name="arquivo_impressao" placeholder="Ex: modelo.stl">
-          </div>
-          <div class="form-group">
-            <label for="imagem_capa">Imagem de Capa</label>
-            <div class="custom-file">
+          <div class="form-row">
+            <div class="form-group col-md-7">
+              <label for="arquivo_impressao">Arquivo de Impressão</label>
+              <input type="text" class="form-control" id="arquivo_impressao" name="arquivo_impressao" placeholder="Ex: modelo.stl">
+            </div>
+            <div class="form-group col-md-5">
+              <label for="imagem_capa">Imagem de Capa</label>
+              <div class="custom-file">
                 <input type="file" class="custom-file-input" id="imagem_capa" name="imagem_capa" accept="image/png,image/jpeg,image/webp,image/gif">
                 <label class="custom-file-label" for="imagem_capa">Selecione uma imagem</label>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="card card-primary">
+        <div class="card-body">
           <div class="form-group">
             <?php if ($material_tipo === 'filamento'): ?>
               <label for="peso_material">Peso (g)</label>
