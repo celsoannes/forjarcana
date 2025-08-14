@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
 
 <?php if (!$impressora_escolhida): ?>
     <!-- Escolha da impressora -->
-    <div class="card card-primary mb-3">
+    <div class="card">
       <div class="card-header">
         <h3 class="card-title">Escolha a impressora</h3>
       </div>
@@ -148,44 +148,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     </div>
 <?php elseif (!$material): ?>
     <!-- Escolha do material -->
-    <div class="card card-warning mb-3">
+    <div class="card">
       <div class="card-header">
         <h3 class="card-title">Escolha do material</h3>
       </div>
       <div class="card-body">
-        <!-- Card Impressora escolhida -->
-        <div class="card card-primary mb-3">
+        <!-- Título Impressora escolhida -->
+        <h5>Impressora escolhida</h5>
+        <div class="card card-info mb-3">
           <div class="card-header">
-            <h3 class="card-title">Impressora escolhida</h3>
+            <h3 class="card-title">
+              <?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?>
+            </h3>
           </div>
           <div class="card-body">
-            <div class="card card-info mb-3">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?>
-                </h3>
-              </div>
-              <div class="card-body">
-                <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
-                <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
-                <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
-              </div>
-            </div>
+            <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
+            <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
+            <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
           </div>
         </div>
-        <!-- Card Escolha a resina -->
         <?php if ($impressora_escolhida['tipo'] === 'Resina'): ?>
-            <?php
-            $stmt = $pdo->prepare("SELECT * FROM resinas WHERE usuario_id = ?");
-            $stmt->execute([$usuario_id]);
-            $resinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            ?>
             <div class="card card-success mb-3">
               <div class="card-header">
                 <h3 class="card-title">Escolha a resina</h3>
               </div>
               <div class="card-body">
                 <div class="row">
+                  <?php
+                  $stmt = $pdo->prepare("SELECT * FROM resinas WHERE usuario_id = ?");
+                  $stmt->execute([$usuario_id]);
+                  $resinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                  ?>
                   <?php if ($resinas): ?>
                     <?php foreach ($resinas as $resina): ?>
                       <div class="col-md-3">
@@ -218,18 +211,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
               </div>
             </div>
         <?php elseif ($impressora_escolhida['tipo'] === 'FDM'): ?>
-            <?php
-            $stmt = $pdo->prepare("SELECT * FROM filamento WHERE usuario_id = ?");
-            $stmt->execute([$usuario_id]);
-            $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            ?>
-            <!-- Card Escolha o filamento movido para dentro do card Escolha do material -->
+            <h5>Escolha o filamento</h5>
+            <!-- Conteúdo do card Escolha o filamento movido para cá -->
             <div class="card card-info mb-3">
               <div class="card-header">
                 <h3 class="card-title">Escolha o filamento</h3>
               </div>
               <div class="card-body">
                 <div class="row">
+                  <?php
+                  $stmt = $pdo->prepare("SELECT * FROM filamento WHERE usuario_id = ?");
+                  $stmt->execute([$usuario_id]);
+                  $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                  ?>
                   <?php if ($filamentos): ?>
                     <?php foreach ($filamentos as $filamento): ?>
                       <div class="col-md-3">
