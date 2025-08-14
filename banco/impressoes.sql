@@ -6,7 +6,6 @@ CREATE TABLE impressoes (
     nome_original VARCHAR(150),
     arquivo_impressao VARCHAR(255),
     impressora_id INT UNSIGNED NOT NULL,
-    material_id INT UNSIGNED NOT NULL,
     tempo_impressao INT NOT NULL,
     imagem_capa VARCHAR(255),
     unidades_produzidas INT NOT NULL,
@@ -32,11 +31,14 @@ CREATE TABLE impressoes (
     observacoes TEXT,
     sku VARCHAR(50) UNIQUE,
     usuario_id INT UNSIGNED NOT NULL,
+    filamento_id INT UNSIGNED NULL,
+    resina_id INT UNSIGNED NULL,
     FOREIGN KEY (estudio_id) REFERENCES estudios(id) ON DELETE SET NULL,
     FOREIGN KEY (colecao_id) REFERENCES colecoes(id) ON DELETE SET NULL,
     FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE,
-    FOREIGN KEY (material_id) REFERENCES filamento(id) ON DELETE CASCADE,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (filamento_id) REFERENCES filamento(id) ON DELETE CASCADE,
+    FOREIGN KEY (resina_id) REFERENCES resinas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DELIMITER //
@@ -77,10 +79,10 @@ BEGIN
     SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso_impressora * custo_kwh) / 1000;
 
     IF tipo_impressora = 'FDM' THEN
-        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
+        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.filamento_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
     ELSEIF tipo_impressora = 'Resina' THEN
-        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
+        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.resina_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
 
         SELECT preco_litro INTO preco_litro_alcool FROM alcool WHERE usuario_id = NEW.usuario_id;
@@ -176,10 +178,10 @@ BEGIN
     SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso_impressora * custo_kwh) / 1000;
 
     IF tipo_impressora = 'FDM' THEN
-        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
+        SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.filamento_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
     ELSEIF tipo_impressora = 'Resina' THEN
-        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.material_id;
+        SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.resina_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
 
         SELECT preco_litro INTO preco_litro_alcool FROM alcool WHERE usuario_id = NEW.usuario_id;
