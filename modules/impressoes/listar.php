@@ -33,9 +33,9 @@ $impressoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <th>Impressora</th>
             <th>Tempo Impressão (min)</th>
             <th>Unidades</th>
-            <th>Custo por Unidade</th>
-            <th>Lucro por Unidade</th>
-            <th>Preço Venda Sugerido Unidade</th>
+            <th>Custo (Un)</th>
+            <th>Lucro (Un)</th>
+            <th>Preço Consumidor Final (Un)</th>
             <th>Última Atualização</th>
             <th class="text-right">Ações</th>
           </tr>
