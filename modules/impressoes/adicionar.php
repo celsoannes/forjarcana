@@ -82,25 +82,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
         $erro = 'Preencha os campos obrigatórios: ' . implode(', ', $campos_faltando) . '.';
     } else if (!$erro) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO impressoes 
-                (nome, nome_original, arquivo_impressao, impressora_id, material_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $nome,
-                $nome_original,
-                $arquivo_impressao,
-                $impressora_escolhida['id'],
-                $material_id,
-                $tempo_impressao,
-                $imagem_capa,
-                $unidades_produzidas,
-                $markup,
-                $taxa_falha,
-                $estudio_id ?: null,
-                $colecao_id ?: null,
-                $usuario_id,
-                $peso_material
-            ]);
+            if ($material_tipo === 'filamento') {
+                $stmt = $pdo->prepare("INSERT INTO impressoes 
+                    (nome, nome_original, arquivo_impressao, impressora_id, filamento_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $nome,
+                    $nome_original,
+                    $arquivo_impressao,
+                    $impressora_escolhida['id'],
+                    $material_id, // filamento_id
+                    $tempo_impressao,
+                    $imagem_capa,
+                    $unidades_produzidas,
+                    $markup,
+                    $taxa_falha,
+                    $estudio_id ?: null,
+                    $colecao_id ?: null,
+                    $usuario_id,
+                    $peso_material
+                ]);
+            } elseif ($material_tipo === 'resina') {
+                $stmt = $pdo->prepare("INSERT INTO impressoes 
+                    (nome, nome_original, arquivo_impressao, impressora_id, resina_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $nome,
+                    $nome_original,
+                    $arquivo_impressao,
+                    $impressora_escolhida['id'],
+                    $material_id, // resina_id
+                    $tempo_impressao,
+                    $imagem_capa,
+                    $unidades_produzidas,
+                    $markup,
+                    $taxa_falha,
+                    $estudio_id ?: null,
+                    $colecao_id ?: null,
+                    $usuario_id,
+                    $peso_material
+                ]);
+            }
             echo '<script>window.location.href="?pagina=impressoes";</script>';
             exit;
         } catch (PDOException $e) {

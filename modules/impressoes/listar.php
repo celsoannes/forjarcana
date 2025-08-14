@@ -31,11 +31,11 @@ $impressoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <th>Estudio</th>
             <th>Coleção</th>
             <th>Impressora</th>
-            <th>Tempo Impressão (min)</th>
+            <th>Tempo de Impressão</th>
             <th>Unidades</th>
             <th>Custo (Un)</th>
             <th>Lucro (Un)</th>
-            <th>Preço Consumidor Final (Un)</th>
+            <th>Valor de Venda (Un)</th>
             <th>Última Atualização</th>
             <th class="text-right">Ações</th>
           </tr>
@@ -74,9 +74,9 @@ $impressoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 ?>
               </td>
               <td><?= htmlspecialchars($imp['unidades_produzidas']) ?></td>
-              <td><?= number_format($imp['custo_por_unidade'], 2, ',', '.') ?></td>
-              <td><?= number_format($imp['lucro_por_unidade'], 2, ',', '.') ?></td>
-              <td><?= number_format($imp['preco_venda_sugerido_unidade'], 2, ',', '.') ?></td>
+              <td>R$ <?= number_format($imp['custo_por_unidade'], 2, ',', '.') ?></td>
+              <td>R$ <?= number_format($imp['lucro_por_unidade'], 2, ',', '.') ?></td>
+              <td>R$ <?= number_format($imp['preco_venda_sugerido_unidade'], 2, ',', '.') ?></td>
               <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($imp['ultima_atualizacao']))) ?></td>
               <td class="text-right">
                 <a class="btn btn-info btn-sm" href="?pagina=impressoes&acao=editar&id=<?= $imp['id'] ?>">
