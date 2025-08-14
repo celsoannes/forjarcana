@@ -81,19 +81,28 @@ BEGIN
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.filamento_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
+
+        -- Cálculo do custo total para filamento
+        SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
+            + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
+
     ELSEIF tipo_impressora = 'Resina' THEN
         SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.resina_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
 
         SELECT preco_litro INTO preco_litro_alcool FROM alcool WHERE usuario_id = NEW.usuario_id;
         SET NEW.custo_lavagem_alcool = (preco_litro_alcool / 1000) * NEW.peso_material;
+
+        -- Cálculo do custo total para resina (inclui custo_lavagem_alcool)
+        SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao + NEW.custo_lavagem_alcool)
+            + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao + NEW.custo_lavagem_alcool) * 0.7) / NEW.taxa_falha);
+
     ELSE
         SET NEW.custo_lavagem_alcool = NULL;
+        SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
+            + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
     END IF;
 
-    -- Calcula custo_total_impressao
-    SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
-        + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
     SET NEW.custo_total_impressao = custo_total;
 
     -- Calcula custo_por_unidade
@@ -180,19 +189,28 @@ BEGIN
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.filamento_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
+
+        -- Cálculo do custo total para filamento
+        SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
+            + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
+
     ELSEIF tipo_impressora = 'Resina' THEN
         SELECT preco_litro INTO valor_material FROM resinas WHERE id = NEW.resina_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
 
         SELECT preco_litro INTO preco_litro_alcool FROM alcool WHERE usuario_id = NEW.usuario_id;
         SET NEW.custo_lavagem_alcool = (preco_litro_alcool / 1000) * NEW.peso_material;
+
+        -- Cálculo do custo total para resina (inclui custo_lavagem_alcool)
+        SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao + NEW.custo_lavagem_alcool)
+            + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao + NEW.custo_lavagem_alcool) * 0.7) / NEW.taxa_falha);
+
     ELSE
         SET NEW.custo_lavagem_alcool = NULL;
+        SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
+            + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
     END IF;
 
-    -- Calcula custo_total_impressao
-    SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
-        + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
     SET NEW.custo_total_impressao = custo_total;
 
     -- Calcula custo_por_unidade
