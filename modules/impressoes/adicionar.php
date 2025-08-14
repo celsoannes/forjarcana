@@ -55,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     $tempo_impressao = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
     $unidades_produzidas = intval($_POST['unidades_produzidas'] ?? 1);
     $markup = intval($_POST['markup'] ?? 5); // valor padrão 5
-    $taxa_falha = intval($_POST['taxa_falha'] ?? 0);
+    $taxa_falha = intval($_POST['taxa_falha'] ?? 15);
+    if ($taxa_falha <= 0) $taxa_falha = 15;
     $observacoes = trim($_POST['observacoes'] ?? '');
     $peso_material = intval($_POST['peso_material'] ?? 0);
 
@@ -354,7 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           </div>
           <div class="form-group">
             <label for="taxa_falha">Taxa de Falha (%)</label>
-            <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="10">
+            <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="" placeholder="10">
           </div>
           <div class="form-group">
             <label for="observacoes">Observações</label>

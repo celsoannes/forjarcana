@@ -89,10 +89,10 @@ BEGIN
 
     -- Calcula custo_total_impressao
     SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
-        + NEW.taxa_falha * (NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7;
+        + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
     SET NEW.custo_total_impressao = custo_total;
 
-    -- Log dos valores usados no cálculo
+    -- AGORA insira no log, pois todos os valores já estão preenchidos!
     INSERT INTO impressoes_trigger_log
     (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao, custo_material, taxa_falha, custo_total)
     VALUES (
