@@ -140,9 +140,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     <a href="?pagina=impressoes" class="btn btn-secondary mt-3">Voltar</a>
 <?php elseif (!$material): ?>
     <!-- Escolha do material -->
-    <h5 class="mb-2">
-      Impressora escolhida: <?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?>
-    </h5>
+    <div class="card card-primary mb-3">
+      <div class="card-header">
+        <h3 class="card-title">Impressora escolhida</h3>
+      </div>
+      <div class="card-body">
+        <strong>Marca:</strong> <?= htmlspecialchars($impressora_escolhida['marca']) ?><br>
+        <strong>Modelo:</strong> <?= htmlspecialchars($impressora_escolhida['modelo']) ?><br>
+        <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
+        <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
+        <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
+      </div>
+    </div>
     <?php if ($impressora_escolhida['tipo'] === 'Resina'): ?>
         <?php
         $stmt = $pdo->prepare("SELECT * FROM resinas WHERE usuario_id = ?");
