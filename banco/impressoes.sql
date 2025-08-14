@@ -112,6 +112,12 @@ BEGIN
         SET NEW.preco_venda_sugerido_unidade = 0;
     END IF;
 
+    -- Calcula lucro_total_impressao
+    SET NEW.lucro_total_impressao = NEW.preco_venda_sugerido - NEW.custo_total_impressao;
+
+    -- Calcula lucro_por_unidade
+    SET NEW.lucro_por_unidade = NEW.preco_venda_sugerido_unidade - NEW.custo_por_unidade;
+
     -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
     (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao, custo_material, taxa_falha, custo_total)
@@ -204,6 +210,12 @@ BEGIN
     ELSE
         SET NEW.preco_venda_sugerido_unidade = 0;
     END IF;
+
+    -- Calcula lucro_total_impressao
+    SET NEW.lucro_total_impressao = NEW.preco_venda_sugerido - NEW.custo_total_impressao;
+
+    -- Calcula lucro_por_unidade
+    SET NEW.lucro_por_unidade = NEW.preco_venda_sugerido_unidade - NEW.custo_por_unidade;
 
     -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
