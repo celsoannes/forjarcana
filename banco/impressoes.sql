@@ -24,7 +24,7 @@ CREATE TABLE impressoes (
     depreciacao DECIMAL(10,2),
     custo_total_impressao DECIMAL(10,2),
     custo_por_unidade DECIMAL(10,2),
-    lucro_total DECIMAL(10,2),
+    lucro_total_impressao DECIMAL(10,2),
     lucro_por_unidade DECIMAL(10,2),
     porcentagem_lucro INT,
     preco_venda_sugerido DECIMAL(10,2),
