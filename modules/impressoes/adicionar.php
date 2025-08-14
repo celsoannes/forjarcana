@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/upload_imagem.php'; // Adiciona o upload
+
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
+$usuario_uuid = $_SESSION['usuario_uuid'] ?? '';
 
 // Busca impressoras
 $stmt = $pdo->prepare("SELECT * FROM impressoras WHERE usuario_id = ?");
@@ -46,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     $nome = trim($_POST['nome'] ?? '');
     $nome_original = trim($_POST['nome_original'] ?? '');
     $arquivo_impressao = trim($_POST['arquivo_impressao'] ?? '');
-    $imagem_capa = trim($_POST['imagem_capa'] ?? '');
+    $imagem_capa = ''; // Inicializa como vazio
     $estudio_id = intval($_POST['estudio_id'] ?? 0);
     $colecao_id = intval($_POST['colecao_id'] ?? 0);
     $tempo_dias = intval($_POST['tempo_dias'] ?? 0);
@@ -54,11 +57,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     $tempo_minutos = intval($_POST['tempo_minutos'] ?? 0);
     $tempo_impressao = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
     $unidades_produzidas = intval($_POST['unidades_produzidas'] ?? 1);
-    $markup = intval($_POST['markup'] ?? 5); // valor padrão 5
+    $markup = intval($_POST['markup'] ?? 5);
     $taxa_falha = intval($_POST['taxa_falha'] ?? 15);
     if ($taxa_falha <= 0) $taxa_falha = 15;
     $observacoes = trim($_POST['observacoes'] ?? '');
     $peso_material = intval($_POST['peso_material'] ?? 0);
+
+    // Upload da imagem de capa (opcional)
+    if (isset($_FILES['imagem_capa']) && $_FILES['imagem_capa']['error'] === UPLOAD_ERR_OK) {
+        $imagem_capa = uploadImagem($_FILES['imagem_capa'], $usuario_uuid, 'usuarios', null, 'impressao', false);
+        if (!$imagem_capa) {
+            $erro = 'Formato de imagem não suportado. Use apenas PNG, JPG, WEBP ou GIF.';
+        }
+    } else {
+        $imagem_capa = trim($_POST['imagem_capa'] ?? '');
+    }
 
     $campos_faltando = [];
     if ($markup <= 0) $campos_faltando[] = 'Markup';
@@ -67,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
         $erro = 'Preencha todos os campos obrigatórios.';
     } elseif ($campos_faltando) {
         $erro = 'Preencha os campos obrigatórios: ' . implode(', ', $campos_faltando) . '.';
-    } else {
+    } else if (!$erro) {
         try {
             $stmt = $pdo->prepare("INSERT INTO impressoes 
                 (nome, nome_original, arquivo_impressao, impressora_id, material_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
@@ -269,7 +282,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           </div>
           <div class="form-group">
             <label for="imagem_capa">Imagem de Capa</label>
-            <input type="text" class="form-control" id="imagem_capa" name="imagem_capa" placeholder="URL ou caminho da imagem">
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="imagem_capa" name="imagem_capa" accept="image/png,image/jpeg,image/webp,image/gif">
+                <label class="custom-file-label" for="imagem_capa">Selecione uma imagem</label>
+            </div>
           </div>
           <div class="form-group">
             <label for="estudio_id">Estúdio</label>
@@ -376,3 +392,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
   border-color: #007bff;
 }
 </style>
+
+<script src="plugins/jquery/jquery.min.js"></script>
+<script src="plugins/bs-custom-file-input/bs-custom-file-input.min.js"></script>
+<script>
+  $(document).ready(function () {
+    bsCustomFileInput.init();
+  });
+</script>

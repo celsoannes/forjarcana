@@ -26,6 +26,7 @@ $impressoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <table class="table table-hover text-nowrap">
         <thead>
           <tr>
+            <th>Imagem</th>
             <th>Nome</th>
             <th>Estudio</th>
             <th>Coleção</th>
@@ -42,6 +43,13 @@ $impressoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <tbody>
           <?php foreach ($impressoes as $imp): ?>
             <tr>
+              <td>
+                <?php if (!empty($imp['imagem_capa'])): ?>
+                  <img src="<?= htmlspecialchars($imp['imagem_capa']) ?>" alt="Imagem de Capa" style="width:32px;height:32px;border-radius:4px;">
+                <?php else: ?>
+                  <span class="text-muted">-</span>
+                <?php endif; ?>
+              </td>
               <td><?= htmlspecialchars($imp['nome']) ?></td>
               <td><?= htmlspecialchars($imp['estudio_nome'] ?? '-') ?></td>
               <td><?= htmlspecialchars($imp['colecao_nome'] ?? '-') ?></td>
