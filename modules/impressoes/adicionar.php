@@ -135,41 +135,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
 <?php if (!$impressora_escolhida): ?>
     <!-- Escolha da impressora -->
     <h5>Escolha da impressora</h5>
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Escolha a impressora</h3>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <?php if ($impressoras): ?>
-            <?php foreach ($impressoras as $imp): ?>
-              <div class="col-md-3">
-                <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $imp['id'] ?>" style="text-decoration: none;">
-                  <div class="card card-primary card-hover" style="cursor:pointer;">
-                    <div class="card-header">
-                      <h3 class="card-title"><?= htmlspecialchars($imp['marca'] . ' ' . $imp['modelo']) ?></h3>
-                    </div>
-                    <div class="card-body">
-                      <strong>Tipo:</strong> <?= htmlspecialchars($imp['tipo']) ?><br>
-                      <strong>Depreciação:</strong> <?= htmlspecialchars($imp['depreciacao']) ?>%<br>
-                      <strong>Custo Hora:</strong> R$ <?= number_format($imp['custo_hora'], 4, ',', '.') ?>
-                    </div>
-                  </div>
-                </a>
+    <!-- Conteúdo do card Escolha a impressora movido para fora do card -->
+    <div class="row">
+      <?php if ($impressoras): ?>
+        <?php foreach ($impressoras as $imp): ?>
+          <div class="col-md-3">
+            <a href="?pagina=impressoes&acao=adicionar&impressora_id=<?= $imp['id'] ?>" style="text-decoration: none;">
+              <div class="card card-primary card-hover" style="cursor:pointer;">
+                <div class="card-header">
+                  <h3 class="card-title"><?= htmlspecialchars($imp['marca'] . ' ' . $imp['modelo']) ?></h3>
+                </div>
+                <div class="card-body">
+                  <strong>Tipo:</strong> <?= htmlspecialchars($imp['tipo']) ?><br>
+                  <strong>Depreciação:</strong> <?= htmlspecialchars($imp['depreciacao']) ?>%<br>
+                  <strong>Custo Hora:</strong> R$ <?= number_format($imp['custo_hora'], 4, ',', '.') ?>
+                </div>
               </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <div class="col-12">
-              <div class="alert alert-info text-center">Nenhuma impressora cadastrada.</div>
-            </div>
-          <?php endif; ?>
+            </a>
+          </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="col-12">
+          <div class="alert alert-info text-center">Nenhuma impressora cadastrada.</div>
         </div>
-      </div>
-      <div class="card-footer">
-        <a href="?pagina=impressoes" class="btn btn-secondary">Voltar</a>
-      </div>
+      <?php endif; ?>
     </div>
-    
+    <!-- Botão Cancelar movido para fora do card -->
+    <a href="?pagina=impressoes" class="btn btn-secondary mb-3">Cancelar</a>
 <?php elseif (!$material): ?>
     <!-- Escolha do material -->
     <h5>Escolha do material</h5>
