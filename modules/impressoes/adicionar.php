@@ -54,13 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     $tempo_minutos = intval($_POST['tempo_minutos'] ?? 0);
     $tempo_impressao = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
     $unidades_produzidas = intval($_POST['unidades_produzidas'] ?? 1);
-    $margem_lucro = intval($_POST['margem_lucro'] ?? 0);
+    $markup = intval($_POST['markup'] ?? 5); // valor padrão 5
     $taxa_falha = intval($_POST['taxa_falha'] ?? 0);
     $observacoes = trim($_POST['observacoes'] ?? '');
     $peso_material = intval($_POST['peso_material'] ?? 0);
 
     $campos_faltando = [];
-    if ($margem_lucro <= 0) $campos_faltando[] = 'Margem de Lucro';
+    if ($markup <= 0) $campos_faltando[] = 'Markup';
     if ($taxa_falha <= 0) $campos_faltando[] = 'Taxa de Falha';
     if (!$nome || !$tempo_impressao || !$unidades_produzidas) {
         $erro = 'Preencha todos os campos obrigatórios.';
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
     } else {
         try {
             $stmt = $pdo->prepare("INSERT INTO impressoes 
-                (nome, nome_original, arquivo_impressao, impressora_id, material_id, tempo_impressao, imagem_capa, unidades_produzidas, margem_lucro, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
+                (nome, nome_original, arquivo_impressao, impressora_id, material_id, tempo_impressao, imagem_capa, unidades_produzidas, markup, taxa_falha, estudio_id, colecao_id, usuario_id, peso_material) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $nome,
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                 $tempo_impressao,
                 $imagem_capa,
                 $unidades_produzidas,
-                $margem_lucro,
+                $markup,
                 $taxa_falha,
                 $estudio_id ?: null,
                 $colecao_id ?: null,
@@ -345,8 +345,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
             >
           </div>
           <div class="form-group">
-            <label for="margem_lucro">Margem de Lucro (%)</label>
-            <input type="number" class="form-control" id="margem_lucro" name="margem_lucro" required value="500">
+            <label for="markup">Markup</label>
+            <select class="form-control" id="markup" name="markup" required>
+                <?php for ($i = 1; $i <= 10; $i++): ?>
+                    <option value="<?= $i ?>" <?= $i == 5 ? 'selected' : '' ?>><?= $i ?></option>
+                <?php endfor; ?>
+            </select>
           </div>
           <div class="form-group">
             <label for="taxa_falha">Taxa de Falha (%)</label>

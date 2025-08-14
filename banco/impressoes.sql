@@ -10,7 +10,7 @@ CREATE TABLE impressoes (
     tempo_impressao INT NOT NULL,
     imagem_capa VARCHAR(255),
     unidades_produzidas INT NOT NULL,
-    margem_lucro INT NOT NULL,
+    markup INT NOT NULL,
     taxa_falha INT NOT NULL,
     componente INT,
     imagens_impressao INT,
@@ -51,7 +51,6 @@ BEGIN
     DECLARE preco_litro_alcool DECIMAL(10,2);
     DECLARE custo_kwh DECIMAL(10,8);
     DECLARE tempo_horas DECIMAL(10,4);
-    DECLARE custo_hora DECIMAL(10,4);
     DECLARE custo_hora_impressora DECIMAL(10,4);
     DECLARE custo_minuto DECIMAL(10,6);
     DECLARE custo_depreciacao DECIMAL(10,2);
@@ -117,7 +116,6 @@ BEGIN
     DECLARE preco_litro_alcool DECIMAL(10,2);
     DECLARE custo_kwh DECIMAL(10,8);
     DECLARE tempo_horas DECIMAL(10,4);
-    DECLARE custo_hora DECIMAL(10,4);
     DECLARE custo_hora_impressora DECIMAL(10,4);
     DECLARE custo_minuto DECIMAL(10,6);
     DECLARE custo_depreciacao DECIMAL(10,2);
