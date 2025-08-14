@@ -318,9 +318,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
         <?php endif; ?>
         <form method="POST" enctype="multipart/form-data">
+          <hr>
           <!-- Título entre os cards -->
           <h5>Identificação da Impressão</h5>
-          <!-- Conteúdo do card Identificação da Impressão movido para cá -->
+          <!-- Conteúdo Identificação da Impressão -->
           <div class="form-group">
             <label for="nome">Nome da Impressão</label>
             <input type="text" class="form-control" id="nome" name="nome" required>
@@ -357,99 +358,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
               </select>
             </div>
           </div>
+          <hr>
+          <!-- Título Arquivos e Mídia -->
           <h5>Arquivos e Mídia</h5>
-          <!-- Card Arquivos e Mídia -->
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Arquivos e Mídia</h3>
+          <!-- Conteúdo do card Arquivos e Mídia -->
+          <div class="form-row">
+            <div class="form-group col-md-7">
+              <label for="arquivo_impressao">Arquivo de Impressão</label>
+              <input type="text" class="form-control" id="arquivo_impressao" name="arquivo_impressao" placeholder="Ex: modelo.stl">
             </div>
-            <div class="card-body">
-              <div class="form-row">
-                <div class="form-group col-md-7">
-                  <label for="arquivo_impressao">Arquivo de Impressão</label>
-                  <input type="text" class="form-control" id="arquivo_impressao" name="arquivo_impressao" placeholder="Ex: modelo.stl">
-                </div>
-                <div class="form-group col-md-5">
-                  <label for="imagem_capa">Imagem de Capa</label>
-                  <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="imagem_capa" name="imagem_capa" accept="image/png,image/jpeg,image/webp,image/gif">
-                    <label class="custom-file-label" for="imagem_capa">Selecione uma imagem</label>
-                  </div>
-                </div>
+            <div class="form-group col-md-5">
+              <label for="imagem_capa">Imagem de Capa</label>
+              <div class="custom-file">
+                <input type="file" class="custom-file-input" id="imagem_capa" name="imagem_capa" accept="image/png,image/jpeg,image/webp,image/gif">
+                <label class="custom-file-label" for="imagem_capa">Selecione uma imagem</label>
               </div>
             </div>
           </div>
+          <hr>
+          <!-- Título Dados Técnicos da Impressão -->
           <h5>Dados Técnicos da Impressão</h5>
-          <!-- Card Dados Técnicos da Impressão -->
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Dados Técnicos da Impressão</h3>
+          <!-- Conteúdo do card Dados Técnicos da Impressão -->
+          <div class="form-row">
+            <div class="form-group col-md-2">
+              <label for="peso_material">Peso (g)</label>
+              <input
+                type="number"
+                class="form-control"
+                id="peso_material"
+                name="peso_material"
+                placeholder="Peso"
+                required
+              >
             </div>
-            <div class="card-body">
+            <div class="form-group col-md-2">
+              <label>Tempo de Impressão</label>
               <div class="form-row">
-                <div class="form-group col-md-2">
-                  <label for="peso_material">Peso (g)</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="peso_material"
-                    name="peso_material"
-                    placeholder="Peso"
-                    required
-                  >
+                <div class="col">
+                  <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0">
                 </div>
-                <div class="form-group col-md-2">
-                  <label>Tempo de Impressão</label>
-                  <div class="form-row">
-                    <div class="col">
-                      <input type="number" class="form-control" name="tempo_dias" placeholder="Dias" min="0">
-                    </div>
-                    <div class="col">
-                      <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23">
-                    </div>
-                    <div class="col">
-                      <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59">
-                    </div>
-                  </div>
+                <div class="col">
+                  <input type="number" class="form-control" name="tempo_horas" placeholder="Horas" min="0" max="23">
                 </div>
-                <div class="form-group col-md-2">
-                  <label for="unidades_produzidas">Unidades Produzidas</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="unidades_produzidas"
-                    name="unidades_produzidas"
-                    placeholder="Unidades"
-                    required
-                  >
-                </div>
-                <div class="form-group col-md-2">
-                  <label for="taxa_falha">Taxa de Falha (%)</label>
-                  <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="" placeholder="10">
-                </div>
-                <div class="form-group col-md-2">
-                  <label for="markup">Markup</label>
-                  <select class="form-control" id="markup" name="markup" required>
-                    <?php for ($i = 1; $i <= 10; $i++): ?>
-                        <option value="<?= $i ?>" <?= $i == 5 ? 'selected' : '' ?>><?= $i ?></option>
-                    <?php endfor; ?>
-                  </select>
+                <div class="col">
+                  <input type="number" class="form-control" name="tempo_minutos" placeholder="Min" min="0" max="59">
                 </div>
               </div>
+            </div>
+            <div class="form-group col-md-2">
+              <label for="unidades_produzidas">Unidades Produzidas</label>
+              <input
+                type="number"
+                class="form-control"
+                id="unidades_produzidas"
+                name="unidades_produzidas"
+                placeholder="Unidades"
+                required
+              >
+            </div>
+            <div class="form-group col-md-2">
+              <label for="taxa_falha">Taxa de Falha (%)</label>
+              <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="" placeholder="10">
+            </div>
+            <div class="form-group col-md-2">
+              <label for="markup">Markup</label>
+              <select class="form-control" id="markup" name="markup" required>
+                <?php for ($i = 1; $i <= 10; $i++): ?>
+                    <option value="<?= $i ?>" <?= $i == 5 ? 'selected' : '' ?>><?= $i ?></option>
+                <?php endfor; ?>
+              </select>
             </div>
           </div>
+          <hr>
+          <!-- Título Observações -->
           <h5>Observações</h5>
-          <!-- Card Observações -->
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Observações</h3>
-            </div>
-            <div class="card-body">
-              <div class="form-group">
-                <label for="observacoes">Observações</label>
-                <textarea class="form-control" id="observacoes" name="observacoes" rows="2" style="width:100%;"></textarea>
-              </div>
-            </div>
+          <!-- Conteúdo do card Observações movido para cá -->
+          <div class="form-group">
+            <label for="observacoes">Observações</label>
+            <textarea class="form-control" id="observacoes" name="observacoes" rows="2" style="width:100%;"></textarea>
           </div>
           <!-- Botões Salvar e Voltar -->
       </div>
