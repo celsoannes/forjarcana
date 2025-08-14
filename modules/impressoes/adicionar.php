@@ -218,7 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <?php endif; ?>
         </div>
     <?php endif; ?>
-    <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary mt-3">Voltar</a>
 <?php else: ?>
     <!-- Card Cadastrar Impressão -->
     <div class="card">
