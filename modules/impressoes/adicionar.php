@@ -276,35 +276,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
             <label for="nome">Nome da Impressão</label>
             <input type="text" class="form-control" id="nome" name="nome" required>
           </div>
-          <div class="form-group">
-            <label for="nome_original">Nome Original</label>
-            <input type="text" class="form-control" id="nome_original" name="nome_original">
-          </div>
-          <div class="form-group">
-            <label for="estudio_id">Estúdio</label>
-            <select class="form-control" id="estudio_id" name="estudio_id">
-              <option value="">Selecione...</option>
-              <?php
-              $stmt = $pdo->prepare("SELECT id, nome FROM estudios WHERE usuario_id = ?");
-              $stmt->execute([$usuario_id]);
-              foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $estudio) {
-                  echo '<option value="' . $estudio['id'] . '">' . htmlspecialchars($estudio['nome']) . '</option>';
-              }
-              ?>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="colecao_id">Coleção</label>
-            <select class="form-control" id="colecao_id" name="colecao_id">
-              <option value="">Selecione...</option>
-              <?php
-              $stmt = $pdo->prepare("SELECT id, nome FROM colecoes WHERE usuario_id = ?");
-              $stmt->execute([$usuario_id]);
-              foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $colecao) {
-                  echo '<option value="' . $colecao['id'] . '">' . htmlspecialchars($colecao['nome']) . '</option>';
-              }
-              ?>
-            </select>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="nome_original">Nome Original</label>
+              <input type="text" class="form-control" id="nome_original" name="nome_original">
+            </div>
+            <div class="form-group col-md-3">
+              <label for="estudio_id">Estúdio</label>
+              <select class="form-control" id="estudio_id" name="estudio_id">
+                <option value="">Selecione...</option>
+                <?php
+                $stmt = $pdo->prepare("SELECT id, nome FROM estudios WHERE usuario_id = ?");
+                $stmt->execute([$usuario_id]);
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $estudio) {
+                    echo '<option value="' . $estudio['id'] . '">' . htmlspecialchars($estudio['nome']) . '</option>';
+                }
+                ?>
+              </select>
+            </div>
+            <div class="form-group col-md-3">
+              <label for="colecao_id">Coleção</label>
+              <select class="form-control" id="colecao_id" name="colecao_id">
+                <option value="">Selecione...</option>
+                <?php
+                $stmt = $pdo->prepare("SELECT id, nome FROM colecoes WHERE usuario_id = ?");
+                $stmt->execute([$usuario_id]);
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $colecao) {
+                    echo '<option value="' . $colecao['id'] . '">' . htmlspecialchars($colecao['nome']) . '</option>';
+                }
+                ?>
+              </select>
+            </div>
           </div>
         </div>
       </div>
