@@ -354,7 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           </div>
           <div class="form-group">
             <label for="taxa_falha">Taxa de Falha (%)</label>
-            <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="30">
+            <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="10">
           </div>
           <div class="form-group">
             <label for="observacoes">Observações</label>

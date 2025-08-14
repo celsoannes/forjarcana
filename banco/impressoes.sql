@@ -54,6 +54,7 @@ BEGIN
     DECLARE custo_hora_impressora DECIMAL(10,4);
     DECLARE custo_minuto DECIMAL(10,6);
     DECLARE custo_depreciacao DECIMAL(10,2);
+    DECLARE custo_total DECIMAL(10,2);
 
     -- Busca dados da impressora
     SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
@@ -73,23 +74,6 @@ BEGIN
     SET NEW.valor_energia = custo_kwh;
     SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso_impressora * custo_kwh) / 1000;
 
-    -- Log dos valores usados no cálculo
-    INSERT INTO impressoes_trigger_log
-    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao)
-    VALUES (
-        0,
-        'INSERT',
-        NEW.custo_energia,
-        potencia_watts,
-        tempo_horas,
-        fator_uso_impressora,
-        custo_kwh,
-        custo_hora_impressora,
-        custo_minuto,
-        custo_depreciacao,
-        NEW.tempo_impressao
-    );
-
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
@@ -102,6 +86,31 @@ BEGIN
     ELSE
         SET NEW.custo_lavagem_alcool = NULL;
     END IF;
+
+    -- Calcula custo_total_impressao
+    SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
+        + NEW.taxa_falha * (NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7;
+    SET NEW.custo_total_impressao = custo_total;
+
+    -- Log dos valores usados no cálculo
+    INSERT INTO impressoes_trigger_log
+    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao, custo_material, taxa_falha, custo_total)
+    VALUES (
+        0,
+        'INSERT',
+        NEW.custo_energia,
+        potencia_watts,
+        tempo_horas,
+        fator_uso_impressora,
+        custo_kwh,
+        custo_hora_impressora,
+        custo_minuto,
+        custo_depreciacao,
+        NEW.tempo_impressao,
+        NEW.custo_material,
+        NEW.taxa_falha,
+        custo_total
+    );
 END;
 //
 
@@ -119,6 +128,7 @@ BEGIN
     DECLARE custo_hora_impressora DECIMAL(10,4);
     DECLARE custo_minuto DECIMAL(10,6);
     DECLARE custo_depreciacao DECIMAL(10,2);
+    DECLARE custo_total DECIMAL(10,2);
 
     -- Busca dados da impressora
     SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
@@ -138,23 +148,6 @@ BEGIN
     SET NEW.valor_energia = custo_kwh;
     SET NEW.custo_energia = (potencia_watts * tempo_horas * fator_uso_impressora * custo_kwh) / 1000;
 
-    -- Log dos valores usados no cálculo
-    INSERT INTO impressoes_trigger_log
-    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao)
-    VALUES (
-        NEW.id,
-        'UPDATE',
-        NEW.custo_energia,
-        potencia_watts,
-        tempo_horas,
-        fator_uso_impressora,
-        custo_kwh,
-        custo_hora_impressora,
-        custo_minuto,
-        custo_depreciacao,
-        NEW.tempo_impressao
-    );
-
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
         SET NEW.custo_material = NEW.peso_material * (valor_material/1000);
@@ -167,6 +160,31 @@ BEGIN
     ELSE
         SET NEW.custo_lavagem_alcool = NULL;
     END IF;
+
+    -- Calcula custo_total_impressao
+    SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
+        + NEW.taxa_falha * (NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7;
+    SET NEW.custo_total_impressao = custo_total;
+
+    -- Log dos valores usados no cálculo
+    INSERT INTO impressoes_trigger_log
+    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao, custo_material, taxa_falha, custo_total)
+    VALUES (
+        NEW.id,
+        'UPDATE',
+        NEW.custo_energia,
+        potencia_watts,
+        tempo_horas,
+        fator_uso_impressora,
+        custo_kwh,
+        custo_hora_impressora,
+        custo_minuto,
+        custo_depreciacao,
+        NEW.tempo_impressao,
+        NEW.custo_material,
+        NEW.taxa_falha,
+        custo_total
+    );
 END;
 //
 

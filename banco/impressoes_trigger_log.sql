@@ -11,5 +11,8 @@ CREATE TABLE impressoes_trigger_log (
     custo_hora DECIMAL(10,4),
     custo_minuto DECIMAL(10,6),
     custo_depreciacao DECIMAL(10,2),
-    tempo_impressao INT
+    tempo_impressao INT,
+    custo_material DECIMAL(10,2),
+    taxa_falha INT,
+    custo_total DECIMAL(10,2)
 );
