@@ -24,7 +24,8 @@ CREATE TABLE impressoes (
     depreciacao DECIMAL(10,2),
     custo_total_impressao DECIMAL(10,2),
     custo_por_unidade DECIMAL(10,2),
-    lucro DECIMAL(10,2),
+    lucro_total DECIMAL(10,2),
+    lucro_por_unidade DECIMAL(10,2),
     porcentagem_lucro INT,
     preco_venda_sugerido DECIMAL(10,2),
     preco_venda_sugerido_unidade DECIMAL(10,2),
@@ -100,6 +101,16 @@ BEGIN
         SET custo_unidade = 0;
     END IF;
     SET NEW.custo_por_unidade = custo_unidade;
+
+    -- Calcula preco_venda_sugerido
+    SET NEW.preco_venda_sugerido = NEW.custo_total_impressao * NEW.markup;
+
+    -- Calcula preco_venda_sugerido_unidade
+    IF NEW.unidades_produzidas > 0 THEN
+        SET NEW.preco_venda_sugerido_unidade = NEW.preco_venda_sugerido / NEW.unidades_produzidas;
+    ELSE
+        SET NEW.preco_venda_sugerido_unidade = 0;
+    END IF;
 
     -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
@@ -183,6 +194,16 @@ BEGIN
         SET custo_unidade = 0;
     END IF;
     SET NEW.custo_por_unidade = custo_unidade;
+
+    -- Calcula preco_venda_sugerido
+    SET NEW.preco_venda_sugerido = NEW.custo_total_impressao * NEW.markup;
+
+    -- Calcula preco_venda_sugerido_unidade
+    IF NEW.unidades_produzidas > 0 THEN
+        SET NEW.preco_venda_sugerido_unidade = NEW.preco_venda_sugerido / NEW.unidades_produzidas;
+    ELSE
+        SET NEW.preco_venda_sugerido_unidade = 0;
+    END IF;
 
     -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
