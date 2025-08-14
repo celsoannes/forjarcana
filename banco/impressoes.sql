@@ -55,6 +55,7 @@ BEGIN
     DECLARE custo_minuto DECIMAL(10,6);
     DECLARE custo_depreciacao DECIMAL(10,2);
     DECLARE custo_total DECIMAL(10,2);
+    DECLARE custo_unidade DECIMAL(10,2);
 
     -- Busca dados da impressora
     SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
@@ -92,7 +93,15 @@ BEGIN
         + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
     SET NEW.custo_total_impressao = custo_total;
 
-    -- AGORA insira no log, pois todos os valores já estão preenchidos!
+    -- Calcula custo_por_unidade
+    IF NEW.unidades_produzidas > 0 THEN
+        SET custo_unidade = custo_total / NEW.unidades_produzidas;
+    ELSE
+        SET custo_unidade = 0;
+    END IF;
+    SET NEW.custo_por_unidade = custo_unidade;
+
+    -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
     (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao, custo_material, taxa_falha, custo_total)
     VALUES (
@@ -129,6 +138,7 @@ BEGIN
     DECLARE custo_minuto DECIMAL(10,6);
     DECLARE custo_depreciacao DECIMAL(10,2);
     DECLARE custo_total DECIMAL(10,2);
+    DECLARE custo_unidade DECIMAL(10,2);
 
     -- Busca dados da impressora
     SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
@@ -163,8 +173,16 @@ BEGIN
 
     -- Calcula custo_total_impressao
     SET custo_total = (NEW.custo_material + NEW.custo_energia + NEW.depreciacao)
-        + NEW.taxa_falha * (NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7;
+        + (((NEW.custo_material + NEW.custo_energia + NEW.depreciacao) * 0.7) / NEW.taxa_falha);
     SET NEW.custo_total_impressao = custo_total;
+
+    -- Calcula custo_por_unidade
+    IF NEW.unidades_produzidas > 0 THEN
+        SET custo_unidade = custo_total / NEW.unidades_produzidas;
+    ELSE
+        SET custo_unidade = 0;
+    END IF;
+    SET NEW.custo_por_unidade = custo_unidade;
 
     -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
