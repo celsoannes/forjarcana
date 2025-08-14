@@ -266,7 +266,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
       <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
     <?php endif; ?>
     <form method="POST" enctype="multipart/form-data">
-      <div class="card card-primary">
+      <!-- Card Identificação da Impressão -->
+      <div class="card card-info mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Identificação da Impressão</h3>
+        </div>
         <div class="card-body">
           <div class="form-group">
             <label for="nome">Nome da Impressão</label>
@@ -275,17 +279,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <div class="form-group">
             <label for="nome_original">Nome Original</label>
             <input type="text" class="form-control" id="nome_original" name="nome_original">
-          </div>
-          <div class="form-group">
-            <label for="arquivo_impressao">Arquivo de Impressão</label>
-            <input type="text" class="form-control" id="arquivo_impressao" name="arquivo_impressao" placeholder="Ex: modelo.stl">
-          </div>
-          <div class="form-group">
-            <label for="imagem_capa">Imagem de Capa</label>
-            <div class="custom-file">
-                <input type="file" class="custom-file-input" id="imagem_capa" name="imagem_capa" accept="image/png,image/jpeg,image/webp,image/gif">
-                <label class="custom-file-label" for="imagem_capa">Selecione uma imagem</label>
-            </div>
           </div>
           <div class="form-group">
             <label for="estudio_id">Estúdio</label>
@@ -312,6 +305,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
               }
               ?>
             </select>
+          </div>
+        </div>
+      </div>
+      <div class="card card-primary">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="arquivo_impressao">Arquivo de Impressão</label>
+            <input type="text" class="form-control" id="arquivo_impressao" name="arquivo_impressao" placeholder="Ex: modelo.stl">
+          </div>
+          <div class="form-group">
+            <label for="imagem_capa">Imagem de Capa</label>
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="imagem_capa" name="imagem_capa" accept="image/png,image/jpeg,image/webp,image/gif">
+                <label class="custom-file-label" for="imagem_capa">Selecione uma imagem</label>
+            </div>
           </div>
           <div class="form-group">
             <?php if ($material_tipo === 'filamento'): ?>
