@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
 
 <?php if (!$impressora_escolhida): ?>
     <!-- Escolha da impressora -->
-    <h5>Escolha da impressora</h5>
+    <h5>Escolha a impressora</h5>
     <!-- Conteúdo do card Escolha a impressora movido para fora do card -->
     <div class="row">
       <?php if ($impressoras): ?>
@@ -274,10 +274,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           </div>
         </div>
       </div>
-      <div class="card-footer">
-        <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary">Voltar</a>
-      </div>
     </div>
+    <!-- Botão Voltar permanece abaixo do card Escolha o filamento -->
+    <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary mb-3">Voltar</a>
 <?php else: ?>
     <!-- Card Cadastrar Impressão -->
     <div class="card">
