@@ -51,13 +51,19 @@ BEGIN
     DECLARE preco_litro_alcool DECIMAL(10,2);
     DECLARE custo_kwh DECIMAL(10,8);
     DECLARE tempo_horas DECIMAL(10,4);
-    DECLARE valor_depreciacao DECIMAL(10,2);
+    DECLARE custo_hora DECIMAL(10,4);
+    DECLARE custo_hora_impressora DECIMAL(10,4);
+    DECLARE custo_minuto DECIMAL(10,6);
+    DECLARE custo_depreciacao DECIMAL(10,2);
 
     -- Busca dados da impressora
-    SELECT potencia, fator_uso, tipo, depreciacao INTO potencia_watts, fator_uso_impressora, tipo_impressora, valor_depreciacao
+    SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
     FROM impressoras WHERE id = NEW.impressora_id;
 
-    SET NEW.depreciacao = valor_depreciacao;
+    -- Calcula custo por minuto e custo depreciação
+    SET custo_minuto = custo_hora_impressora / 60;
+    SET custo_depreciacao = custo_minuto * NEW.tempo_impressao;
+    SET NEW.depreciacao = custo_depreciacao;
 
     -- Busca valor do kWh
     SELECT valor_kwh INTO custo_kwh
@@ -70,8 +76,20 @@ BEGIN
 
     -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
-    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh)
-    VALUES (0, 'INSERT', NEW.custo_energia, potencia_watts, tempo_horas, fator_uso_impressora, custo_kwh);
+    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao)
+    VALUES (
+        0,
+        'INSERT',
+        NEW.custo_energia,
+        potencia_watts,
+        tempo_horas,
+        fator_uso_impressora,
+        custo_kwh,
+        custo_hora_impressora,
+        custo_minuto,
+        custo_depreciacao,
+        NEW.tempo_impressao
+    );
 
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
@@ -99,13 +117,19 @@ BEGIN
     DECLARE preco_litro_alcool DECIMAL(10,2);
     DECLARE custo_kwh DECIMAL(10,8);
     DECLARE tempo_horas DECIMAL(10,4);
-    DECLARE valor_depreciacao DECIMAL(10,2);
+    DECLARE custo_hora DECIMAL(10,4);
+    DECLARE custo_hora_impressora DECIMAL(10,4);
+    DECLARE custo_minuto DECIMAL(10,6);
+    DECLARE custo_depreciacao DECIMAL(10,2);
 
     -- Busca dados da impressora
-    SELECT potencia, fator_uso, tipo, depreciacao INTO potencia_watts, fator_uso_impressora, tipo_impressora, valor_depreciacao
+    SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
     FROM impressoras WHERE id = NEW.impressora_id;
 
-    SET NEW.depreciacao = valor_depreciacao;
+    -- Calcula custo por minuto e custo depreciação
+    SET custo_minuto = custo_hora_impressora / 60;
+    SET custo_depreciacao = custo_minuto * NEW.tempo_impressao;
+    SET NEW.depreciacao = custo_depreciacao;
 
     -- Busca valor do kWh
     SELECT valor_kwh INTO custo_kwh
@@ -118,8 +142,20 @@ BEGIN
 
     -- Log dos valores usados no cálculo
     INSERT INTO impressoes_trigger_log
-    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh)
-    VALUES (NEW.id, 'UPDATE', NEW.custo_energia, potencia_watts, tempo_horas, fator_uso_impressora, custo_kwh);
+    (impressao_id, evento, custo_energia, potencia_watts, tempo_horas, fator_uso, custo_kwh, custo_hora, custo_minuto, custo_depreciacao, tempo_impressao)
+    VALUES (
+        NEW.id,
+        'UPDATE',
+        NEW.custo_energia,
+        potencia_watts,
+        tempo_horas,
+        fator_uso_impressora,
+        custo_kwh,
+        custo_hora_impressora,
+        custo_minuto,
+        custo_depreciacao,
+        NEW.tempo_impressao
+    );
 
     IF tipo_impressora = 'FDM' THEN
         SELECT preco_kilo INTO valor_material FROM filamento WHERE id = NEW.material_id;
