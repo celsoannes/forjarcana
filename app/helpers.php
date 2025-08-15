@@ -21,6 +21,8 @@ function getTituloPagina($pagina) {
             return 'Coleções';
         case 'impressoes':
             return 'Impressões';
+        case 'calculo_rapido':
+            return 'Cálculo Rápido';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -49,6 +51,8 @@ function getBreadcrumbPagina($pagina) {
             return 'Coleções';
         case 'impressoes':
             return 'Impressões';
+        case 'calculo_rapido':
+            return 'Cálculo Rápido';
         // ... outros casos ...
         default:
             return 'Dashboard';
