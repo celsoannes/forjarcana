@@ -156,81 +156,22 @@ if ($impressora_escolhida) {
         <h3 class="card-title">Calcular</h3>
       </div>
       <div class="card-body">
-        <!-- Exibe erros, se houver -->
-        <?php if (isset($erro) && $erro): ?>
-          <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
-        <?php endif; ?>
-        <div class="row">
-          <div class="col-6">
-            <h4>
-              <i class="fas fa-microscope"></i> 
-              <?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?>
-            </h4>
-          </div>
-          <div class="col-6">
-            <h4>
-              <?php if ($material_tipo === 'filamento'): ?>
-                <i class="fas fa-compact-disc"></i>
-              <?php else: ?>
-                <i class="fa-solid fa-bottle-water"></i>
-              <?php endif; ?>
-              <?= $material_tipo === 'filamento'
-                ? htmlspecialchars($material['tipo'] . ' ' . $material['nome'])
-                : htmlspecialchars($material['nome']) ?>
-            </h4>
-          </div>
-        </div>
-        <div class="row invoice-info">
-          <div class="col-sm-6 invoice-col">
-            <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
-            <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
-            <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?><br>
-          </div>
-          <div class="col-sm-6 invoice-col">
-            <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
-            <strong>Cor:</strong>
-            <?php if (!empty($material['cor'])): ?>
-              <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($material['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
-            <?php else: ?>
-              <span class="text-muted">-</span>
-            <?php endif; ?>
-            <br>
-            <?php if ($material_tipo === 'filamento'): ?>
-              <strong>Preço/Kg:</strong> R$ <?= number_format($material['preco_kilo'], 2, ',', '.') ?>
-            <?php else: ?>
-              <strong>Preço/Litro:</strong> R$ <?= number_format($material['preco_litro'], 2, ',', '.') ?>
-            <?php endif; ?>
-            <br>
-          </div>
-        </div>
+        <!-- Formulário -->
         <form method="POST">
           <hr>
           <h5>Dados Técnicos da Impressão</h5>
           <div class="form-row">
             <div class="form-group col-md-2 mb-3">
-              <?php if ($material_tipo === 'filamento'): ?>
-                <label for="peso_material">Peso (g)</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  id="peso_material"
-                  name="peso_material"
-                  placeholder="Peso"
-                  required
-                  value="<?= isset($_POST['peso_material']) ? htmlspecialchars($_POST['peso_material']) : '' ?>"
-                >
-              <?php elseif ($material_tipo === 'resina'): ?>
-                <label for="peso_material">Volume (ml)</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  id="peso_material"
-                  name="peso_material"
-                  placeholder="Volume"
-                  required
-                  value="<?= isset($_POST['peso_material']) ? htmlspecialchars($_POST['peso_material']) : '' ?>"
-                >
-              <?php endif; ?>
+              <label for="peso_material">Peso (g)</label>
+              <input
+                type="number"
+                class="form-control"
+                id="peso_material"
+                name="peso_material"
+                placeholder="Peso"
+                required
+                value="<?= isset($_POST['peso_material']) ? htmlspecialchars($_POST['peso_material']) : '' ?>"
+              >
             </div>
             <div class="form-group col-md-4 mb-3">
               <label>Tempo de Impressão</label>
@@ -271,12 +212,85 @@ if ($impressora_escolhida) {
               </select>
             </div>
           </div>
-      </div>
-      <div class="card-footer">
-        <a href="?pagina=calculo_rapido&impressora_id=<?= $impressora_escolhida['id'] ?>" class="btn btn-secondary">Voltar</a>
-        <button type="submit" class="btn btn-primary">Calcular</button>
-      </div>
+          <div class="card-footer">
+            <a href="?pagina=calculo_rapido&impressora_id=<?= $impressora_escolhida['id'] ?>" class="btn btn-secondary">Voltar</a>
+            <button type="submit" class="btn btn-primary">Calcular</button>
+          </div>
         </form>
+        <!-- Cálculos e resultados -->
+        <?php
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Dados do formulário
+            $peso_material = floatval($_POST['peso_material']);
+            $tempo_dias = intval($_POST['tempo_dias']);
+            $tempo_horas = intval($_POST['tempo_horas']);
+            $tempo_minutos = intval($_POST['tempo_minutos']);
+            $unidades_produzidas = intval($_POST['unidades_produzidas']);
+            $taxa_falha = floatval($_POST['taxa_falha']);
+            $markup = floatval($_POST['markup']);
+
+            // Tempo total em minutos
+            $tempo_total_min = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
+            $tempo_total_horas = $tempo_total_min / 60;
+
+            // Buscar valor_kwh do usuário
+            $stmt = $pdo->prepare("SELECT valor_kwh FROM energia WHERE usuario_id = ?");
+            $stmt->execute([$usuario_id]);
+            $energia = $stmt->fetch(PDO::FETCH_ASSOC);
+            $valor_kwh = $energia ? floatval($energia['valor_kwh']) : 1; // valor padrão se não houver
+
+            // Buscar potencia e fator_uso da impressora
+            $potencia = isset($impressora_escolhida['potencia']) ? floatval($impressora_escolhida['potencia']) : 0;
+            $fator_uso = isset($impressora_escolhida['fator_uso']) ? floatval($impressora_escolhida['fator_uso']) : 1;
+
+            // Cálculos para filamento
+            if ($material_tipo === 'filamento') {
+                // Custo material
+                $custo_material = ($peso_material / 1000) * floatval($material['preco_kilo']);
+
+                // Custo energia igual à trigger do banco
+                $custo_energia = ($potencia * $tempo_total_horas * $fator_uso * $valor_kwh) / 1000;
+
+                // Custo depreciação
+                $custo_minuto = floatval($impressora_escolhida['custo_hora']) / 60;
+                $custo_depreciacao = $custo_minuto * $tempo_total_min;
+
+                // Custo total da impressão
+                $base_custo = $custo_material + $custo_energia + $custo_depreciacao;
+                $custo_total = $base_custo + (($base_custo * 0.7) / ($taxa_falha > 0 ? $taxa_falha : 1));
+
+                // Custo por unidade
+                $custo_por_unidade = $unidades_produzidas > 0 ? $custo_total / $unidades_produzidas : 0;
+
+                // Lucro total
+                $preco_venda_sugerido = $custo_total * $markup;
+                $lucro_total = $preco_venda_sugerido - $custo_total;
+
+                // Lucro por unidade
+                $lucro_por_unidade = $unidades_produzidas > 0 ? $lucro_total / $unidades_produzidas : 0;
+
+                // Preço de venda sugerido por unidade
+                $preco_venda_sugerido_unidade = $unidades_produzidas > 0 ? ($custo_total + $lucro_total) / $unidades_produzidas : 0;
+
+                // Apresentação dos resultados
+                echo '<hr><h5>Resultados do Cálculo</h5>';
+                echo '<ul>';
+                echo '<li><strong>Custo material:</strong> R$ ' . number_format($custo_material, 2, ',', '.') . '</li>';
+                echo '<li><strong>Custo de energia:</strong> R$ ' . number_format($custo_energia, 2, ',', '.') . '</li>';
+                echo '<li><strong>Custo depreciação:</strong> R$ ' . number_format($custo_depreciacao, 2, ',', '.') . '</li>';
+                echo '<li><strong>Custo total da impressão:</strong> R$ ' . number_format($custo_total, 2, ',', '.') . '</li>';
+                echo '<li><strong>Custo por unidade:</strong> R$ ' . number_format($custo_por_unidade, 2, ',', '.') . '</li>';
+                echo '<li><strong>Lucro total:</strong> R$ ' . number_format($lucro_total, 2, ',', '.') . '</li>';
+                echo '<li><strong>Lucro por unidade:</strong> R$ ' . number_format($lucro_por_unidade, 2, ',', '.') . '</li>';
+                echo '<li><strong>Preço de venda sugerido por unidade:</strong> R$ ' . number_format($preco_venda_sugerido_unidade, 2, ',', '.') . '</li>';
+                echo '</ul>';
+            }
+        }
+        ?>
+      </div>
     </div>
-    <?php endif; ?>
+<?php endif; // fechamento do primeiro if ?>
 <?php endif; ?>
+<?php
+echo $impressora_escolhida['depreciacao'];
+?>
