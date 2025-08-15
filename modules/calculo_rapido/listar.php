@@ -402,21 +402,25 @@ if ($impressora_escolhida) {
                         <?php endif; ?>
                         <!-- Linha inteira para Custo total da impressão -->
                         <div class="col-12">
-                            <div class="info-box bg-light">
+                            <div class="info-box bg-warning">
                                 <div class="info-box-content">
-                                    <span class="info-box-text text-center text-muted">Custo total da impressão</span>
-                                    <span class="info-box-number text-center text-muted mb-0">
+                                    <span class="info-box-text text-center font-weight-bold" style="font-size:1.2em;">
+                                        <i class="fas fa-coins"></i> Custo total da impressão
+                                    </span>
+                                    <span class="info-box-number text-center font-weight-bold" style="font-size:1.5em;">
                                         R$ <?= number_format($custo_total, 2, ',', '.') ?>
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <!-- Linha inteira para Custo por unidade -->
+                        <!-- Linha inteira para Custo por unidade com destaque -->
                         <div class="col-12">
-                            <div class="info-box bg-light">
+                            <div class="info-box bg-primary">
                                 <div class="info-box-content">
-                                    <span class="info-box-text text-center text-muted">Custo por unidade</span>
-                                    <span class="info-box-number text-center text-muted mb-0">
+                                    <span class="info-box-text text-center font-weight-bold" style="font-size:1.2em;">
+                                        <i class="fas fa-balance-scale"></i> Custo por unidade
+                                    </span>
+                                    <span class="info-box-number text-center font-weight-bold" style="font-size:1.5em;">
                                         R$ <?= number_format($custo_por_unidade, 2, ',', '.') ?>
                                     </span>
                                 </div>
@@ -452,12 +456,14 @@ if ($impressora_escolhida) {
                                 </div>
                             </div>
                         </div>
-                        <!-- Preço Consumidor Final ocupa a linha inteira -->
+                        <!-- Preço Consumidor Final ocupa a linha inteira e recebe destaque -->
                         <div class="col-12">
-                            <div class="info-box bg-light">
+                            <div class="info-box bg-success">
                                 <div class="info-box-content">
-                                    <span class="info-box-text text-center text-muted">Preço Consumidor Final</span>
-                                    <span class="info-box-number text-center text-muted mb-0">
+                                    <span class="info-box-text text-center font-weight-bold" style="font-size:1.2em;">
+                                        <i class="fas fa-shopping-cart"></i> Preço Consumidor Final
+                                    </span>
+                                    <span class="info-box-number text-center font-weight-bold" style="font-size:1.5em;">
                                         R$ <?= number_format($preco_venda_sugerido_unidade, 2, ',', '.') ?>
                                     </span>
                                 </div>
