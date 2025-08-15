@@ -427,7 +427,7 @@ if ($impressora_escolhida) {
 
             <div class="card mt-3">
                 <div class="card-header">
-                    <h3 class="card-title">Lucro</h3>
+                    <h3 class="card-title">Venda Direta</h3>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -454,7 +454,87 @@ if ($impressora_escolhida) {
                         <div class="col-12 col-sm-4">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
-                                    <span class="info-box-text text-center text-muted">Preço de venda sugerido por unidade</span>
+                                    <span class="info-box-text text-center text-muted">Preço Consumidor Final</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($preco_venda_sugerido_unidade, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title">Preço para Lojista</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Lucro total</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($lucro_total, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Lucro por unidade</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($lucro_por_unidade, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Preço Consumidor Final</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($preco_venda_sugerido_unidade, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title">Venda no Site</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Lucro total</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($lucro_total, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Lucro por unidade</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($lucro_por_unidade, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Preço Consumidor Final</span>
                                     <span class="info-box-number text-center text-muted mb-0">
                                         R$ <?= number_format($preco_venda_sugerido_unidade, 2, ',', '.') ?>
                                     </span>
