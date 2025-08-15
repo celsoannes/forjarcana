@@ -24,7 +24,7 @@ function getTituloPagina($pagina) {
         case 'calculo_rapido':
             return 'Cálculo Rápido';
         case 'perfil':
-            return 'Perfil';
+            return 'Perfil do Usuário';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -56,7 +56,7 @@ function getBreadcrumbPagina($pagina) {
         case 'calculo_rapido':
             return 'Cálculo Rápido';
         case 'perfil':
-            return 'Perfil';
+            return 'Perfil do Usuário';
         // ... outros casos ...
         default:
             return 'Dashboard';
