@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/upload_imagem.php';
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 
@@ -25,6 +26,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim($_POST['email']);
         $celular = trim($_POST['celular']);
         $cpf = trim($_POST['cpf']);
+        $foto_nome = $usuario['foto'];
+
+        // Upload da foto se enviada
+        if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+            // Recupera o uuid do usuário
+            $stmtUuid = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ?");
+            $stmtUuid->execute([$usuario_id]);
+            $uuid = $stmtUuid->fetchColumn();
+
+            $foto_nome = uploadImagem($_FILES['foto'], $uuid, 'usuarios', null, 'foto', true);
+            if ($foto_nome) {
+                $stmtFoto = $pdo->prepare("UPDATE usuarios SET foto = ? WHERE id = ?");
+                $stmtFoto->execute([$foto_nome, $usuario_id]);
+                $usuario['foto'] = $foto_nome;
+
+                // Atualiza a foto na sessão
+                $_SESSION['usuario_foto'] = $foto_nome;
+            }
+        }
 
         $stmt = $pdo->prepare("UPDATE usuarios SET nome = ?, sobrenome = ?, email = ?, celular = ?, cpf = ? WHERE id = ?");
         $stmt->execute([$nome, $sobrenome, $email, $celular, $cpf, $usuario_id]);
@@ -34,6 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usuario['email'] = $email;
         $usuario['celular'] = $celular;
         $usuario['cpf'] = $cpf;
+
+        // Atualiza nome e sobrenome na sessão
+        $_SESSION['usuario_nome'] = $nome;
+        $_SESSION['usuario_sobrenome'] = $sobrenome;
 
         $alerta = '<div class="alert alert-success">Perfil atualizado com sucesso!</div>';
     }
@@ -68,26 +92,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h3 class="card-title">Meu Perfil</h3>
     </div>
     <div class="card-body">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="form_tipo" value="perfil">
             <div class="form-row">
-                <div class="form-group col-md-6">
+                <!-- Foto do perfil ocupa 20% da linha -->
+                <div class="form-group" style="flex: 0 0 20%; max-width: 20%; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                    <div class="text-center w-100">
+                        <img class="profile-user-img img-fluid img-circle"
+                             src="<?= isset($usuario['foto']) && $usuario['foto'] ? htmlspecialchars($usuario['foto']) : '../../dist/img/user4-128x128.jpg' ?>"
+                             alt="Foto do perfil" style="width:120px; height:120px; cursor:pointer;"
+                             onclick="document.getElementById('inputFotoPerfil').click();">
+                    </div>
+                    <small class="text-muted mt-2" style="cursor:pointer;" onclick="document.getElementById('inputFotoPerfil').click();">
+                        Clique na foto para trocar
+                    </small>
+                    <input type="file" name="foto" id="inputFotoPerfil" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+                </div>
+                <!-- Nome e Sobrenome ocupam 80% da linha -->
+                <div class="form-group" style="flex: 0 0 80%; max-width: 80%;">
                     <label for="nome">Nome</label>
                     <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars($usuario['nome']) ?>">
-                </div>
-                <div class="form-group col-md-6">
-                    <label for="sobrenome">Sobrenome</label>
+                    <label for="sobrenome" class="mt-3">Sobrenome</label>
                     <input type="text" class="form-control" id="sobrenome" name="sobrenome" required value="<?= htmlspecialchars($usuario['sobrenome']) ?>">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group col-md-6">
-                    <label for="email">E-mail</label>
-                    <input type="email" class="form-control" id="email" name="email" required value="<?= htmlspecialchars($usuario['email']) ?>" readonly>
-                </div>
-                <div class="form-group col-md-6">
                     <label for="celular">Celular</label>
                     <input type="text" class="form-control" id="celular" name="celular" required value="<?= htmlspecialchars($usuario['celular']) ?>">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="email">E-mail</label>
+                    <input type="email" class="form-control" id="email" name="email" required value="<?= htmlspecialchars($usuario['email']) ?>" readonly>
                 </div>
             </div>
             <div class="form-row">
@@ -132,3 +168,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var inputFoto = document.getElementById('inputFotoPerfil');
+    var imgPerfil = document.querySelector('.profile-user-img');
+    inputFoto.addEventListener('change', function(e) {
+        if (inputFoto.files && inputFoto.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                imgPerfil.src = e.target.result;
+            }
+            reader.readAsDataURL(inputFoto.files[0]);
+        }
+    });
+});
+</script>
