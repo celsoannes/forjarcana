@@ -23,6 +23,8 @@ function getTituloPagina($pagina) {
             return 'Impressões';
         case 'calculo_rapido':
             return 'Cálculo Rápido';
+        case 'perfil':
+            return 'Perfil';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -53,6 +55,8 @@ function getBreadcrumbPagina($pagina) {
             return 'Impressões';
         case 'calculo_rapido':
             return 'Cálculo Rápido';
+        case 'perfil':
+            return 'Perfil';
         // ... outros casos ...
         default:
             return 'Dashboard';
