@@ -240,27 +240,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <?php endif; ?>
         </div>
     <?php endif; ?>
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Escolha do material</h3>
-      </div>
-      <div class="card-body">
-        <!-- Título Impressora escolhida -->
-        <h5>Impressora escolhida</h5>
-        <div class="card card-info mb-3">
-          <div class="card-header">
-            <h3 class="card-title">
-              <?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?>
-            </h3>
-          </div>
-          <div class="card-body">
-            <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
-            <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
-            <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
-          </div>
-        </div>
-      </div>
-    </div>
     <!-- Botão Voltar permanece abaixo do card Escolha o filamento -->
     <a href="?pagina=impressoes&acao=adicionar" class="btn btn-secondary mb-3">Voltar</a>
 <?php else: ?>
