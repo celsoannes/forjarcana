@@ -177,6 +177,18 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/calculo_rapido/listar.php';
         }
         break;
+    case 'perfil':
+        switch ($acao) {
+            case 'editar':
+                include __DIR__ . '/../modules/perfil/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/perfil/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/perfil/listar.php';
+        }
+        break;
     default:
         include __DIR__ . '/../modules/dashboard.php';
 }
