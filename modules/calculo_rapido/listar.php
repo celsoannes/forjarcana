@@ -389,11 +389,39 @@ if ($impressora_escolhida) {
                             </div>
                         </div>
                     </div>
-                    <ul>
-                        <li><strong>Custo depreciação:</strong> R$ <?= number_format($custo_depreciacao, 2, ',', '.') ?></li>
-                        <li><strong>Custo total da impressão:</strong> R$ <?= number_format($custo_total, 2, ',', '.') ?></li>
-                        <li><strong>Custo por unidade:</strong> R$ <?= number_format($custo_por_unidade, 2, ',', '.') ?></li>
-                    </ul>
+                    <!-- Novos info-boxes abaixo dos atuais -->
+                    <div class="row">
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Custo depreciação</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($custo_depreciacao, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Custo total da impressão</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($custo_total, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Custo por unidade</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($custo_por_unidade, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
