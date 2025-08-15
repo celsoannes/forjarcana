@@ -38,13 +38,13 @@ function renderMenu($pagina_atual) {
     </li>
     <li class="nav-item">
       <a href="?pagina=filamentos" class="nav-link <?= ($pagina_atual === 'filamentos') ? 'active' : '' ?>">
-        <i class="nav-icon fas fa-stream"></i>
+        <i class="nav-icon fas fa-compact-disc"></i>
         <p>Filamentos</p>
       </a>
     </li>
     <li class="nav-item">
       <a href="?pagina=resinas" class="nav-link <?= ($pagina_atual === 'resinas') ? 'active' : '' ?>">
-        <i class="nav-icon fas fa-vial"></i>
+        <i class="nav-icon fas fa-bottle-water"></i>
         <p>Resinas</p>
       </a>
     </li>
