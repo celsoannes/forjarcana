@@ -18,12 +18,11 @@ require_once __DIR__ . '/app/menu.php';
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AdminLTE 3 | Dashboard</title>
+  <title>Forja Arcana | Registro de Produção 3D</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="dist/img/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="dist/img/favicon-16x16.png">
-  <link rel="shortcut icon" href="favicon.ico">
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -200,7 +199,7 @@ require_once __DIR__ . '/app/menu.php';
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-    <a href="index3.html" class="brand-link">
+    <a href="index.php" class="brand-link">
       <img src="dist/img/logo-128x128.png" alt="Logo Forjarcana" class="brand-image img-circle elevation-3" style="opacity: .8">
       <span class="brand-text font-weight-light">Forja Arcana</span>
     </a>
