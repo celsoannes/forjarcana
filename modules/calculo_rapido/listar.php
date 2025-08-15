@@ -430,11 +430,38 @@ if ($impressora_escolhida) {
                     <h3 class="card-title">Lucro</h3>
                 </div>
                 <div class="card-body">
-                    <ul>
-                        <li><strong>Lucro total:</strong> R$ <?= number_format($lucro_total, 2, ',', '.') ?></li>
-                        <li><strong>Lucro por unidade:</strong> R$ <?= number_format($lucro_por_unidade, 2, ',', '.') ?></li>
-                        <li><strong>Preço de venda sugerido por unidade:</strong> R$ <?= number_format($preco_venda_sugerido_unidade, 2, ',', '.') ?></li>
-                    </ul>
+                    <div class="row">
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Lucro total</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($lucro_total, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Lucro por unidade</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($lucro_por_unidade, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Preço de venda sugerido por unidade</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($preco_venda_sugerido_unidade, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
