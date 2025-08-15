@@ -162,6 +162,21 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/impressoes/listar.php';
         }
         break;
+    case 'calculo_rapido':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/calculo_rapido/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/calculo_rapido/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/calculo_rapido/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/calculo_rapido/listar.php';
+        }
+        break;
     default:
         include __DIR__ . '/../modules/dashboard.php';
 }
