@@ -71,6 +71,12 @@ function renderMenu($pagina_atual) {
 
     <li class="nav-header">PRODUÇÃO</li>
     <li class="nav-item">
+      <a href="?pagina=calculo_rapido" class="nav-link <?= ($pagina_atual === 'calculo_rapido') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-calculator"></i>
+        <p>Cálculo Rápido</p>
+      </a>
+    </li>
+    <li class="nav-item">
       <a href="?pagina=impressoes" class="nav-link <?= ($pagina_atual === 'impressoes') ? 'active' : '' ?>">
         <i class="nav-icon fas fa-boxes-stacked"></i>
         <p>Impressões</p>
