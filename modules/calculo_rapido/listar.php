@@ -358,7 +358,7 @@ if ($impressora_escolhida) {
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-12 col-sm-4">
+                        <div class="col-12 col-sm-6">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
                                     <span class="info-box-text text-center text-muted">Custo material</span>
@@ -368,7 +368,7 @@ if ($impressora_escolhida) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-4">
+                        <div class="col-12 col-sm-6">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
                                     <span class="info-box-text text-center text-muted">Custo de energia</span>
@@ -378,20 +378,7 @@ if ($impressora_escolhida) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-4">
-                            <div class="info-box bg-light">
-                                <div class="info-box-content">
-                                    <span class="info-box-text text-center text-muted">Custo lavagem álcool</span>
-                                    <span class="info-box-number text-center text-muted mb-0">
-                                        R$ <?= ($material_tipo === 'resina') ? number_format($custo_lavagem_alcool, 2, ',', '.') : '0,00' ?>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Novos info-boxes abaixo dos atuais -->
-                    <div class="row">
-                        <div class="col-12 col-sm-4">
+                        <div class="col-12 col-sm-6">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
                                     <span class="info-box-text text-center text-muted">Custo depreciação</span>
@@ -401,7 +388,20 @@ if ($impressora_escolhida) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-4">
+                        <?php if ($material_tipo === 'resina'): ?>
+                        <div class="col-12 col-sm-6">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Custo lavagem álcool</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($custo_lavagem_alcool, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <!-- Linha inteira para Custo total da impressão -->
+                        <div class="col-12">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
                                     <span class="info-box-text text-center text-muted">Custo total da impressão</span>
@@ -411,7 +411,8 @@ if ($impressora_escolhida) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-4">
+                        <!-- Linha inteira para Custo por unidade -->
+                        <div class="col-12">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
                                     <span class="info-box-text text-center text-muted">Custo por unidade</span>
@@ -431,17 +432,17 @@ if ($impressora_escolhida) {
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-12 col-sm-4">
+                        <div class="col-12 col-sm-6">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
-                                    <span class="info-box-text text-center text-muted">Lucro total</span>
+                                    <span class="info-box-text text-center text-muted">Custo por unidade</span>
                                     <span class="info-box-number text-center text-muted mb-0">
-                                        R$ <?= number_format($lucro_total, 2, ',', '.') ?>
+                                        R$ <?= number_format($custo_por_unidade, 2, ',', '.') ?>
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-4">
+                        <div class="col-12 col-sm-6">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
                                     <span class="info-box-text text-center text-muted">Lucro por unidade</span>
@@ -451,7 +452,8 @@ if ($impressora_escolhida) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-4">
+                        <!-- Preço Consumidor Final ocupa a linha inteira -->
+                        <div class="col-12">
                             <div class="info-box bg-light">
                                 <div class="info-box-content">
                                     <span class="info-box-text text-center text-muted">Preço Consumidor Final</span>
