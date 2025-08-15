@@ -200,7 +200,7 @@ if ($impressora_escolhida) {
                     </div>
                 </div>
                 <!-- Formulário -->
-                <form method="POST">
+                <form method="POST" id="formCalculoRapido">
                     <hr>
                     <h5>Dados Técnicos da Impressão</h5>
                     <div class="form-row">
@@ -260,133 +260,158 @@ if ($impressora_escolhida) {
         </div>
 
         <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+            <?php
+            // Dados do formulário
+            $peso_material = floatval($_POST['peso_material']);
+            $tempo_dias = intval($_POST['tempo_dias']);
+            $tempo_horas = intval($_POST['tempo_horas']);
+            $tempo_minutos = intval($_POST['tempo_minutos']);
+            $unidades_produzidas = intval($_POST['unidades_produzidas']);
+            $taxa_falha = floatval($_POST['taxa_falha']);
+            $markup = floatval($_POST['markup']);
+
+            // Tempo total em minutos
+            $tempo_total_min = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
+            $tempo_total_horas = $tempo_total_min / 60;
+
+            // Buscar valor_kwh do usuário
+            $stmt = $pdo->prepare("SELECT valor_kwh FROM energia WHERE usuario_id = ?");
+            $stmt->execute([$usuario_id]);
+            $energia = $stmt->fetch(PDO::FETCH_ASSOC);
+            $valor_kwh = $energia ? floatval($energia['valor_kwh']) : 1;
+
+            // Buscar potencia e fator_uso da impressora
+            $potencia = isset($impressora_escolhida['potencia']) ? floatval($impressora_escolhida['potencia']) : 0;
+            $fator_uso = isset($impressora_escolhida['fator_uso']) ? floatval($impressora_escolhida['fator_uso']) : 1;
+
+            // Buscar preço do álcool para lavagem
+            $preco_litro_alcool = 0;
+            if ($material_tipo === 'resina') {
+                $stmt = $pdo->prepare("SELECT preco_litro FROM alcool WHERE usuario_id = ?");
+                $stmt->execute([$usuario_id]);
+                $alcool = $stmt->fetch(PDO::FETCH_ASSOC);
+                $preco_litro_alcool = $alcool ? floatval($alcool['preco_litro']) : 0;
+            }
+
+            if ($material_tipo === 'filamento') {
+                // Custo material
+                $custo_material = ($peso_material / 1000) * floatval($material['preco_kilo']);
+
+                // Custo energia igual à trigger do banco
+                $custo_energia = ($potencia * $tempo_total_horas * $fator_uso * $valor_kwh) / 1000;
+
+                // Custo depreciação
+                $custo_minuto = floatval($impressora_escolhida['custo_hora']) / 60;
+                $custo_depreciacao = $custo_minuto * $tempo_total_min;
+
+                // Custo total da impressão
+                $base_custo = $custo_material + $custo_energia + $custo_depreciacao;
+                $custo_total = $base_custo + (($base_custo * 0.7) / ($taxa_falha > 0 ? $taxa_falha : 1));
+
+                // Custo por unidade
+                $custo_por_unidade = $unidades_produzidas > 0 ? $custo_total / $unidades_produzidas : 0;
+
+                // Lucro total
+                $preco_venda_sugerido = $custo_total * $markup;
+                $lucro_total = $preco_venda_sugerido - $custo_total;
+
+                // Lucro por unidade
+                $lucro_por_unidade = $unidades_produzidas > 0 ? $lucro_total / $unidades_produzidas : 0;
+
+                // Preço de venda sugerido por unidade
+                $preco_venda_sugerido_unidade = $unidades_produzidas > 0 ? ($custo_total + $lucro_total) / $unidades_produzidas : 0;
+            } elseif ($material_tipo === 'resina') {
+                // Custo material
+                $custo_material = ($peso_material / 1000) * floatval($material['preco_litro']);
+
+                // Custo energia
+                $custo_energia = ($potencia * $tempo_total_horas * $fator_uso * $valor_kwh) / 1000;
+
+                // Custo lavagem álcool
+                $custo_lavagem_alcool = ($preco_litro_alcool / 1000) * $peso_material;
+
+                // Custo depreciação
+                $custo_minuto = floatval($impressora_escolhida['custo_hora']) / 60;
+                $custo_depreciacao = $custo_minuto * $tempo_total_min;
+
+                // Custo total da impressão (igual trigger)
+                $base_custo = $custo_material + $custo_energia + $custo_depreciacao + $custo_lavagem_alcool;
+                $custo_total = $base_custo + (($base_custo * 0.7) / ($taxa_falha > 0 ? $taxa_falha : 1));
+
+                // Custo por unidade
+                $custo_por_unidade = $unidades_produzidas > 0 ? $custo_total / $unidades_produzidas : 0;
+
+                // Lucro total
+                $preco_venda_sugerido = $custo_total * $markup;
+                $lucro_total = $preco_venda_sugerido - $custo_total;
+
+                // Lucro por unidade
+                $lucro_por_unidade = $unidades_produzidas > 0 ? $lucro_total / $unidades_produzidas : 0;
+
+                // Preço de venda sugerido por unidade
+                $preco_venda_sugerido_unidade = $unidades_produzidas > 0 ? ($custo_total + $lucro_total) / $unidades_produzidas : 0;
+            }
+            ?>
             <div class="card mt-3">
                 <div class="card-header">
-                    <h3 class="card-title">Resultados dos Cálculos</h3>
+                    <h3 class="card-title">Custos</h3>
                 </div>
                 <div class="card-body">
-                    <?php
-                    // Dados do formulário
-                    $peso_material = floatval($_POST['peso_material']);
-                    $tempo_dias = intval($_POST['tempo_dias']);
-                    $tempo_horas = intval($_POST['tempo_horas']);
-                    $tempo_minutos = intval($_POST['tempo_minutos']);
-                    $unidades_produzidas = intval($_POST['unidades_produzidas']);
-                    $taxa_falha = floatval($_POST['taxa_falha']);
-                    $markup = floatval($_POST['markup']);
+                    <div class="row">
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Custo material</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($custo_material, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Custo de energia</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= number_format($custo_energia, 2, ',', '.') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text text-center text-muted">Custo lavagem álcool</span>
+                                    <span class="info-box-number text-center text-muted mb-0">
+                                        R$ <?= ($material_tipo === 'resina') ? number_format($custo_lavagem_alcool, 2, ',', '.') : '0,00' ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <ul>
+                        <li><strong>Custo depreciação:</strong> R$ <?= number_format($custo_depreciacao, 2, ',', '.') ?></li>
+                        <li><strong>Custo total da impressão:</strong> R$ <?= number_format($custo_total, 2, ',', '.') ?></li>
+                        <li><strong>Custo por unidade:</strong> R$ <?= number_format($custo_por_unidade, 2, ',', '.') ?></li>
+                    </ul>
+                </div>
+            </div>
 
-                    // Tempo total em minutos
-                    $tempo_total_min = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
-                    $tempo_total_horas = $tempo_total_min / 60;
-
-                    // Buscar valor_kwh do usuário
-                    $stmt = $pdo->prepare("SELECT valor_kwh FROM energia WHERE usuario_id = ?");
-                    $stmt->execute([$usuario_id]);
-                    $energia = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $valor_kwh = $energia ? floatval($energia['valor_kwh']) : 1;
-
-                    // Buscar potencia e fator_uso da impressora
-                    $potencia = isset($impressora_escolhida['potencia']) ? floatval($impressora_escolhida['potencia']) : 0;
-                    $fator_uso = isset($impressora_escolhida['fator_uso']) ? floatval($impressora_escolhida['fator_uso']) : 1;
-
-                    // Buscar preço do álcool para lavagem
-                    $preco_litro_alcool = 0;
-                    if ($material_tipo === 'resina') {
-                        $stmt = $pdo->prepare("SELECT preco_litro FROM alcool WHERE usuario_id = ?");
-                        $stmt->execute([$usuario_id]);
-                        $alcool = $stmt->fetch(PDO::FETCH_ASSOC);
-                        $preco_litro_alcool = $alcool ? floatval($alcool['preco_litro']) : 0;
-                    }
-
-                    if ($material_tipo === 'filamento') {
-                        // Custo material
-                        $custo_material = ($peso_material / 1000) * floatval($material['preco_kilo']);
-
-                        // Custo energia igual à trigger do banco
-                        $custo_energia = ($potencia * $tempo_total_horas * $fator_uso * $valor_kwh) / 1000;
-
-                        // Custo depreciação
-                        $custo_minuto = floatval($impressora_escolhida['custo_hora']) / 60;
-                        $custo_depreciacao = $custo_minuto * $tempo_total_min;
-
-                        // Custo total da impressão
-                        $base_custo = $custo_material + $custo_energia + $custo_depreciacao;
-                        $custo_total = $base_custo + (($base_custo * 0.7) / ($taxa_falha > 0 ? $taxa_falha : 1));
-
-                        // Custo por unidade
-                        $custo_por_unidade = $unidades_produzidas > 0 ? $custo_total / $unidades_produzidas : 0;
-
-                        // Lucro total
-                        $preco_venda_sugerido = $custo_total * $markup;
-                        $lucro_total = $preco_venda_sugerido - $custo_total;
-
-                        // Lucro por unidade
-                        $lucro_por_unidade = $unidades_produzidas > 0 ? $lucro_total / $unidades_produzidas : 0;
-
-                        // Preço de venda sugerido por unidade
-                        $preco_venda_sugerido_unidade = $unidades_produzidas > 0 ? ($custo_total + $lucro_total) / $unidades_produzidas : 0;
-
-                        // Exemplo para filamento:
-                        echo '<ul>';
-                        echo '<li><strong>Custo material:</strong> R$ ' . number_format($custo_material, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo de energia:</strong> R$ ' . number_format($custo_energia, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo depreciação:</strong> R$ ' . number_format($custo_depreciacao, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo total da impressão:</strong> R$ ' . number_format($custo_total, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo por unidade:</strong> R$ ' . number_format($custo_por_unidade, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Lucro total:</strong> R$ ' . number_format($lucro_total, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Lucro por unidade:</strong> R$ ' . number_format($lucro_por_unidade, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Preço de venda sugerido por unidade:</strong> R$ ' . number_format($preco_venda_sugerido_unidade, 2, ',', '.') . '</li>';
-                        echo '</ul>';
-                    } elseif ($material_tipo === 'resina') {
-                        // Custo material
-                        $custo_material = ($peso_material / 1000) * floatval($material['preco_litro']);
-
-                        // Custo energia
-                        $custo_energia = ($potencia * $tempo_total_horas * $fator_uso * $valor_kwh) / 1000;
-
-                        // Custo lavagem álcool
-                        $custo_lavagem_alcool = ($preco_litro_alcool / 1000) * $peso_material;
-
-                        // Custo depreciação
-                        $custo_minuto = floatval($impressora_escolhida['custo_hora']) / 60;
-                        $custo_depreciacao = $custo_minuto * $tempo_total_min;
-
-                        // Custo total da impressão (igual trigger)
-                        $base_custo = $custo_material + $custo_energia + $custo_depreciacao + $custo_lavagem_alcool;
-                        $custo_total = $base_custo + (($base_custo * 0.7) / ($taxa_falha > 0 ? $taxa_falha : 1));
-
-                        // Custo por unidade
-                        $custo_por_unidade = $unidades_produzidas > 0 ? $custo_total / $unidades_produzidas : 0;
-
-                        // Lucro total
-                        $preco_venda_sugerido = $custo_total * $markup;
-                        $lucro_total = $preco_venda_sugerido - $custo_total;
-
-                        // Lucro por unidade
-                        $lucro_por_unidade = $unidades_produzidas > 0 ? $lucro_total / $unidades_produzidas : 0;
-
-                        // Preço de venda sugerido por unidade
-                        $preco_venda_sugerido_unidade = $unidades_produzidas > 0 ? ($custo_total + $lucro_total) / $unidades_produzidas : 0;
-
-                        // Exemplo para resina:
-                        echo '<ul>';
-                        echo '<li><strong>Custo material:</strong> R$ ' . number_format($custo_material, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo de energia:</strong> R$ ' . number_format($custo_energia, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo lavagem álcool:</strong> R$ ' . number_format($custo_lavagem_alcool, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo depreciação:</strong> R$ ' . number_format($custo_depreciacao, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo total da impressão:</strong> R$ ' . number_format($custo_total, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Custo por unidade:</strong> R$ ' . number_format($custo_por_unidade, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Lucro total:</strong> R$ ' . number_format($lucro_total, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Lucro por unidade:</strong> R$ ' . number_format($lucro_por_unidade, 2, ',', '.') . '</li>';
-                        echo '<li><strong>Preço de venda sugerido por unidade:</strong> R$ ' . number_format($preco_venda_sugerido_unidade, 2, ',', '.') . '</li>';
-                        echo '</ul>';
-                    }
-                    ?>
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title">Lucro</h3>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Lucro total:</strong> R$ <?= number_format($lucro_total, 2, ',', '.') ?></li>
+                        <li><strong>Lucro por unidade:</strong> R$ <?= number_format($lucro_por_unidade, 2, ',', '.') ?></li>
+                        <li><strong>Preço de venda sugerido por unidade:</strong> R$ <?= number_format($preco_venda_sugerido_unidade, 2, ',', '.') ?></li>
+                    </ul>
                 </div>
             </div>
         <?php endif; ?>
 
-        <!-- Botões Voltar e Calcular abaixo do card de resultados -->
+        <!-- Botões Voltar e Calcular abaixo dos cards -->
         <div class="mb-3">
             <a href="?pagina=calculo_rapido&impressora_id=<?= $impressora_escolhida['id'] ?>" class="btn btn-secondary">Voltar</a>
             <button type="submit" form="formCalculoRapido" class="btn btn-primary">Calcular</button>
