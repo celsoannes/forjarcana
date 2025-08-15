@@ -249,9 +249,12 @@ if ($impressora_escolhida) {
                         <div class="form-group col-md-2 mb-3">
                             <label for="markup">Markup</label>
                             <select class="form-control" id="markup" name="markup" required>
-                                <?php for ($i = 1; $i <= 10; $i++): ?>
-                                    <option value="<?= $i ?>" <?= (isset($_POST['markup']) && $_POST['markup'] == $i) ? 'selected' : ($i == 5 ? 'selected' : '') ?>><?= $i ?></option>
-                                <?php endfor; ?>
+                                <?php
+                                for ($i = 2; $i <= 15; $i += 0.5) {
+                                    $selected = (isset($_POST['markup']) && $_POST['markup'] == $i) ? 'selected' : ($i == 2 ? 'selected' : '');
+                                    echo "<option value=\"$i\" $selected>$i</option>";
+                                }
+                                ?>
                             </select>
                         </div>
                     </div>
