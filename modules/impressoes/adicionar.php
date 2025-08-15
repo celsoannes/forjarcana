@@ -313,6 +313,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
         <?php if ($erro): ?>
           <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
         <?php endif; ?>
+        <div class="row">
+          <div class="col-6">
+            <h4>
+              <i class="fas fa-microscope"></i> 
+              <?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?>
+            </h4>
+          </div>
+          <div class="col-6">
+            <h4>
+              <?php if ($material_tipo === 'filamento'): ?>
+                <i class="fas fa-compact-disc"></i>
+              <?php else: ?>
+                <i class="fa-solid fa-bottle-water"></i>
+              <?php endif; ?>
+              <?= $material_tipo === 'filamento'
+                ? htmlspecialchars($material['tipo'] . ' ' . $material['nome'])
+                : htmlspecialchars($material['nome']) ?>
+            </h4>
+          </div>
+          <!-- /.col -->
+        </div>
+        <div class="row invoice-info">
+          <div class="col-sm-6 invoice-col">
+            <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
+            <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
+            <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?><br>
+          </div>
+          <!-- /.col -->
+          <div class="col-sm-6 invoice-col">
+            <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
+            <strong>Cor:</strong>
+            <?php if (!empty($material['cor'])): ?>
+              <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($material['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+            <?php else: ?>
+              <span class="text-muted">-</span>
+            <?php endif; ?>
+            <br>
+            <strong>Preço:</strong>                <?php if ($material_tipo === 'filamento'): ?>
+                  <strong>Preço/Kg:</strong> R$ <?= number_format($material['preco_kilo'], 2, ',', '.') ?>
+                <?php else: ?>
+                  <strong>Preço/Litro:</strong> R$ <?= number_format($material['preco_litro'], 2, ',', '.') ?>
+                <?php endif; ?>
+<br>
+          </div>
+          <!-- /.col -->
+        </div>
         <form method="POST" enctype="multipart/form-data">
           <hr>
           <!-- Título entre os cards -->
