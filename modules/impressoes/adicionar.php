@@ -270,46 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
         <h3 class="card-title">Cadastrar Impressão</h3>
       </div>
       <div class="card-body">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="card card-primary">
-              <div class="card-header">
-                <h3 class="card-title"><?= htmlspecialchars($impressora_escolhida['marca'] . ' ' . $impressora_escolhida['modelo']) ?></h3>
-              </div>
-              <div class="card-body">
-                <strong>Tipo:</strong> <?= htmlspecialchars($impressora_escolhida['tipo']) ?><br>
-                <strong>Depreciação:</strong> <?= htmlspecialchars($impressora_escolhida['depreciacao']) ?>%<br>
-                <strong>Custo Hora:</strong> R$ <?= number_format($impressora_escolhida['custo_hora'], 4, ',', '.') ?>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card <?= $material_tipo === 'resina' ? 'card-success' : 'card-info' ?>">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <?= $material_tipo === 'filamento'
-                    ? htmlspecialchars($material['tipo'] . ' ' . $material['nome'])
-                    : htmlspecialchars($material['nome']) ?>
-                </h3>
-              </div>
-              <div class="card-body">
-                <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
-                <strong>Cor:</strong>
-                <?php if (!empty($material['cor'])): ?>
-                  <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($material['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
-                <?php else: ?>
-                  <span class="text-muted">-</span>
-                <?php endif; ?>
-                <br>
-                <?php if ($material_tipo === 'filamento'): ?>
-                  <strong>Preço/Kg:</strong> R$ <?= number_format($material['preco_kilo'], 2, ',', '.') ?>
-                <?php else: ?>
-                  <strong>Preço/Litro:</strong> R$ <?= number_format($material['preco_litro'], 2, ',', '.') ?>
-                <?php endif; ?>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Exibe erros, se houver -->
         <?php if ($erro): ?>
           <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
         <?php endif; ?>
@@ -422,7 +383,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
           <h5>Dados Técnicos da Impressão</h5>
           <!-- Campo Peso/Volume conforme tipo de material -->
           <div class="form-row">
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-2 mb-3">
               <?php if ($material_tipo === 'filamento'): ?>
                 <label for="peso_material">Peso (g)</label>
                 <input
@@ -447,7 +408,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                 >
               <?php endif; ?>
             </div>
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-4 mb-3">
               <label>Tempo de Impressão</label>
               <div class="form-row">
                 <div class="col">
@@ -461,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                 </div>
               </div>
             </div>
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-2 mb-3">
               <label for="unidades_produzidas">Unidades Produzidas</label>
               <input
                 type="number"
@@ -473,11 +434,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                 value="<?= isset($_POST['unidades_produzidas']) ? htmlspecialchars($_POST['unidades_produzidas']) : '' ?>"
               >
             </div>
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-2 mb-3">
               <label for="taxa_falha">Taxa de Falha (%)</label>
               <input type="number" class="form-control" id="taxa_falha" name="taxa_falha" required value="<?= isset($_POST['taxa_falha']) ? htmlspecialchars($_POST['taxa_falha']) : '' ?>" placeholder="10">
             </div>
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-2 mb-3">
               <label for="markup">Markup</label>
               <select class="form-control" id="markup" name="markup" required>
                 <?php for ($i = 1; $i <= 10; $i++): ?>
