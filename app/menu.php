@@ -3,15 +3,22 @@ function renderMenu($pagina_atual) {
 ?>
 <nav class="mt-2">
   <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-    <?php if (isset($_SESSION['usuario_cargo']) && $_SESSION['usuario_cargo'] === 'admin'): ?>
+    
       <li class="nav-header">ADMINISTRAÇÃO</li>
+      <?php if (isset($_SESSION['usuario_cargo']) && $_SESSION['usuario_cargo'] === 'admin'): ?>
+        <li class="nav-item">
+          <a href="?pagina=usuarios" class="nav-link <?= ($pagina_atual === 'usuarios') ? 'active' : '' ?>">
+            <i class="nav-icon fas fa-users-cog"></i>
+            <p>Gerenciar Usuários</p>
+          </a>
+        </li>
+      <?php endif; ?>
       <li class="nav-item">
-        <a href="?pagina=usuarios" class="nav-link <?= ($pagina_atual === 'usuarios') ? 'active' : '' ?>">
-          <i class="nav-icon fas fa-users-cog"></i>
-          <p>Gerenciar Usuários</p>
-        </a>
-      </li>
-    <?php endif; ?>
+      <a href="?pagina=perfil" class="nav-link <?= ($pagina_atual === 'perfil') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-user"></i>
+        <p>Perfil</p>
+      </a>
+    </li>
 
     <li class="nav-header">EQUIPAMENTOS</li>
     <li class="nav-item">
