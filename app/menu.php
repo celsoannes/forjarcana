@@ -76,6 +76,14 @@ function renderMenu($pagina_atual) {
       </a>
     </li>
 
+    <li class="nav-header">CATÁLOGO</li>
+    <li class="nav-item">
+      <a href="?pagina=produtos" class="nav-link <?= ($pagina_atual === 'produtos') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-box-open"></i>
+        <p>Produtos</p>
+      </a>
+    </li>
+
     <li class="nav-header">PRODUÇÃO</li>
     <li class="nav-item">
       <a href="?pagina=impressoes" class="nav-link <?= ($pagina_atual === 'impressoes') ? 'active' : '' ?>">
