@@ -177,6 +177,24 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/calculo_rapido/listar.php';
         }
         break;
+    case 'produtos':
+        include __DIR__ . '/../modules/produtos/listar.php';
+        break;
+    case 'miniaturas':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/miniaturas/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/miniaturas/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/miniaturas/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/miniaturas/listar.php';
+        }
+        break;
     case 'perfil':
         switch ($acao) {
             case 'editar':
