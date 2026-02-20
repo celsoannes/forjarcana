@@ -55,13 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="text" class="form-control" id="marca" name="marca" required value="<?= htmlspecialchars($resina['marca']) ?>">
       </div>
       <div class="form-group">
-        <label for="cor">Cor (HEX, ex: #FF0000)</label>
-        <div class="input-group my-colorpicker2">
-          <div class="input-group-prepend">
-            <span class="input-group-text"><i class="fas fa-square"></i></span>
-          </div>
-          <input type="text" class="form-control" id="cor" name="cor" required placeholder="#RRGGBB" value="<?= htmlspecialchars($resina['cor']) ?>">
-        </div>
+        <label for="cor">Cor</label>
+        <select class="form-control" id="cor" name="cor" required>
+          <option value="">Selecione...</option>
+          <option value="Branco" <?= ($resina['cor'] === 'Branco') ? 'selected' : '' ?>>Branco</option>
+          <option value="Cinza" <?= ($resina['cor'] === 'Cinza') ? 'selected' : '' ?>>Cinza</option>
+          <option value="Preto" <?= ($resina['cor'] === 'Preto') ? 'selected' : '' ?>>Preto</option>
+          <option value="Transparente" <?= ($resina['cor'] === 'Transparente') ? 'selected' : '' ?>>Transparente</option>
+        </select>
       </div>
       <div class="form-group">
         <label for="preco_litro">Preço por Litro (R$)</label>
@@ -74,29 +75,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </form>
 </div>
-<link rel="stylesheet" href="<?= $baseUrl ?>/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.min.css">
-<script src="<?= $baseUrl ?>/plugins/jquery/jquery.min.js"></script>
-<script src="<?= $baseUrl ?>/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="<?= $baseUrl ?>/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js"></script>
-<script>
-  $(function () {
-    $('.my-colorpicker2').colorpicker();
-
-    // Aguarda o colorpicker inicializar e define a cor do ícone
-    var corInicial = $('#cor').val();
-    if (corInicial) {
-      $('.my-colorpicker2 .fa-square').css('color', corInicial);
-    }
-
-    $('.my-colorpicker2').on('colorpickerChange', function(event) {
-      $('.my-colorpicker2 .fa-square').css('color', event.color.toString());
-    });
-
-    // Ao clicar em qualquer parte do grupo, abre o colorpicker
-    $('.my-colorpicker2').on('click', function(e) {
-      if (!$(e.target).is('input')) {
-        $(this).find('input').focus().trigger('click');
-      }
-    });
-  });
-</script>

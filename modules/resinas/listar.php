@@ -36,7 +36,7 @@ $resinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <td><?= htmlspecialchars($resina['marca']) ?></td>
               <td>
                 <?php if (!empty($resina['cor'])): ?>
-                  <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($resina['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                  <?= htmlspecialchars($resina['cor']) ?>
                 <?php else: ?>
                   <span class="text-muted">-</span>
                 <?php endif; ?>
