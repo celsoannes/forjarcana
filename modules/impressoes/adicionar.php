@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                       <strong>Marca:</strong> <?= htmlspecialchars($resina['marca']) ?><br>
                       <strong>Cor:</strong>
                       <?php if (!empty($resina['cor'])): ?>
-                        <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($resina['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                        <?= htmlspecialchars($resina['cor']) ?>
                       <?php else: ?>
                         <span class="text-muted">-</span>
                       <?php endif; ?>
@@ -222,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
                       <strong>Marca:</strong> <?= htmlspecialchars($filamento['marca']) ?><br>
                       <strong>Cor:</strong>
                       <?php if (!empty($filamento['cor'])): ?>
-                        <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($filamento['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+                        <?= htmlspecialchars($filamento['cor']) ?>
                       <?php else: ?>
                         <span class="text-muted">-</span>
                       <?php endif; ?>
@@ -285,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $impressora_escolhida && $material)
             <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
             <strong>Cor:</strong>
             <?php if (!empty($material['cor'])): ?>
-              <i class="fas fa-circle nav-icon" style="color:<?= htmlspecialchars($material['cor']) ?>; border:1px solid #ddd; border-radius:50%;"></i>
+              <?= htmlspecialchars($material['cor']) ?>
             <?php else: ?>
               <span class="text-muted">-</span>
             <?php endif; ?>
