@@ -4,17 +4,53 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 session_start();
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
+
+function definir_cookie_email_lembrado($email, $expiracaoUnix) {
+  setcookie('forjarcana_remember_email', $email, [
+    'expires' => $expiracaoUnix,
+    'path' => '/',
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Lax',
+  ]);
+}
+
+function limpar_cookie_email_lembrado() {
+  setcookie('forjarcana_remember_email', '', [
+    'expires' => time() - 3600,
+    'path' => '/',
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Lax',
+  ]);
+  unset($_COOKIE['forjarcana_remember_email']);
+}
+
+$totalUsuarios = (int) $pdo->query("SELECT COUNT(*) FROM usuarios")->fetchColumn();
+
+if ($totalUsuarios === 0) {
+  header("Location: register.php");
+  exit;
+}
 
 // Se o usuário já estiver logado, redireciona para o portal
-if (isset($_SESSION['usuario_logado']) && $_SESSION['usuario_logado'] === true) {
+if (usuario_logado()) {
     header("Location: ../index.php");
     exit;
 }
 
 $erro = "";
+$emailPreenchido = $_COOKIE['forjarcana_remember_email'] ?? '';
+$rememberMarcado = !empty($emailPreenchido);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $senha = $_POST['senha'] ?? '';
+  $lembrarMe = !empty($_POST['remember']);
+
+  $emailPreenchido = $email;
+  $rememberMarcado = $lembrarMe;
 
     // Inclua os novos campos na consulta
     $stmt = $pdo->prepare("SELECT id, nome, sobrenome, senha, cargo, data_expiracao, uuid, foto, celular, cpf FROM usuarios WHERE email = ?");
@@ -27,27 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($usuario['data_expiracao'] && strtotime($usuario['data_expiracao']) < time()) {
             $erro = "Seu período de contratação terminou. Entre em contato com o administrador.";
         } else {
-            $_SESSION['usuario_logado'] = true;
-            $_SESSION['usuario_id'] = $usuario['id'];
-            $_SESSION['usuario_nome'] = $usuario['nome'];
-            $_SESSION['usuario_sobrenome'] = $usuario['sobrenome'];
-            $_SESSION['usuario_cargo'] = $usuario['cargo'];
-            $_SESSION['usuario_uuid'] = $usuario['uuid'];
-            $_SESSION['usuario_celular'] = $usuario['celular'];
-            $_SESSION['usuario_cpf'] = $usuario['cpf'];
+            definir_sessao_usuario($usuario);
 
-            // Carrega a thumbnail da foto, se existir
-            if (!empty($usuario['foto'])) {
-                $foto = $usuario['foto'];
-                $thumb = str_replace('_media.png', '_thumb.png', $foto);
-                $thumbPath = __DIR__ . '/../' . $thumb;
-                if (file_exists($thumbPath)) {
-                    $_SESSION['usuario_foto'] = $thumb;
-                } else {
-                    $_SESSION['usuario_foto'] = $foto;
-                }
+            if ($lembrarMe) {
+                criar_login_lembrado($pdo, $usuario['id']);
+              definir_cookie_email_lembrado($email, time() + (30 * 86400));
             } else {
-                $_SESSION['usuario_foto'] = '';
+                revogar_login_lembrado_atual($pdo);
+              limpar_cookie_email_lembrado();
             }
 
             header("Location: ../index.php");
@@ -87,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
       <form method="POST">
         <div class="input-group mb-3">
-          <input type="email" name="email" class="form-control" placeholder="Email" required autocomplete="username">
+          <input type="email" name="email" class="form-control" placeholder="Email" required autocomplete="username" value="<?= htmlspecialchars($emailPreenchido) ?>">
           <div class="input-group-append">
             <div class="input-group-text">
               <span class="fas fa-envelope"></span>
@@ -108,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="row">
           <div class="col-8">
             <div class="icheck-primary">
-              <input type="checkbox" id="remember">
+              <input type="checkbox" id="remember" name="remember" value="1" <?= $rememberMarcado ? 'checked' : '' ?>>
               <label for="remember">
                 Lembrar-me
               </label>
