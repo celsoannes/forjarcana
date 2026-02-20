@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <div class="form-group">
         <label for="depreciacao">Depreciação (%)</label>
-        <input type="number" class="form-control" id="depreciacao" name="depreciacao" required>
+        <input type="number" class="form-control" id="depreciacao" name="depreciacao" placeholder="25" required>
       </div>
       <div class="form-group">
         <label for="tempo_vida_util">Tempo Vida Útil (h)</label>
