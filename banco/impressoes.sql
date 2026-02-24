@@ -1,18 +1,10 @@
 CREATE TABLE impressoes (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(150) NOT NULL,
-    estudio_id INT UNSIGNED,
-    colecao_id INT UNSIGNED,
-    nome_original VARCHAR(150),
-    arquivo_impressao VARCHAR(255),
     impressora_id INT UNSIGNED NOT NULL,
     tempo_impressao INT NOT NULL,
-    imagem_capa VARCHAR(255),
     unidades_produzidas INT NOT NULL,
     markup INT NOT NULL,
     taxa_falha INT NOT NULL,
-    componente INT,
-    imagens_impressao INT,
     data_criacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ultima_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     valor_energia DECIMAL(10,8),
@@ -29,12 +21,9 @@ CREATE TABLE impressoes (
     preco_venda_sugerido DECIMAL(10,2),
     preco_venda_sugerido_unidade DECIMAL(10,2),
     observacoes TEXT,
-    sku VARCHAR(50) UNIQUE,
     usuario_id INT UNSIGNED NOT NULL,
     filamento_id INT UNSIGNED NULL,
     resina_id INT UNSIGNED NULL,
-    FOREIGN KEY (estudio_id) REFERENCES estudios(id) ON DELETE SET NULL,
-    FOREIGN KEY (colecao_id) REFERENCES colecoes(id) ON DELETE SET NULL,
     FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (filamento_id) REFERENCES filamento(id) ON DELETE CASCADE,
@@ -59,6 +48,10 @@ BEGIN
     DECLARE custo_depreciacao DECIMAL(10,2);
     DECLARE custo_total DECIMAL(10,2);
     DECLARE custo_unidade DECIMAL(10,2);
+
+    IF NEW.taxa_falha <= 0 THEN
+        SET NEW.taxa_falha = 1;
+    END IF;
 
     -- Busca dados da impressora
     SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
@@ -167,6 +160,10 @@ BEGIN
     DECLARE custo_depreciacao DECIMAL(10,2);
     DECLARE custo_total DECIMAL(10,2);
     DECLARE custo_unidade DECIMAL(10,2);
+
+    IF NEW.taxa_falha <= 0 THEN
+        SET NEW.taxa_falha = 1;
+    END IF;
 
     -- Busca dados da impressora
     SELECT potencia, fator_uso, tipo, custo_hora INTO potencia_watts, fator_uso_impressora, tipo_impressora, custo_hora_impressora
