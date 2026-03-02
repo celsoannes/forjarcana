@@ -1,5 +1,11 @@
 <?php
 function renderMenu($pagina_atual) {
+  $fluxo_miniaturas = ($pagina_atual === 'impressoes') && (($_GET['fluxo'] ?? '') === 'miniaturas');
+  $fluxo_torres = ($pagina_atual === 'impressoes') && (($_GET['fluxo'] ?? '') === 'torres');
+  $adicionar_miniatura = ($pagina_atual === 'miniaturas') && (($_GET['acao'] ?? '') === 'adicionar');
+  $adicionar_torre = ($pagina_atual === 'torres') && (($_GET['acao'] ?? '') === 'adicionar');
+  $menu_produtos_ativo = ($pagina_atual === 'produtos') || $fluxo_miniaturas || $fluxo_torres || $adicionar_miniatura || $adicionar_torre;
+  $menu_impressoes_ativo = ($pagina_atual === 'impressoes') && !$fluxo_miniaturas && !$fluxo_torres;
 ?>
 <nav class="mt-2">
   <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
@@ -62,6 +68,14 @@ function renderMenu($pagina_atual) {
       </a>
     </li>
 
+    <li class="nav-header">CONTATOS</li>
+    <li class="nav-item">
+      <a href="?pagina=fornecedores" class="nav-link <?= ($pagina_atual === 'fornecedores') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-truck-loading"></i>
+        <p>Fornecedores</p>
+      </a>
+    </li>
+
     <li class="nav-header">BIBLIOTECA</li>
     <li class="nav-item">
       <a href="?pagina=estudios" class="nav-link <?= ($pagina_atual === 'estudios') ? 'active' : '' ?>">
@@ -75,10 +89,16 @@ function renderMenu($pagina_atual) {
         <p>Coleções</p>
       </a>
     </li>
+    <li class="nav-item">
+      <a href="?pagina=mapas" class="nav-link <?= ($pagina_atual === 'mapas') ? 'active' : '' ?>">
+        <i class="nav-icon fas fa-map"></i>
+        <p>Mapas</p>
+      </a>
+    </li>
 
     <li class="nav-header">CATÁLOGO</li>
     <li class="nav-item">
-      <a href="?pagina=produtos" class="nav-link <?= ($pagina_atual === 'produtos') ? 'active' : '' ?>">
+      <a href="?pagina=produtos" class="nav-link <?= $menu_produtos_ativo ? 'active' : '' ?>">
         <i class="nav-icon fas fa-box-open"></i>
         <p>Produtos</p>
       </a>
@@ -86,7 +106,7 @@ function renderMenu($pagina_atual) {
 
     <li class="nav-header">PRODUÇÃO</li>
     <li class="nav-item">
-      <a href="?pagina=impressoes" class="nav-link <?= ($pagina_atual === 'impressoes') ? 'active' : '' ?>">
+      <a href="?pagina=impressoes" class="nav-link <?= $menu_impressoes_ativo ? 'active' : '' ?>">
         <i class="nav-icon fas fa-boxes-stacked"></i>
         <p>Impressões</p>
       </a>
