@@ -1,148 +1,196 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
+$impressora_id = isset($_GET['impressora_id']) ? (int) $_GET['impressora_id'] : 0;
+$fluxo = $_GET['fluxo'] ?? '';
+$fluxo_miniaturas = ($fluxo === 'miniaturas');
+$fluxo_torres = ($fluxo === 'torres');
+$fluxo_produtos = $fluxo_miniaturas || $fluxo_torres;
 
-// Busca as impressões do usuário autenticado
-$stmt = $pdo->prepare("SELECT i.*, e.nome AS estudio_nome, c.nome AS colecao_nome, imp.marca AS impressora_marca, imp.modelo AS impressora_modelo
-    FROM impressoes i
-    LEFT JOIN estudios e ON i.estudio_id = e.id
-    LEFT JOIN colecoes c ON i.colecao_id = c.id
-    LEFT JOIN impressoras imp ON i.impressora_id = imp.id
-    WHERE i.usuario_id = ?");
+$stmt = $pdo->prepare("SELECT id, marca, modelo, tipo, depreciacao, custo_hora FROM impressoras WHERE usuario_id = ? ORDER BY marca, modelo");
 $stmt->execute([$usuario_id]);
-$impressoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">Impressões</h3>
-    <div class="card-tools">
-      <a href="?pagina=impressoes&acao=adicionar" class="btn btn-primary float-right">
-        <i class="fas fa-plus"></i> Adicionar impressão
-      </a>
-    </div>
-  </div>
-  <div class="card-body table-responsive p-0">
-    <?php if ($impressoes): ?>
-      <table class="table table-hover text-nowrap">
-        <thead>
-          <tr>
-            <th>Imagem</th>
-            <th>Nome</th>
-            <th>Estudio</th>
-            <th>Coleção</th>
-            <th>Impressora</th>
-            <th>Tempo de Impressão</th>
-            <th>Unidades</th>
-            <th>Custo (Un)</th>
-            <th>Lucro (Un)</th>
-            <th>Valor de Venda (Un)</th>
-            <th>Última Atualização</th>
-            <th class="text-right">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($impressoes as $imp): ?>
-            <tr>
-              <td>
-                <?php if (!empty($imp['imagem_capa'])): ?>
-                  <img src="<?= htmlspecialchars($imp['imagem_capa']) ?>" alt="Imagem de Capa" style="width:32px;height:32px;border-radius:4px;">
-                <?php else: ?>
-                  <span class="text-muted">-</span>
-                <?php endif; ?>
-              </td>
-              <td><?= htmlspecialchars($imp['nome']) ?></td>
-              <td><?= htmlspecialchars($imp['estudio_nome'] ?? '-') ?></td>
-              <td><?= htmlspecialchars($imp['colecao_nome'] ?? '-') ?></td>
-              <td>
-                <?php if (!empty($imp['impressora_marca']) || !empty($imp['impressora_modelo'])): ?>
-                  <?= htmlspecialchars($imp['impressora_marca'] . ' ' . $imp['impressora_modelo']) ?>
-                <?php else: ?>
-                  <span class="text-muted">-</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php
-                  $min = (int)$imp['tempo_impressao'];
-                  $dias = floor($min / 1440);
-                  $horas = floor(($min % 1440) / 60);
-                  $minutos = $min % 60;
-                  $tempo_formatado = [];
-                  if ($dias > 0) $tempo_formatado[] = $dias . 'd';
-                  if ($horas > 0) $tempo_formatado[] = $horas . 'h';
-                  if ($minutos > 0 || empty($tempo_formatado)) $tempo_formatado[] = $minutos . 'min';
-                  echo implode(' ', $tempo_formatado);
-                ?>
-              </td>
-              <td><?= htmlspecialchars($imp['unidades_produzidas']) ?></td>
-              <td>R$ <?= number_format($imp['custo_por_unidade'], 2, ',', '.') ?></td>
-              <td>R$ <?= number_format($imp['lucro_por_unidade'], 2, ',', '.') ?></td>
-              <td>R$ <?= number_format($imp['preco_venda_sugerido_unidade'], 2, ',', '.') ?></td>
-              <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($imp['ultima_atualizacao']))) ?></td>
-              <td class="text-right">
-                <a class="btn btn-info btn-sm" href="?pagina=impressoes&acao=editar&id=<?= $imp['id'] ?>">
-                  <i class="fas fa-pencil-alt"></i> Editar
-                </a>
-                <a class="btn btn-danger btn-sm btn-excluir-impressao" href="?pagina=impressoes&acao=excluir&id=<?= $imp['id'] ?>">
-                  <i class="fas fa-trash"></i> Excluir
-                </a>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    <?php else: ?>
-      <div class="text-center p-4">Nenhuma impressão cadastrada.</div>
-    <?php endif; ?>
-  </div>
-</div>
+$impressoras = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-<!-- Modal de confirmação de exclusão -->
-<div class="modal fade" id="modal-danger-excluir-impressao" tabindex="-1" role="dialog" aria-labelledby="modalDangerLabelImpressao" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content bg-danger">
-      <div class="modal-header">
-        <h4 class="modal-title" id="modalDangerLabelImpressao">Excluir Impressão</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p id="modal-excluir-texto-impressao">Tem certeza que deseja excluir esta impressão? Esta ação não pode ser desfeita.</p>
-        <div id="modal-excluir-erro-impressao" class="alert alert-warning d-none"></div>
-      </div>
-      <div class="modal-footer justify-content-between">
-        <button type="button" class="btn btn-outline-light" data-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-outline-light" id="btn-confirmar-excluir-impressao">Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-let impressaoExcluirId = null;
-document.querySelectorAll('.btn-excluir-impressao').forEach(function(btn) {
-  btn.addEventListener('click', function(e) {
-    e.preventDefault();
-    impressaoExcluirId = this.href.split('id=')[1];
-    document.getElementById('modal-excluir-erro-impressao').classList.add('d-none');
-    $('#modal-danger-excluir-impressao').modal('show');
-  });
-});
-
-document.getElementById('btn-confirmar-excluir-impressao').addEventListener('click', function() {
-  if (impressaoExcluirId) {
-    fetch('modules/impressoes/excluir.php?id=' + encodeURIComponent(impressaoExcluirId), {
-      method: 'GET'
-    })
-    .then(response => response.text())
-    .then(result => {
-      if (result.trim() === '' || result.includes('window.location.href')) {
-        location.href = '?pagina=impressoes';
-      } else {
-        document.getElementById('modal-excluir-erro-impressao').textContent = result;
-        document.getElementById('modal-excluir-erro-impressao').classList.remove('d-none');
-      }
-    });
+$impressoraSelecionada = null;
+if ($impressora_id > 0) {
+  foreach ($impressoras as $impressora) {
+    if ((int) $impressora['id'] === $impressora_id) {
+      $impressoraSelecionada = $impressora;
+      break;
+    }
   }
-});
-</script>
+}
+?>
+
+<?php if (!$impressoraSelecionada): ?>
+  <h4 class="mb-3"><?= $fluxo_miniaturas ? 'Selecione a Impressora para Miniaturas' : ($fluxo_torres ? 'Selecione a Impressora para Torres de Dados' : 'Impressoras') ?></h4>
+
+  <?php if ($impressoras): ?>
+    <div class="impressoes-grid">
+      <?php foreach ($impressoras as $impressora): ?>
+        <div class="impressao-card">
+          <div class="impressao-icon">
+            <i class="fas fa-microscope"></i>
+          </div>
+          <h2><?= htmlspecialchars($impressora['marca'] . ' ' . $impressora['modelo']) ?></h2>
+          <p>
+            <strong>Tipo:</strong> <?= htmlspecialchars($impressora['tipo']) ?><br>
+            <strong>Depreciação:</strong> <?= htmlspecialchars($impressora['depreciacao']) ?>%<br>
+            <strong>Custo Hora:</strong> R$ <?= number_format((float) $impressora['custo_hora'], 4, ',', '.') ?>
+          </p>
+          <div class="impressao-actions">
+            <a href="?pagina=impressoes&impressora_id=<?= (int) $impressora['id'] ?><?= $fluxo_produtos ? '&fluxo=' . urlencode($fluxo) : '' ?>" class="btn-selecionar">Selecionar</a>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php else: ?>
+    <div class="alert alert-info">Nenhuma impressora cadastrada para seleção.</div>
+  <?php endif; ?>
+
+<?php else: ?>
+  <h4 class="mb-2">Impressora selecionada</h4>
+  <div class="alert alert-primary">
+    <strong><?= htmlspecialchars($impressoraSelecionada['marca'] . ' ' . $impressoraSelecionada['modelo']) ?></strong>
+    — Tipo: <?= htmlspecialchars($impressoraSelecionada['tipo']) ?>
+  </div>
+
+  <?php if ($impressoraSelecionada['tipo'] === 'Resina'): ?>
+    <?php
+    $stmtMateriais = $pdo->prepare("SELECT id, nome, marca, cor, preco_litro FROM resinas WHERE usuario_id = ? ORDER BY marca, nome");
+    $stmtMateriais->execute([$usuario_id]);
+    $materiais = $stmtMateriais->fetchAll(PDO::FETCH_ASSOC);
+    ?>
+    <h4 class="mb-3">Selecione uma Resina</h4>
+    <?php if ($materiais): ?>
+      <div class="impressoes-grid">
+        <?php foreach ($materiais as $material): ?>
+          <div class="impressao-card">
+            <div class="impressao-icon"><i class="fa-solid fa-bottle-water"></i></div>
+            <h2><?= htmlspecialchars($material['nome']) ?></h2>
+            <p>
+              <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
+              <strong>Cor:</strong> <?= htmlspecialchars($material['cor']) ?><br>
+              <strong>Preço/Litro:</strong> R$ <?= number_format((float) $material['preco_litro'], 2, ',', '.') ?>
+            </p>
+            <div class="impressao-actions">
+              <a href="<?= $fluxo_miniaturas
+                ? '?pagina=miniaturas&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']
+                : ($fluxo_torres
+                  ? '?pagina=torres&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']
+                  : '?pagina=impressoes&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']) ?>" class="btn-selecionar"><?= $fluxo_miniaturas ? 'Ir para Miniaturas' : ($fluxo_torres ? 'Ir para Torres' : 'Selecionar') ?></a>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <div class="alert alert-info">Nenhuma resina cadastrada.</div>
+    <?php endif; ?>
+
+  <?php else: ?>
+    <?php
+    $stmtMateriais = $pdo->prepare("SELECT id, nome, marca, cor, tipo, preco_kilo FROM filamento WHERE usuario_id = ? ORDER BY marca, nome");
+    $stmtMateriais->execute([$usuario_id]);
+    $materiais = $stmtMateriais->fetchAll(PDO::FETCH_ASSOC);
+    ?>
+    <h4 class="mb-3">Selecione um Filamento</h4>
+    <?php if ($materiais): ?>
+      <div class="impressoes-grid">
+        <?php foreach ($materiais as $material): ?>
+          <div class="impressao-card">
+            <div class="impressao-icon"><i class="fas fa-compact-disc"></i></div>
+            <h2><?= htmlspecialchars($material['tipo'] . ' ' . $material['nome']) ?></h2>
+            <p>
+              <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
+              <strong>Cor:</strong> <?= htmlspecialchars($material['cor']) ?><br>
+              <strong>Preço/Kg:</strong> R$ <?= number_format((float) $material['preco_kilo'], 2, ',', '.') ?>
+            </p>
+            <div class="impressao-actions">
+              <a href="<?= $fluxo_miniaturas
+                ? '?pagina=miniaturas&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']
+                : ($fluxo_torres
+                  ? '?pagina=torres&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']
+                  : '?pagina=impressoes&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']) ?>" class="btn-selecionar"><?= $fluxo_miniaturas ? 'Ir para Miniaturas' : ($fluxo_torres ? 'Ir para Torres' : 'Selecionar') ?></a>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <div class="alert alert-info">Nenhum filamento cadastrado.</div>
+    <?php endif; ?>
+  <?php endif; ?>
+
+  <a href="<?= $fluxo_produtos ? '?pagina=produtos&acao=adicionar' : '?pagina=impressoes' ?>" class="btn btn-secondary mt-3"><?= $fluxo_produtos ? 'Voltar para categorias' : 'Voltar para Impressoras' ?></a>
+<?php endif; ?>
+
+<style>
+.impressoes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.impressao-card {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 24px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+}
+
+.impressao-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.12);
+}
+
+.impressao-icon {
+  font-size: 2.2rem;
+  color: #007bff;
+  margin-bottom: 14px;
+}
+
+.impressao-card h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #343a40;
+}
+
+.impressao-card p {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin-bottom: 18px;
+}
+
+.impressao-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-selecionar {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn-selecionar {
+  background: #007bff;
+  color: #fff;
+}
+
+.btn-selecionar:hover {
+  background: #0069d9;
+  color: #fff;
+}
+</style>
