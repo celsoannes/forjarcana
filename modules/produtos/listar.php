@@ -1,136 +1,267 @@
-<div class="produtos-grid">
-  <div class="produto-card">
-    <div class="produto-icon"><i class="fas fa-dragon"></i></div>
-    <h2>Miniaturas</h2>
-    <p>Gerenciar catálogo de miniaturas de RPG, figuras de ação e colecionáveis</p>
-    <div class="produto-actions">
-      <a href="?pagina=miniaturas&acao=adicionar" class="btn-sku">+ Adicionar</a>
-      <a href="?pagina=miniaturas" class="btn-lista">📋 Listar</a>
-    </div>
-  </div>
+<?php
+require_once __DIR__ . '/../../app/db.php';
 
-  <div class="produto-card disabled">
-    <div class="coming-soon">Em breve</div>
-    <div class="produto-icon"><i class="fas fa-toolbox"></i></div>
-    <h2>Acessórios</h2>
-    <p>Gerencie acessórios relacionados ao seu catálogo de produtos</p>
-    <div class="produto-actions">
-      <span class="btn-sku disabled-btn">+ Adicionar</span>
-      <span class="btn-lista disabled-btn">📋 Listar</span>
-    </div>
-  </div>
+$produtos = [];
+$erro_consulta = null;
+$usuario_id = (int) ($_SESSION['usuario_id'] ?? 0);
 
-  <div class="produto-card disabled">
-    <div class="coming-soon">Em breve</div>
-    <div class="produto-icon"><i class="fas fa-map-marked-alt"></i></div>
-    <h2>Mapas</h2>
-    <p>Gerencie mapas para campanhas, cenários e ambientações</p>
-    <div class="produto-actions">
-      <span class="btn-sku disabled-btn">+ Adicionar</span>
-      <span class="btn-lista disabled-btn">📋 Listar</span>
-    </div>
-  </div>
-</div>
+if ($usuario_id <= 0) {
+	$erro_consulta = 'Não foi possível identificar o usuário logado para listar os produtos.';
+} else {
+	try {
+		$stmt = $pdo->prepare("SELECT
+				p.id,
+				s.sku AS sku_codigo,
+				c.nome AS categoria_nome,
+				COALESCE(NULLIF(p.nome, ''), m.nome_original) AS miniatura_nome,
+				p.markup,
+				COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas, 0) AS unidades_produzidas,
+				cu.custo_total AS custo_total,
+				cu.custo_por_unidade AS custo_unidade,
+				CASE
+					WHEN COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas, 0) > 0
+					THEN p.preco_lojista / COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas)
+					ELSE 0
+				END AS preco_lojista_unidade,
+				p.preco_lojista AS preco_lojista_total,
+				CASE
+					WHEN COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas, 0) > 0
+					THEN p.preco_consumidor_final / COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas)
+					ELSE 0
+				END AS preco_final_unidade,
+				p.preco_consumidor_final AS preco_final_total,
+				p.imagem_capa,
+				p.data_cadastro
+			FROM produtos p
+			LEFT JOIN sku s ON s.produto_id = p.id
+			LEFT JOIN categorias c ON c.id = p.categoria
+			LEFT JOIN custos cu ON cu.produto_id = p.id
+			LEFT JOIN miniaturas m ON m.produto_id = p.id
+			LEFT JOIN torres t ON t.produto_id = p.id
+			LEFT JOIN impressoes i_m ON i_m.id = m.id_impressao
+			LEFT JOIN impressoes i_t ON i_t.id = t.id_impressao
+			WHERE p.usuario_id = ?
+			ORDER BY p.id DESC");
+		$stmt->execute([$usuario_id]);
+		$produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+	} catch (Throwable $e) {
+		$erro_consulta = 'Não foi possível carregar os produtos no momento.';
+	}
+}
+?>
 
 <style>
-.produtos-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-}
+	.preview-capa-hover {
+		position: fixed;
+		display: none;
+		z-index: 1080;
+		pointer-events: none;
+		background: #fff;
+		padding: 6px;
+		border: 1px solid #dee2e6;
+		border-radius: 6px;
+		box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+	}
 
-.produto-card {
-  position: relative;
-  background: #fff;
-  border-radius: 12px;
-  padding: 28px 24px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e9ecef;
-  transition: all 0.25s ease;
-  display: flex;
-  flex-direction: column;
-  min-height: 320px;
-}
+	.preview-capa-hover img {
+		display: block;
+		width: 220px;
+		height: 220px;
+		object-fit: cover;
+		border-radius: 4px;
+	}
 
-.produto-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.12);
-}
-
-.produto-icon {
-  font-size: 2.2rem;
-  color: #007bff;
-  margin-bottom: 14px;
-}
-
-.produto-card h2 {
-  font-size: 1.35rem;
-  font-weight: 600;
-  margin-bottom: 10px;
-  color: #343a40;
-}
-
-.produto-card p {
-  color: #6c757d;
-  font-size: 0.95rem;
-  margin-bottom: 18px;
-}
-
-.produto-actions {
-  margin-top: auto;
-  display: flex;
-  gap: 10px;
-}
-
-.btn-sku,
-.btn-lista {
-  flex: 1;
-  text-align: center;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.btn-sku {
-  background: #007bff;
-  color: #fff;
-}
-
-.btn-sku:hover {
-  background: #0069d9;
-  color: #fff;
-}
-
-.btn-lista {
-  background: #f1f3f5;
-  color: #495057;
-}
-
-.btn-lista:hover {
-  background: #e9ecef;
-  color: #343a40;
-}
-
-.produto-card.disabled {
-  opacity: 0.75;
-}
-
-.coming-soon {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #ffc107;
-  color: #212529;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.disabled-btn {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
+	.img-capa-thumb {
+		cursor: zoom-in;
+	}
 </style>
+
+<div class="card">
+	<div class="card-header">
+		<h3 class="card-title">Produtos</h3>
+		<div class="card-tools">
+			<a href="?pagina=produtos&acao=adicionar" class="btn btn-primary float-right">
+				<i class="fas fa-plus"></i> Adicionar produto
+			</a>
+		</div>
+	</div>
+
+	<div class="card-body table-responsive p-0">
+		<?php if ($erro_consulta): ?>
+			<div class="alert alert-warning m-3 mb-0"><?= htmlspecialchars($erro_consulta) ?></div>
+		<?php endif; ?>
+
+		<?php if ($produtos): ?>
+			<table class="table table-hover text-nowrap">
+				<thead>
+					<tr>
+						<th>Capa</th>
+						<th>SKU</th>
+						<th>Nome</th>
+						<th>Categoria</th>
+						<th>Custo</th>
+						<th>Markup</th>
+						<th>Preço Lojista</th>
+						<th>Preço Consumidor Final</th>
+						<th>Cadastro</th>
+						<th class="text-right">Ações</th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ($produtos as $produto): ?>
+						<tr>
+							<td>
+								<?php if (!empty($produto['imagem_capa'])): ?>
+									<img src="<?= htmlspecialchars((string) $produto['imagem_capa']) ?>" data-preview-src="<?= htmlspecialchars((string) $produto['imagem_capa']) ?>" alt="Capa" class="img-capa-thumb" style="width:48px; height:48px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
+								<?php else: ?>
+									<span class="text-muted">-</span>
+								<?php endif; ?>
+							</td>
+							<td><?= htmlspecialchars((string) ($produto['sku_codigo'] ?? '-')) ?></td>
+							<td><?= htmlspecialchars((string) ($produto['miniatura_nome'] ?? 'Produto sem nome')) ?></td>
+							<td><?= htmlspecialchars((string) ($produto['categoria_nome'] ?? '-')) ?></td>
+							<td>R$ <?= number_format((float) ($produto['custo_unidade'] ?? 0), 2, ',', '.') ?></td>
+							<td><?= number_format((float) ($produto['markup'] ?? 0), 2, ',', '.') ?></td>
+							<td>R$ <?= number_format((float) ($produto['preco_lojista_unidade'] ?? 0), 2, ',', '.') ?></td>
+							<td>R$ <?= number_format((float) ($produto['preco_final_unidade'] ?? 0), 2, ',', '.') ?></td>
+							<td>
+								<?php if (!empty($produto['data_cadastro'])): ?>
+									<?= htmlspecialchars(date('d/m/Y H:i', strtotime((string) $produto['data_cadastro']))) ?>
+								<?php else: ?>
+									<span class="text-muted">-</span>
+								<?php endif; ?>
+							</td>
+							<td class="text-right">
+								<a class="btn btn-info btn-sm" href="?pagina=produtos&acao=editar&id=<?= (int) $produto['id'] ?>">
+									<i class="fas fa-pencil-alt"></i> Editar
+								</a>
+								<a class="btn btn-danger btn-sm btn-excluir-produto" href="?pagina=produtos&acao=excluir&id=<?= (int) $produto['id'] ?>">
+									<i class="fas fa-trash"></i> Excluir
+								</a>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php else: ?>
+			<div class="text-center p-4">Nenhum produto cadastrado.</div>
+		<?php endif; ?>
+	</div>
+</div>
+
+<div id="preview-capa-hover" class="preview-capa-hover">
+	<img src="" alt="Pré-visualização da capa">
+</div>
+
+<div class="modal fade" id="modal-danger-excluir-produto" tabindex="-1" role="dialog" aria-labelledby="modalDangerLabelProduto" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content bg-danger">
+			<div class="modal-header">
+				<h4 class="modal-title" id="modalDangerLabelProduto">Excluir Produto</h4>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<p id="modal-excluir-texto-produto">Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.</p>
+				<div id="modal-excluir-erro-produto" class="alert alert-warning d-none"></div>
+			</div>
+			<div class="modal-footer justify-content-between">
+				<button type="button" class="btn btn-outline-light" data-dismiss="modal">Cancelar</button>
+				<button type="button" class="btn btn-outline-light" id="btn-confirmar-excluir-produto">Excluir</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+	var preview = document.getElementById('preview-capa-hover');
+	if (!preview) {
+		return;
+	}
+
+	var previewImg = preview.querySelector('img');
+	if (!previewImg) {
+		return;
+	}
+
+	var posicionarPreview = function (evento) {
+		var offsetX = 18;
+		var offsetY = 18;
+		var largura = 232;
+		var altura = 232;
+		var x = evento.clientX + offsetX;
+		var y = evento.clientY + offsetY;
+
+		if (x + largura > window.innerWidth) {
+			x = evento.clientX - largura - 12;
+		}
+
+		if (y + altura > window.innerHeight) {
+			y = evento.clientY - altura - 12;
+		}
+
+		preview.style.left = x + 'px';
+		preview.style.top = y + 'px';
+	};
+
+	document.querySelectorAll('.img-capa-thumb[data-preview-src]').forEach(function (thumb) {
+		thumb.addEventListener('mouseenter', function (evento) {
+			var src = this.getAttribute('data-preview-src') || '';
+			if (!src) {
+				return;
+			}
+
+			previewImg.src = src;
+			preview.style.display = 'block';
+			posicionarPreview(evento);
+		});
+
+		thumb.addEventListener('mousemove', function (evento) {
+			if (preview.style.display === 'block') {
+				posicionarPreview(evento);
+			}
+		});
+
+		thumb.addEventListener('mouseleave', function () {
+			preview.style.display = 'none';
+			previewImg.src = '';
+		});
+	});
+
+	var produtoExcluirId = null;
+	document.querySelectorAll('.btn-excluir-produto').forEach(function(btn) {
+		btn.addEventListener('click', function(e) {
+			e.preventDefault();
+			produtoExcluirId = this.href.split('id=')[1];
+			document.getElementById('modal-excluir-erro-produto').classList.add('d-none');
+			if (window.jQuery && typeof window.jQuery.fn.modal === 'function') {
+				window.jQuery('#modal-danger-excluir-produto').modal('show');
+			}
+		});
+	});
+
+	var btnConfirmarExcluir = document.getElementById('btn-confirmar-excluir-produto');
+	if (btnConfirmarExcluir) {
+		btnConfirmarExcluir.addEventListener('click', function() {
+			if (!produtoExcluirId) {
+				return;
+			}
+
+			fetch('modules/produtos/excluir.php?id=' + encodeURIComponent(produtoExcluirId), {
+				method: 'GET'
+			})
+			.then(function(response) { return response.text(); })
+			.then(function(result) {
+				if (result.trim() === '' || result.includes('window.location.href')) {
+					location.href = '?pagina=produtos';
+				} else {
+					document.getElementById('modal-excluir-erro-produto').textContent = result;
+					document.getElementById('modal-excluir-erro-produto').classList.remove('d-none');
+				}
+			});
+		});
+	}
+});
+</script>
