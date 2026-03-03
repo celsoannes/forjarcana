@@ -1,0 +1,17 @@
+CREATE TABLE mapas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    descricao TEXT NULL,
+    imagem_capa VARCHAR(255) NULL,
+    imagens TEXT NULL,
+    formato_grade VARCHAR(100) NOT NULL,
+    largura DECIMAL(10,2) NOT NULL,
+    comprimento DECIMAL(10,2) NOT NULL,
+    material VARCHAR(120) NOT NULL,
+    fornecedor VARCHAR(150) NULL,
+    custo DECIMAL(10,2) NOT NULL,
+    markup DECIMAL(4,1) NOT NULL DEFAULT 2.0,
+    ultima_atualizacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    usuario_id INT UNSIGNED NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

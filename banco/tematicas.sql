@@ -1,0 +1,5 @@
+CREATE TABLE tematicas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    UNIQUE KEY uk_tematica_nome (nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
