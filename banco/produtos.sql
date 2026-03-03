@@ -7,6 +7,8 @@ CREATE TABLE produtos (
 	imagens TEXT NULL,
 	descricao TEXT NULL,
 	markup DECIMAL(10,2) NOT NULL,
+	lucro_lojista DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+	lucro_consumidor_final DECIMAL(10,2) NOT NULL DEFAULT 0.00,
 	preco_lojista DECIMAL(10,2) NOT NULL,
 	preco_consumidor_final DECIMAL(10,2) NOT NULL,
 	data_cadastro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -10,10 +10,12 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $usuario_uuid = trim($_SESSION['usuario_uuid'] ?? '');
+$fluxo_origem = trim((string) ($_GET['fluxo'] ?? $_POST['fluxo_origem'] ?? ''));
 $erro = '';
 $foto = null;
 $imagens = [];
 $avisos_upload = [];
+$fornecedores_disponiveis = [];
 
 function descreverErroUploadMapa(int $codigoErro): string {
   $mapa = [
@@ -29,6 +31,83 @@ function descreverErroUploadMapa(int $codigoErro): string {
   return $mapa[$codigoErro] ?? 'Erro desconhecido no envio do arquivo.';
 }
 
+function normalizarTextoSkuMapa(string $texto): string {
+  $texto = trim($texto);
+  if ($texto === '') {
+    return '';
+  }
+
+  $normalizado = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+  if ($normalizado === false) {
+    $normalizado = $texto;
+  }
+
+  $normalizado = strtoupper($normalizado);
+  $normalizado = preg_replace('/[^A-Z0-9\s]/', '', $normalizado);
+
+  return trim((string) $normalizado);
+}
+
+function gerarIniciaisNomeMapa(string $nome): string {
+  $nomeNormalizado = normalizarTextoSkuMapa($nome);
+  if ($nomeNormalizado === '') {
+    return 'XX';
+  }
+
+  $partes = preg_split('/\s+/', $nomeNormalizado) ?: [];
+  $iniciais = '';
+
+  foreach ($partes as $parte) {
+    $parte = trim((string) $parte);
+    if ($parte === '') {
+      continue;
+    }
+    $iniciais .= substr($parte, 0, 1);
+  }
+
+  if ($iniciais === '') {
+    return 'XX';
+  }
+
+  return $iniciais;
+}
+
+function formatarBlocoDimensaoSku(float $valor): string {
+  $texto = number_format($valor, 2, '.', '');
+  $texto = rtrim(rtrim($texto, '0'), '.');
+  if ($texto === '') {
+    $texto = '0';
+  }
+  $texto = str_replace('.', 'P', $texto);
+
+  return strtoupper((string) preg_replace('/[^A-Z0-9]/', '', $texto));
+}
+
+function formatarBlocoFormatoGradeSku(string $formatoGrade): string {
+  $formatoGrade = strtoupper(trim($formatoGrade));
+  $formatoGrade = preg_replace('/[^A-Z0-9]/', '', $formatoGrade);
+
+  return $formatoGrade !== '' ? $formatoGrade : 'SEMGRD';
+}
+
+function gerarSkuMapaAutomatico(PDO $pdo, string $nome, string $formatoGrade, float $largura, float $comprimento): string {
+  $blocoNome = gerarIniciaisNomeMapa($nome);
+  $blocoFormatoGrade = formatarBlocoFormatoGradeSku($formatoGrade);
+  $blocoLargura = formatarBlocoDimensaoSku($largura);
+  $blocoComprimento = formatarBlocoDimensaoSku($comprimento);
+  $prefixo = 'MAP-' . $blocoNome . '-' . $blocoFormatoGrade . '-' . $blocoLargura . '-' . $blocoComprimento;
+
+  do {
+    $numero = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $sku = $prefixo . '-' . $numero;
+    $stmtSku = $pdo->prepare("SELECT COUNT(*) FROM sku WHERE sku = ?");
+    $stmtSku->execute([$sku]);
+    $existe = (int) $stmtSku->fetchColumn() > 0;
+  } while ($existe);
+
+  return $sku;
+}
+
 if ($usuario_uuid === '' && $usuario_id > 0) {
   try {
     $stmtUuid = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ? LIMIT 1");
@@ -39,15 +118,72 @@ if ($usuario_uuid === '' && $usuario_id > 0) {
   }
 }
 
+try {
+  $stmtFornecedoresDisponiveis = $pdo->prepare("SELECT id, nome_fantasia FROM fornecedores WHERE usuario_id = ? ORDER BY nome_fantasia");
+  $stmtFornecedoresDisponiveis->execute([(int) $usuario_id]);
+  $fornecedores_disponiveis = $stmtFornecedoresDisponiveis->fetchAll(PDO::FETCH_ASSOC) ?: [];
+} catch (Throwable $e) {
+  $fornecedores_disponiveis = [];
+}
+
+if (($_GET['action'] ?? '') === 'sugerir') {
+  header('Content-Type: application/json; charset=UTF-8');
+
+  $campo = trim((string) ($_GET['campo'] ?? ''));
+  $termo = trim((string) ($_GET['termo'] ?? ''));
+  $tamanhoTermo = function_exists('mb_strlen') ? mb_strlen($termo, 'UTF-8') : strlen($termo);
+
+  if ((int) $usuario_id <= 0 || $campo !== 'fornecedor' || $tamanhoTermo < 2) {
+    echo json_encode([]);
+    exit;
+  }
+
+  try {
+    $stmtFornecedores = $pdo->prepare("SELECT DISTINCT nome_fantasia FROM fornecedores WHERE usuario_id = ? AND nome_fantasia IS NOT NULL AND nome_fantasia <> '' AND nome_fantasia LIKE ? ORDER BY nome_fantasia ASC LIMIT 30");
+    $stmtFornecedores->execute([(int) $usuario_id, '%' . $termo . '%']);
+    $fornecedores = $stmtFornecedores->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+    $sugestoes = [];
+    $controleUnicos = [];
+    foreach ($fornecedores as $fornecedorNome) {
+      if (!is_string($fornecedorNome)) {
+        continue;
+      }
+
+      $fornecedorNome = trim($fornecedorNome);
+      if ($fornecedorNome === '') {
+        continue;
+      }
+
+      $chave = function_exists('mb_strtolower') ? mb_strtolower($fornecedorNome, 'UTF-8') : strtolower($fornecedorNome);
+      if (isset($controleUnicos[$chave])) {
+        continue;
+      }
+
+      $controleUnicos[$chave] = true;
+      $sugestoes[] = $fornecedorNome;
+    }
+
+    echo json_encode($sugestoes, JSON_UNESCAPED_UNICODE);
+  } catch (Throwable $e) {
+    echo json_encode([]);
+  }
+
+  exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim($_POST['nome'] ?? '');
     $descricao = trim($_POST['descricao'] ?? '');
+    $link_compra = trim($_POST['link_compra'] ?? '');
     $formato_grade = trim($_POST['formato_grade'] ?? '');
     $largura = (float) ($_POST['largura'] ?? 0);
     $comprimento = (float) ($_POST['comprimento'] ?? 0);
     $material = trim($_POST['material'] ?? '');
     $fornecedor = trim($_POST['fornecedor'] ?? '');
+    $fornecedor_id = null;
     $custo = (float) ($_POST['custo'] ?? 0);
+    $unidades_produzidas = (int) ($_POST['unidades_produzidas'] ?? 0);
     $markup = (float) ($_POST['markup'] ?? 2);
     $markup_valido = ($markup >= 1 && $markup <= 10 && ((int) round($markup * 2)) === (int) ($markup * 2));
     $fotoExistente = trim((string) ($_POST['foto_existente'] ?? ''));
@@ -118,16 +254,197 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-    if (!$nome || !$formato_grade || $largura <= 0 || $comprimento <= 0 || !$material || $custo < 0 || !$markup_valido) {
+    if (!$nome || !$formato_grade || $largura <= 0 || $comprimento <= 0 || !$material || $custo < 0 || $unidades_produzidas <= 0 || !$markup_valido) {
         $erro = 'Preencha todos os campos obrigatórios corretamente.';
+    } elseif ($link_compra !== '' && !filter_var($link_compra, FILTER_VALIDATE_URL)) {
+        $erro = 'Informe uma URL válida para o link de compra.';
     } else {
         try {
+      $pdo->beginTransaction();
+
+      if ($fornecedor !== '') {
+        $stmtFornecedorId = $pdo->prepare("SELECT id FROM fornecedores WHERE usuario_id = ? AND LOWER(nome_fantasia) = LOWER(?) LIMIT 1");
+        $stmtFornecedorId->execute([(int) $usuario_id, $fornecedor]);
+        $fornecedor_id = $stmtFornecedorId->fetchColumn();
+        $fornecedor_id = $fornecedor_id !== false ? (int) $fornecedor_id : null;
+      }
+
       $imagensJson = !empty($imagens) ? json_encode($imagens, JSON_UNESCAPED_UNICODE) : null;
-      $stmt = $pdo->prepare("INSERT INTO mapas (usuario_id, nome, descricao, imagem_capa, imagens, formato_grade, largura, comprimento, material, fornecedor, custo, markup, ultima_atualizacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-      $stmt->execute([$usuario_id, $nome, $descricao, $foto, $imagensJson, $formato_grade, $largura, $comprimento, $material, $fornecedor !== '' ? $fornecedor : null, $custo, $markup]);
-            echo '<script>window.location.href="?pagina=mapas";</script>';
+      $stmtColunaLinkCompra = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'link_compra'");
+      $stmtColunaLinkCompra->execute();
+      $possuiColunaLinkCompra = (bool) $stmtColunaLinkCompra->fetch(PDO::FETCH_ASSOC);
+
+      $stmtColunaFornecedorId = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'fornecedor_id'");
+      $stmtColunaFornecedorId->execute();
+      $possuiColunaFornecedorId = (bool) $stmtColunaFornecedorId->fetch(PDO::FETCH_ASSOC);
+
+      $stmtColunaUnidadesProduzidas = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'unidades_produzidas'");
+      $stmtColunaUnidadesProduzidas->execute();
+      $possuiColunaUnidadesProduzidas = (bool) $stmtColunaUnidadesProduzidas->fetch(PDO::FETCH_ASSOC);
+
+      if ($possuiColunaFornecedorId && $fornecedor !== '' && !$fornecedor_id) {
+        $erro = 'Fornecedor informado não está cadastrado.';
+      }
+
+      if ($erro) {
+        throw new RuntimeException($erro);
+      }
+
+      $stmtCategoria = $pdo->prepare("SELECT id FROM categorias WHERE nome = ? LIMIT 1");
+      $stmtCategoria->execute(['Mapas']);
+      $categoriaId = (int) ($stmtCategoria->fetchColumn() ?: 0);
+      if ($categoriaId === 0) {
+        $stmtInsertCategoria = $pdo->prepare("INSERT INTO categorias (nome) VALUES (?)");
+        $stmtInsertCategoria->execute(['Mapas']);
+        $categoriaId = (int) $pdo->lastInsertId();
+      }
+
+      $skuCodigo = gerarSkuMapaAutomatico($pdo, $nome, $formato_grade, $largura, $comprimento);
+
+      $custoPorUnidade = $unidades_produzidas > 0 ? round($custo / $unidades_produzidas, 2) : 0.00;
+      $precoConsumidorFinal = round($custoPorUnidade * $markup, 2);
+      $lucro = $precoConsumidorFinal - $custoPorUnidade;
+      $precoLojista = round(($lucro / 2) + $custoPorUnidade, 2);
+      $lucroLojista = round($precoLojista - $custoPorUnidade, 2);
+      $lucroConsumidorFinal = round($precoConsumidorFinal - $custoPorUnidade, 2);
+
+      $stmtColunasProdutos = $pdo->query("SHOW COLUMNS FROM produtos");
+      $colunasProdutosRaw = $stmtColunasProdutos ? $stmtColunasProdutos->fetchAll(PDO::FETCH_ASSOC) : [];
+      $colunasProdutosMap = [];
+      foreach ($colunasProdutosRaw as $colunaProduto) {
+        $campoProduto = (string) ($colunaProduto['Field'] ?? '');
+        if ($campoProduto !== '') {
+          $colunasProdutosMap[$campoProduto] = true;
+        }
+      }
+
+      $colunasProdutoInsert = ['usuario_id', 'nome', 'categoria', 'imagem_capa', 'imagens', 'descricao'];
+      $valoresProdutoInsert = [
+        $usuario_id,
+        $nome,
+        $categoriaId,
+        $foto,
+        $imagensJson,
+        $descricao !== '' ? $descricao : null,
+      ];
+
+      if (isset($colunasProdutosMap['observacoes'])) {
+        $colunasProdutoInsert[] = 'observacoes';
+        $valoresProdutoInsert[] = null;
+      }
+
+      if (isset($colunasProdutosMap['markup_lojista'])) {
+        $colunasProdutoInsert[] = 'markup_lojista';
+        $valoresProdutoInsert[] = $markup;
+      }
+      if (isset($colunasProdutosMap['markup_consumidor_final'])) {
+        $colunasProdutoInsert[] = 'markup_consumidor_final';
+        $valoresProdutoInsert[] = $markup;
+      }
+      if (isset($colunasProdutosMap['markup']) && !isset($colunasProdutosMap['markup_lojista'])) {
+        $colunasProdutoInsert[] = 'markup';
+        $valoresProdutoInsert[] = $markup;
+      }
+
+      if (isset($colunasProdutosMap['lucro_lojista'])) {
+        $colunasProdutoInsert[] = 'lucro_lojista';
+        $valoresProdutoInsert[] = $lucroLojista;
+      }
+
+      if (isset($colunasProdutosMap['lucro_consumidor_final'])) {
+        $colunasProdutoInsert[] = 'lucro_consumidor_final';
+        $valoresProdutoInsert[] = $lucroConsumidorFinal;
+      }
+
+      $colunasProdutoInsert[] = 'preco_lojista';
+      $valoresProdutoInsert[] = $precoLojista;
+      $colunasProdutoInsert[] = 'preco_consumidor_final';
+      $valoresProdutoInsert[] = $precoConsumidorFinal;
+
+      $placeholdersProduto = implode(', ', array_fill(0, count($colunasProdutoInsert), '?'));
+      $sqlProduto = "INSERT INTO produtos (" . implode(', ', $colunasProdutoInsert) . ") VALUES (" . $placeholdersProduto . ")";
+      $stmtInsertProduto = $pdo->prepare($sqlProduto);
+      $stmtInsertProduto->execute($valoresProdutoInsert);
+      $produtoId = (int) $pdo->lastInsertId();
+
+      $stmtInsertSku = $pdo->prepare("INSERT INTO sku (produto_id, sku, usuario_id) VALUES (?, ?, ?)");
+      $stmtInsertSku->execute([$produtoId, $skuCodigo, $usuario_id]);
+
+      $stmtInsertCusto = $pdo->prepare("INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)");
+      $stmtInsertCusto->execute([$produtoId, $custo, $custoPorUnidade]);
+
+      $colunasInsert = ['usuario_id', 'nome', 'descricao'];
+      $valoresInsert = [$usuario_id, $nome, $descricao];
+
+      $stmtColunaProdutoId = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'produto_id'");
+      $stmtColunaProdutoId->execute();
+      $possuiColunaProdutoId = (bool) $stmtColunaProdutoId->fetch(PDO::FETCH_ASSOC);
+
+      $stmtColunaIdSku = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'id_sku'");
+      $stmtColunaIdSku->execute();
+      $possuiColunaIdSku = (bool) $stmtColunaIdSku->fetch(PDO::FETCH_ASSOC);
+
+      if ($possuiColunaIdSku) {
+        $colunasInsert[] = 'id_sku';
+        $valoresInsert[] = $skuCodigo;
+      }
+
+      if ($possuiColunaProdutoId) {
+        $colunasInsert[] = 'produto_id';
+        $valoresInsert[] = $produtoId;
+      }
+
+      if ($possuiColunaLinkCompra) {
+        $colunasInsert[] = 'link_compra';
+        $valoresInsert[] = $link_compra !== '' ? $link_compra : null;
+      }
+
+      $colunasInsert[] = 'imagem_capa';
+      $valoresInsert[] = $foto;
+      $colunasInsert[] = 'imagens';
+      $valoresInsert[] = $imagensJson;
+      $colunasInsert[] = 'formato_grade';
+      $valoresInsert[] = $formato_grade;
+      $colunasInsert[] = 'largura';
+      $valoresInsert[] = $largura;
+      $colunasInsert[] = 'comprimento';
+      $valoresInsert[] = $comprimento;
+      $colunasInsert[] = 'material';
+      $valoresInsert[] = $material;
+
+      if ($possuiColunaFornecedorId) {
+        $colunasInsert[] = 'fornecedor_id';
+        $valoresInsert[] = $fornecedor_id;
+      } else {
+        $colunasInsert[] = 'fornecedor';
+        $valoresInsert[] = $fornecedor !== '' ? $fornecedor : null;
+      }
+
+      $stmtColunaCusto = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'custo'");
+      $stmtColunaCusto->execute();
+      $possuiColunaCusto = (bool) $stmtColunaCusto->fetch(PDO::FETCH_ASSOC);
+      if ($possuiColunaCusto) {
+        $colunasInsert[] = 'custo';
+        $valoresInsert[] = $custo;
+      }
+
+      if ($possuiColunaUnidadesProduzidas) {
+        $colunasInsert[] = 'unidades_produzidas';
+        $valoresInsert[] = $unidades_produzidas;
+      }
+
+      $placeholders = implode(', ', array_fill(0, count($colunasInsert), '?'));
+      $sqlInsert = "INSERT INTO mapas (" . implode(', ', $colunasInsert) . ", ultima_atualizacao) VALUES (" . $placeholders . ", NOW())";
+      $stmt = $pdo->prepare($sqlInsert);
+      $stmt->execute($valoresInsert);
+        $pdo->commit();
+            $urlRedirecionamento = ($fluxo_origem === 'mapas') ? '?pagina=produtos' : '?pagina=mapas';
+            echo '<script>window.location.href=' . json_encode($urlRedirecionamento, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ';</script>';
             exit;
-        } catch (PDOException $e) {
+        } catch (Throwable $e) {
+          if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+          }
             $erro = 'Erro ao cadastrar: ' . $e->getMessage();
         }
     }
@@ -138,6 +455,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h3 class="card-title">Adicionar Mapa</h3>
   </div>
   <form method="POST" enctype="multipart/form-data" id="form-adicionar-mapa">
+    <input type="hidden" name="fluxo_origem" value="<?= htmlspecialchars($fluxo_origem, ENT_QUOTES, 'UTF-8') ?>">
     <input type="hidden" id="foto_existente" name="foto_existente" value="<?= htmlspecialchars((string) ($foto ?? '')) ?>">
     <input type="hidden" id="imagens_existentes" name="imagens_existentes" value="<?= htmlspecialchars(json_encode($imagens ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>">
     <div class="card-body">
@@ -172,6 +490,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>">
           </div>
           <div class="form-group">
+            <label for="fornecedor">Fornecedor</label>
+            <div class="position-relative">
+              <input type="text" class="form-control" id="fornecedor" name="fornecedor" autocomplete="off" value="<?= htmlspecialchars($_POST['fornecedor'] ?? '') ?>">
+              <ul id="fornecedor-sugestoes" class="autocomplete-sugestoes list-group position-absolute w-100 d-none" style="top:100%; left:0; z-index:1060; max-height:220px; overflow-y:auto;"></ul>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="material">Material</label>
+            <input type="text" class="form-control" id="material" name="material" required>
+          </div>
+          <div class="form-group">
             <label for="formato_grade">
               Formato da Grade
               <button type="button" class="btn btn-xs btn-outline-info ml-2" data-toggle="modal" data-target="#modal-info-formato-grade">
@@ -201,43 +530,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </div>
             </div>
           </div>
-          <div class="form-group">
-            <label for="material">Material</label>
-            <input type="text" class="form-control" id="material" name="material" required>
-          </div>
-          <div class="form-group">
-            <label for="fornecedor">Fornecedor</label>
-            <input type="text" class="form-control" id="fornecedor" name="fornecedor" value="<?= htmlspecialchars($_POST['fornecedor'] ?? '') ?>">
-          </div>
-          <div class="form-group">
-            <label for="custo">Custo</label>
-            <input type="number" class="form-control" id="custo" name="custo" step="0.01" min="0" required>
-          </div>
-          <div class="form-group">
-            <label for="markup">Markup</label>
-            <select class="form-control" id="markup" name="markup" required>
-              <option value="1">1</option>
-              <option value="1.5">1.5</option>
-              <option value="2" selected>2</option>
-              <option value="2.5">2.5</option>
-              <option value="3">3</option>
-              <option value="3.5">3.5</option>
-              <option value="4">4</option>
-              <option value="4.5">4.5</option>
-              <option value="5">5</option>
-              <option value="5.5">5.5</option>
-              <option value="6">6</option>
-              <option value="6.5">6.5</option>
-              <option value="7">7</option>
-              <option value="7.5">7.5</option>
-              <option value="8">8</option>
-              <option value="8.5">8.5</option>
-              <option value="9">9</option>
-              <option value="9.5">9.5</option>
-              <option value="10">10</option>
-            </select>
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label for="custo">Custo</label>
+              <input type="number" class="form-control" id="custo" name="custo" step="0.01" min="0" required value="<?= htmlspecialchars((string) ($_POST['custo'] ?? '')) ?>">
+            </div>
+            <div class="form-group col-md-4">
+              <label for="unidades_produzidas">Unidades Produzidas</label>
+              <input type="number" class="form-control" id="unidades_produzidas" name="unidades_produzidas" min="1" step="1" required value="<?= htmlspecialchars((string) ($_POST['unidades_produzidas'] ?? '1')) ?>">
+            </div>
+            <div class="form-group col-md-4">
+              <label for="markup">Markup</label>
+              <select class="form-control" id="markup" name="markup" required>
+                <?php $markupSelecionado = (string) ($_POST['markup'] ?? '2'); ?>
+                <option value="1" <?= $markupSelecionado === '1' ? 'selected' : '' ?>>1</option>
+                <option value="1.5" <?= $markupSelecionado === '1.5' ? 'selected' : '' ?>>1.5</option>
+                <option value="2" <?= $markupSelecionado === '2' ? 'selected' : '' ?>>2</option>
+                <option value="2.5" <?= $markupSelecionado === '2.5' ? 'selected' : '' ?>>2.5</option>
+                <option value="3" <?= $markupSelecionado === '3' ? 'selected' : '' ?>>3</option>
+                <option value="3.5" <?= $markupSelecionado === '3.5' ? 'selected' : '' ?>>3.5</option>
+                <option value="4" <?= $markupSelecionado === '4' ? 'selected' : '' ?>>4</option>
+                <option value="4.5" <?= $markupSelecionado === '4.5' ? 'selected' : '' ?>>4.5</option>
+                <option value="5" <?= $markupSelecionado === '5' ? 'selected' : '' ?>>5</option>
+                <option value="5.5" <?= $markupSelecionado === '5.5' ? 'selected' : '' ?>>5.5</option>
+                <option value="6" <?= $markupSelecionado === '6' ? 'selected' : '' ?>>6</option>
+                <option value="6.5" <?= $markupSelecionado === '6.5' ? 'selected' : '' ?>>6.5</option>
+                <option value="7" <?= $markupSelecionado === '7' ? 'selected' : '' ?>>7</option>
+                <option value="7.5" <?= $markupSelecionado === '7.5' ? 'selected' : '' ?>>7.5</option>
+                <option value="8" <?= $markupSelecionado === '8' ? 'selected' : '' ?>>8</option>
+                <option value="8.5" <?= $markupSelecionado === '8.5' ? 'selected' : '' ?>>8.5</option>
+                <option value="9" <?= $markupSelecionado === '9' ? 'selected' : '' ?>>9</option>
+                <option value="9.5" <?= $markupSelecionado === '9.5' ? 'selected' : '' ?>>9.5</option>
+                <option value="10" <?= $markupSelecionado === '10' ? 'selected' : '' ?>>10</option>
+              </select>
+            </div>
           </div>
         </div>
+      </div>
+      <div class="form-group">
+        <label for="link_compra">Link de Compra do Produto</label>
+        <input type="url" class="form-control" id="link_compra" name="link_compra" placeholder="https://exemplo.com/produto" value="<?= htmlspecialchars($_POST['link_compra'] ?? '') ?>">
       </div>
       <div class="form-group">
         <label for="fotos">Imagens</label>
@@ -271,6 +603,174 @@ document.addEventListener('DOMContentLoaded', function () {
   var labelFotos = document.querySelector('label.custom-file-label[for="fotos"]');
   var previewImagensContainer = document.getElementById('preview-imagens-container');
   var imagensExistentesInput = document.getElementById('imagens_existentes');
+  var inputFornecedor = document.getElementById('fornecedor');
+  var fornecedorSugestoesList = document.getElementById('fornecedor-sugestoes');
+  var fornecedoresDisponiveis = <?= json_encode($fornecedores_disponiveis, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+
+  var fornecedoresNomesDisponiveis = Array.isArray(fornecedoresDisponiveis)
+    ? Array.from(new Set(fornecedoresDisponiveis
+      .map(function (itemFornecedor) {
+        return itemFornecedor && typeof itemFornecedor.nome_fantasia === 'string' ? itemFornecedor.nome_fantasia.trim() : '';
+      })
+      .filter(function (nomeFornecedor) {
+        return nomeFornecedor !== '';
+      })))
+    : [];
+
+  var initAutocompleteFornecedor = function (inputElement, sugestoesList, options) {
+    if (!inputElement || !sugestoesList) {
+      return;
+    }
+
+    options = options || {};
+    var minChars = Number.isFinite(Number(options.minChars)) ? Number(options.minChars) : 2;
+    var showOnFocus = options.showOnFocus === true;
+
+    var indiceSelecionado = -1;
+
+    var fecharSugestoes = function () {
+      sugestoesList.classList.remove('d-block');
+      sugestoesList.classList.add('d-none');
+      sugestoesList.innerHTML = '';
+      indiceSelecionado = -1;
+    };
+
+    var renderizarSugestoes = function (dadosFiltrados) {
+      sugestoesList.innerHTML = '';
+      indiceSelecionado = -1;
+
+      if (!Array.isArray(dadosFiltrados) || !dadosFiltrados.length) {
+        fecharSugestoes();
+        return;
+      }
+
+      dadosFiltrados.forEach(function (sugestao, index) {
+        var li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action py-2';
+        li.textContent = sugestao;
+        li.addEventListener('mousedown', function (evento) {
+          evento.preventDefault();
+          inputElement.value = sugestao;
+          fecharSugestoes();
+        });
+        li.addEventListener('mouseenter', function () {
+          indiceSelecionado = index;
+          atualizarSelecao();
+        });
+        sugestoesList.appendChild(li);
+      });
+
+      sugestoesList.classList.remove('d-none');
+      sugestoesList.classList.add('d-block');
+    };
+
+    var atualizarSelecao = function () {
+      var itens = sugestoesList.querySelectorAll('li');
+      itens.forEach(function (li, index) {
+        li.classList.toggle('active', index === indiceSelecionado);
+      });
+    };
+
+    var renderizarSugestoesLocais = function (termo) {
+      if (!Array.isArray(options.localSuggestions)) {
+        return false;
+      }
+
+      var termoNormalizado = (termo || '').toLocaleLowerCase();
+      var dadosFiltrados = options.localSuggestions
+        .filter(function (item) {
+          return typeof item === 'string' && item.trim() !== '';
+        })
+        .filter(function (item) {
+          if (!termoNormalizado) {
+            return true;
+          }
+          return item.toLocaleLowerCase().indexOf(termoNormalizado) !== -1;
+        })
+        .slice(0, 30);
+
+      renderizarSugestoes(dadosFiltrados);
+      return true;
+    };
+
+    var buscarSugestoes = function (termo) {
+      if (termo.length < minChars) {
+        fecharSugestoes();
+        return;
+      }
+
+      if (renderizarSugestoesLocais(termo)) {
+        return;
+      }
+
+      var url = new URL(window.location.href);
+      url.searchParams.set('action', 'sugerir');
+      url.searchParams.set('campo', 'fornecedor');
+      url.searchParams.set('termo', termo);
+
+      fetch(url.toString())
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Falha ao buscar sugestões de fornecedores.');
+          }
+          return response.json();
+        })
+        .then(function (dados) {
+          renderizarSugestoes(Array.isArray(dados) ? dados : []);
+        })
+        .catch(function () {
+          fecharSugestoes();
+        });
+    };
+
+    inputElement.addEventListener('input', function () {
+      buscarSugestoes(this.value.trim());
+    });
+
+    inputElement.addEventListener('focus', function () {
+      if (!showOnFocus) {
+        return;
+      }
+      renderizarSugestoesLocais(this.value.trim());
+    });
+
+    inputElement.addEventListener('keydown', function (e) {
+      var listaItens = sugestoesList.querySelectorAll('li');
+      if (!listaItens.length) {
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        indiceSelecionado = (indiceSelecionado + 1) % listaItens.length;
+        atualizarSelecao();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        indiceSelecionado = (indiceSelecionado - 1 + listaItens.length) % listaItens.length;
+        atualizarSelecao();
+      } else if (e.key === 'Enter') {
+        if (indiceSelecionado >= 0 && indiceSelecionado < listaItens.length) {
+          e.preventDefault();
+          inputElement.value = listaItens[indiceSelecionado].textContent || '';
+          fecharSugestoes();
+        }
+      } else if (e.key === 'Escape') {
+        fecharSugestoes();
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.target !== inputElement && !sugestoesList.contains(e.target)) {
+        fecharSugestoes();
+      }
+    });
+  };
+
+  initAutocompleteFornecedor(inputFornecedor, fornecedorSugestoesList, {
+    localSuggestions: fornecedoresNomesDisponiveis,
+    minChars: 0,
+    showOnFocus: true
+  });
 
   if (inputFoto && previewImagem && capaPlaceholder && removeCapaBtn) {
     var renderizarCapaExistente = function () {

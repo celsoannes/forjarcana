@@ -2,9 +2,10 @@
 function renderMenu($pagina_atual) {
   $fluxo_miniaturas = ($pagina_atual === 'impressoes') && (($_GET['fluxo'] ?? '') === 'miniaturas');
   $fluxo_torres = ($pagina_atual === 'impressoes') && (($_GET['fluxo'] ?? '') === 'torres');
+  $fluxo_mapas = ($pagina_atual === 'mapas') && (($_GET['fluxo'] ?? '') === 'mapas');
   $adicionar_miniatura = ($pagina_atual === 'miniaturas') && (($_GET['acao'] ?? '') === 'adicionar');
   $adicionar_torre = ($pagina_atual === 'torres') && (($_GET['acao'] ?? '') === 'adicionar');
-  $menu_produtos_ativo = ($pagina_atual === 'produtos') || $fluxo_miniaturas || $fluxo_torres || $adicionar_miniatura || $adicionar_torre;
+  $menu_produtos_ativo = ($pagina_atual === 'produtos') || $fluxo_miniaturas || $fluxo_torres || $fluxo_mapas || $adicionar_miniatura || $adicionar_torre;
   $menu_impressoes_ativo = ($pagina_atual === 'impressoes') && !$fluxo_miniaturas && !$fluxo_torres;
 ?>
 <nav class="mt-2">
@@ -90,7 +91,7 @@ function renderMenu($pagina_atual) {
       </a>
     </li>
     <li class="nav-item">
-      <a href="?pagina=mapas" class="nav-link <?= ($pagina_atual === 'mapas') ? 'active' : '' ?>">
+      <a href="?pagina=mapas" class="nav-link <?= ($pagina_atual === 'mapas' && !$fluxo_mapas) ? 'active' : '' ?>">
         <i class="nav-icon fas fa-map"></i>
         <p>Mapas</p>
       </a>
