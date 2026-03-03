@@ -11,6 +11,7 @@ if ($usuario_id <= 0) {
 	try {
 		$stmt = $pdo->prepare("SELECT
 				p.id,
+				mp.id AS mapa_id,
 				s.sku AS sku_codigo,
 				c.nome AS categoria_nome,
 				COALESCE(NULLIF(p.nome, ''), m.nome_original) AS miniatura_nome,
@@ -18,18 +19,10 @@ if ($usuario_id <= 0) {
 				COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas, 0) AS unidades_produzidas,
 				cu.custo_total AS custo_total,
 				cu.custo_por_unidade AS custo_unidade,
-				CASE
-					WHEN COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas, 0) > 0
-					THEN p.preco_lojista / COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas)
-					ELSE 0
-				END AS preco_lojista_unidade,
-				p.preco_lojista AS preco_lojista_total,
-				CASE
-					WHEN COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas, 0) > 0
-					THEN p.preco_consumidor_final / COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas)
-					ELSE 0
-				END AS preco_final_unidade,
-				p.preco_consumidor_final AS preco_final_total,
+				p.preco_lojista,
+				p.preco_consumidor_final,
+				p.lucro_lojista,
+				p.lucro_consumidor_final,
 				p.imagem_capa,
 				p.data_cadastro
 			FROM produtos p
@@ -37,6 +30,7 @@ if ($usuario_id <= 0) {
 			LEFT JOIN categorias c ON c.id = p.categoria
 			LEFT JOIN custos cu ON cu.produto_id = p.id
 			LEFT JOIN miniaturas m ON m.produto_id = p.id
+			LEFT JOIN mapas mp ON mp.produto_id = p.id AND mp.usuario_id = p.usuario_id
 			LEFT JOIN torres t ON t.produto_id = p.id
 			LEFT JOIN impressoes i_m ON i_m.id = m.id_impressao
 			LEFT JOIN impressoes i_t ON i_t.id = t.id_impressao
@@ -102,13 +96,26 @@ if ($usuario_id <= 0) {
 						<th>Custo</th>
 						<th>Markup</th>
 						<th>Preço Lojista</th>
+						<th>Lucro Lojista</th>
 						<th>Preço Consumidor Final</th>
+						<th>Lucro Consumidor Final</th>
 						<th>Cadastro</th>
 						<th class="text-right">Ações</th>
 					</tr>
 				</thead>
 				<tbody>
 					<?php foreach ($produtos as $produto): ?>
+						<?php
+						$categoriaNome = trim((string) ($produto['categoria_nome'] ?? ''));
+						$categoriaNormalizada = function_exists('mb_strtolower')
+							? mb_strtolower($categoriaNome, 'UTF-8')
+							: strtolower($categoriaNome);
+
+						$hrefEditar = '?pagina=produtos&acao=editar&id=' . (int) $produto['id'];
+						if ($categoriaNormalizada === 'mapas' && (int) ($produto['mapa_id'] ?? 0) > 0) {
+							$hrefEditar = '?pagina=mapas&acao=editar&id=' . (int) $produto['mapa_id'] . '&fluxo=mapas';
+						}
+						?>
 						<tr>
 							<td>
 								<?php if (!empty($produto['imagem_capa'])): ?>
@@ -120,10 +127,12 @@ if ($usuario_id <= 0) {
 							<td><?= htmlspecialchars((string) ($produto['sku_codigo'] ?? '-')) ?></td>
 							<td><?= htmlspecialchars((string) ($produto['miniatura_nome'] ?? 'Produto sem nome')) ?></td>
 							<td><?= htmlspecialchars((string) ($produto['categoria_nome'] ?? '-')) ?></td>
-							<td>R$ <?= number_format((float) ($produto['custo_unidade'] ?? 0), 2, ',', '.') ?></td>
+							<td><span class="badge badge-secondary">R$ <?= number_format((float) ($produto['custo_unidade'] ?? 0), 2, ',', '.') ?></span></td>
 							<td><?= number_format((float) ($produto['markup'] ?? 0), 2, ',', '.') ?></td>
-							<td>R$ <?= number_format((float) ($produto['preco_lojista_unidade'] ?? 0), 2, ',', '.') ?></td>
-							<td>R$ <?= number_format((float) ($produto['preco_final_unidade'] ?? 0), 2, ',', '.') ?></td>
+							<td><span class="badge badge-primary">R$ <?= number_format((float) ($produto['preco_lojista'] ?? 0), 2, ',', '.') ?></span></td>
+							<td><span class="badge badge-info">R$ <?= number_format((float) ($produto['lucro_lojista'] ?? 0), 2, ',', '.') ?></span></td>
+							<td><span class="badge badge-success">R$ <?= number_format((float) ($produto['preco_consumidor_final'] ?? 0), 2, ',', '.') ?></span></td>
+							<td><span class="badge badge-warning">R$ <?= number_format((float) ($produto['lucro_consumidor_final'] ?? 0), 2, ',', '.') ?></span></td>
 							<td>
 								<?php if (!empty($produto['data_cadastro'])): ?>
 									<?= htmlspecialchars(date('d/m/Y H:i', strtotime((string) $produto['data_cadastro']))) ?>
@@ -132,7 +141,7 @@ if ($usuario_id <= 0) {
 								<?php endif; ?>
 							</td>
 							<td class="text-right">
-								<a class="btn btn-info btn-sm" href="?pagina=produtos&acao=editar&id=<?= (int) $produto['id'] ?>">
+								<a class="btn btn-info btn-sm" href="<?= htmlspecialchars($hrefEditar, ENT_QUOTES, 'UTF-8') ?>">
 									<i class="fas fa-pencil-alt"></i> Editar
 								</a>
 								<a class="btn btn-danger btn-sm btn-excluir-produto" href="?pagina=produtos&acao=excluir&id=<?= (int) $produto['id'] ?>">

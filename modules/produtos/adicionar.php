@@ -18,7 +18,7 @@
         <h2>Mapas</h2>
         <p>Categoria para mapas de campanha, cenários e ambientações.</p>
         <div class="produto-actions">
-          <a href="?pagina=mapas&acao=adicionar" class="btn-escolher">Escolher</a>
+          <a href="?pagina=mapas&acao=adicionar&fluxo=mapas" class="btn-escolher">Escolher</a>
         </div>
       </div>
 

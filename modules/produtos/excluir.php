@@ -100,6 +100,10 @@ $stmtTorres = $pdo->prepare("SELECT capa, imagens FROM torres WHERE produto_id =
 $stmtTorres->execute([$id, $usuario_id]);
 $torresImagens = $stmtTorres->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
+$stmtMapas = $pdo->prepare("SELECT imagem_capa, imagens FROM mapas WHERE produto_id = ? AND usuario_id = ?");
+$stmtMapas->execute([$id, $usuario_id]);
+$mapasImagens = $stmtMapas->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
 if (!$produto) {
     echo '<div class="alert alert-danger">Produto não encontrado!</div>';
     exit;
@@ -116,12 +120,18 @@ try {
 
         $stmtTorresDelete = $pdo->prepare("DELETE FROM torres WHERE produto_id = ? OR (usuario_id = ? AND id_sku = ?)");
         $stmtTorresDelete->execute([$id, $usuario_id, $skuCodigo]);
+
+        $stmtMapasDelete = $pdo->prepare("DELETE FROM mapas WHERE produto_id = ? OR (usuario_id = ? AND id_sku = ?)");
+        $stmtMapasDelete->execute([$id, $usuario_id, $skuCodigo]);
     } else {
         $stmtMiniaturas = $pdo->prepare("DELETE FROM miniaturas WHERE produto_id = ?");
         $stmtMiniaturas->execute([$id]);
 
         $stmtTorresDelete = $pdo->prepare("DELETE FROM torres WHERE produto_id = ?");
         $stmtTorresDelete->execute([$id]);
+
+        $stmtMapasDelete = $pdo->prepare("DELETE FROM mapas WHERE produto_id = ?");
+        $stmtMapasDelete->execute([$id]);
     }
 
     $stmt = $pdo->prepare("DELETE FROM produtos WHERE id = ? AND usuario_id = ?");
@@ -146,6 +156,13 @@ try {
                 removerDerivadosImagem($raizProjeto, (string) $torreImagem['capa']);
             }
             removerCampoImagens($raizProjeto, (string) ($torreImagem['imagens'] ?? ''));
+        }
+
+        foreach ($mapasImagens as $mapaImagem) {
+            if (!empty($mapaImagem['imagem_capa'])) {
+                removerDerivadosImagem($raizProjeto, (string) $mapaImagem['imagem_capa']);
+            }
+            removerCampoImagens($raizProjeto, (string) ($mapaImagem['imagens'] ?? ''));
         }
     }
 
