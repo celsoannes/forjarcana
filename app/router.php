@@ -117,6 +117,21 @@ switch ($pagina) {
                 include __DIR__ . '/../modules/alcool/listar.php';
         }
         break;
+    case 'fornecedores':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/fornecedores/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/fornecedores/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/fornecedores/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/fornecedores/listar.php';
+        }
+        break;
     case 'estudios':
         switch ($acao) {
             case 'adicionar':
@@ -145,6 +160,21 @@ switch ($pagina) {
                 break;
             default:
                 include __DIR__ . '/../modules/colecoes/listar.php';
+        }
+        break;
+    case 'mapas':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/mapas/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/mapas/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/mapas/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/mapas/listar.php';
         }
         break;
     case 'impressoes':
@@ -178,7 +208,19 @@ switch ($pagina) {
         }
         break;
     case 'produtos':
-        include __DIR__ . '/../modules/produtos/listar.php';
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/produtos/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/produtos/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/produtos/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/produtos/listar.php';
+        }
         break;
     case 'miniaturas':
         switch ($acao) {
@@ -193,6 +235,21 @@ switch ($pagina) {
                 break;
             default:
                 include __DIR__ . '/../modules/miniaturas/listar.php';
+        }
+        break;
+    case 'torres':
+        switch ($acao) {
+            case 'adicionar':
+                include __DIR__ . '/../modules/torres/adicionar.php';
+                break;
+            case 'editar':
+                include __DIR__ . '/../modules/torres/editar.php';
+                break;
+            case 'excluir':
+                include __DIR__ . '/../modules/torres/excluir.php';
+                break;
+            default:
+                include __DIR__ . '/../modules/torres/listar.php';
         }
         break;
     case 'perfil':

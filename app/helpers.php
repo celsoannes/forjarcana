@@ -1,5 +1,24 @@
 <?php
 function getTituloPagina($pagina) {
+    $acao = $_GET['acao'] ?? '';
+    $fluxo = $_GET['fluxo'] ?? '';
+
+    if ($pagina === 'impressoes' && $fluxo === 'miniaturas') {
+        return 'Produtos - Seleção de Impressora';
+    }
+
+    if ($pagina === 'impressoes' && $fluxo === 'torres') {
+        return 'Produtos - Seleção de Impressora';
+    }
+
+    if ($pagina === 'miniaturas' && $acao === 'adicionar') {
+        return 'Produtos - Adicionar Miniatura';
+    }
+
+    if ($pagina === 'torres' && $acao === 'adicionar') {
+        return 'Produtos - Adicionar Torre de Dados';
+    }
+
     switch ($pagina) {
         case 'usuarios':
             return 'Usuários';
@@ -19,12 +38,22 @@ function getTituloPagina($pagina) {
             return 'Estudios';
         case 'colecoes':
             return 'Coleções';
+        case 'mapas':
+            return 'Mapas';
         case 'impressoes':
             return 'Impressões';
+        case 'produtos':
+            return 'Produtos';
+        case 'miniaturas':
+            return 'Miniaturas';
+        case 'torres':
+            return 'Torres de Dados';
         case 'calculo_rapido':
             return 'Cálculo Rápido';
         case 'perfil':
             return 'Perfil do Usuário';
+        case 'fornecedores':
+            return 'Fornecedores';
         // ... outros casos ...
         default:
             return 'Dashboard';
@@ -32,6 +61,25 @@ function getTituloPagina($pagina) {
 }
 
 function getBreadcrumbPagina($pagina) {
+    $acao = $_GET['acao'] ?? '';
+    $fluxo = $_GET['fluxo'] ?? '';
+
+    if ($pagina === 'impressoes' && $fluxo === 'miniaturas') {
+        return 'Produtos / Seleção de Impressora';
+    }
+
+    if ($pagina === 'impressoes' && $fluxo === 'torres') {
+        return 'Produtos / Seleção de Impressora';
+    }
+
+    if ($pagina === 'miniaturas' && $acao === 'adicionar') {
+        return 'Produtos / Adicionar Miniatura';
+    }
+
+    if ($pagina === 'torres' && $acao === 'adicionar') {
+        return 'Produtos / Adicionar Torre de Dados';
+    }
+
     switch ($pagina) {
         case 'usuarios':
             return 'Usuários';
@@ -51,12 +99,22 @@ function getBreadcrumbPagina($pagina) {
             return 'Estudios';
         case 'colecoes':
             return 'Coleções';
+        case 'mapas':
+            return 'Mapas';
         case 'impressoes':
             return 'Impressões';
+        case 'produtos':
+            return 'Produtos';
+        case 'miniaturas':
+            return 'Miniaturas';
+        case 'torres':
+            return 'Torres de Dados';
         case 'calculo_rapido':
             return 'Cálculo Rápido';
         case 'perfil':
             return 'Perfil do Usuário';
+        case 'fornecedores':
+            return 'Fornecedores';
         // ... outros casos ...
         default:
             return 'Dashboard';

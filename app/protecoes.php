@@ -98,6 +98,30 @@ if ($pagina_atual === 'colecoes' && $acao === 'editar') {
     }
 }
 
+// Protege edição de mapa para o próprio usuário
+if ($pagina_atual === 'mapas' && $acao === 'editar') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM mapas WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $mapa = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$mapa) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
+
+// Protege exclusão de mapa para o próprio usuário
+if ($pagina_atual === 'mapas' && $acao === 'excluir') {
+    $usuario_id = $_SESSION['usuario_id'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM mapas WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $usuario_id]);
+    $mapa = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$mapa) {
+        require_once __DIR__ . '/../404.php';
+        exit;
+    }
+}
+
 // Protege edição de impressora para o próprio usuário
 if ($pagina_atual === 'impressoras3d' && $acao === 'editar') {
     $usuario_id = $_SESSION['usuario_id'] ?? 0;
