@@ -1,197 +1,33 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Fornecedores\FornecedorController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $erro = '';
+$fornecedorController = new FornecedorController($pdo);
+$dadosFormulario = $fornecedorController->montarEstadoFormularioAdicao($_POST ?? []);
 
 function old(string $key, string $default = ''): string {
-  return htmlspecialchars((string) ($_POST[$key] ?? $default), ENT_QUOTES, 'UTF-8');
+  global $dadosFormulario;
+  return htmlspecialchars((string) ($dadosFormulario[$key] ?? $default), ENT_QUOTES, 'UTF-8');
 }
 
 function selected(string $key, string $value, string $default = ''): string {
-  $current = (string) ($_POST[$key] ?? $default);
+  global $dadosFormulario;
+  $current = (string) ($dadosFormulario[$key] ?? $default);
   return $current === $value ? 'selected' : '';
 }
 
-function validarCpf(string $cpf): bool {
-  $cpf = preg_replace('/\D/', '', $cpf);
-  if (strlen($cpf) !== 11) {
-    return false;
-  }
-  if (preg_match('/^(\d)\1{10}$/', $cpf)) {
-    return false;
-  }
-
-  for ($t = 9; $t < 11; $t++) {
-    $soma = 0;
-    for ($i = 0; $i < $t; $i++) {
-      $soma += (int) $cpf[$i] * (($t + 1) - $i);
-    }
-    $digito = ((10 * $soma) % 11) % 10;
-    if ((int) $cpf[$t] !== $digito) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function validarCnpj(string $cnpj): bool {
-  $cnpj = preg_replace('/\D/', '', $cnpj);
-  if (strlen($cnpj) !== 14) {
-    return false;
-  }
-  if (preg_match('/^(\d)\1{13}$/', $cnpj)) {
-    return false;
-  }
-
-  $pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  $pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-
-  $soma = 0;
-  for ($i = 0; $i < 12; $i++) {
-    $soma += (int) $cnpj[$i] * $pesos1[$i];
-  }
-  $resto = $soma % 11;
-  $digito1 = $resto < 2 ? 0 : 11 - $resto;
-  if ((int) $cnpj[12] !== $digito1) {
-    return false;
-  }
-
-  $soma = 0;
-  for ($i = 0; $i < 13; $i++) {
-    $soma += (int) $cnpj[$i] * $pesos2[$i];
-  }
-  $resto = $soma % 11;
-  $digito2 = $resto < 2 ? 0 : 11 - $resto;
-
-  return (int) $cnpj[13] === $digito2;
-}
-
-function validarCpfCnpj(string $documento): bool {
-  $somenteDigitos = preg_replace('/\D/', '', $documento);
-  if ($somenteDigitos === '') {
-    return true;
-  }
-  if (strlen($somenteDigitos) === 11) {
-    return validarCpf($somenteDigitos);
-  }
-  if (strlen($somenteDigitos) === 14) {
-    return validarCnpj($somenteDigitos);
-  }
-  return false;
-}
-
-function validarEmailPedidos(string $email): bool {
-  $email = trim($email);
-  if ($email === '') {
-    return true;
-  }
-
-  if (strlen($email) > 150) {
-    return false;
-  }
-
-  return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $nome_fantasia = trim($_POST['nome_fantasia'] ?? '');
-  $razao_social = trim($_POST['razao_social'] ?? '');
-  $cnpj_cpf = trim($_POST['cnpj_cpf'] ?? '');
-  $categoria_ramo = trim($_POST['categoria_ramo'] ?? '');
-  $vendedor = trim($_POST['vendedor'] ?? '');
-  $whatsapp = trim($_POST['whatsapp'] ?? '');
-  $telefone_fixo = trim($_POST['telefone_fixo'] ?? '');
-  $email_pedidos = trim($_POST['email_pedidos'] ?? '');
-  $site = trim($_POST['site'] ?? '');
-  $cep = trim($_POST['cep'] ?? '');
-  $logradouro = trim($_POST['logradouro'] ?? '');
-  $numero = trim($_POST['numero'] ?? '');
-  $complemento = trim($_POST['complemento'] ?? '');
-  $bairro = trim($_POST['bairro'] ?? '');
-  $cidade = trim($_POST['cidade'] ?? '');
-  $estado_uf = trim($_POST['estado_uf'] ?? '');
-  $prazo_entrega_medio = trim($_POST['prazo_entrega_medio'] ?? '');
-  $pedido_minimo = trim($_POST['pedido_minimo'] ?? '');
-  $condicoes_pagamento = trim($_POST['condicoes_pagamento'] ?? '');
-  $dados_bancarios = trim($_POST['dados_bancarios'] ?? '');
-  $chave_pix = trim($_POST['chave_pix'] ?? '');
-  $qualidade = (int) ($_POST['qualidade'] ?? 0);
-  $observacoes_gerais = trim($_POST['observacoes_gerais'] ?? '');
+  $resultado = $fornecedorController->processarCriacao((int) $usuario_id, $_POST);
+  if (!empty($resultado['sucesso'])) {
+    echo '<script>window.location.href="?pagina=fornecedores";</script>';
+    exit;
+  }
 
-  $enderecoPartes = [];
-  if ($logradouro !== '') {
-    $enderecoPartes[] = $logradouro . ($numero !== '' ? ', ' . $numero : '');
-  }
-  if ($complemento !== '') {
-    $enderecoPartes[] = 'Compl.: ' . $complemento;
-  }
-  if ($bairro !== '') {
-    $enderecoPartes[] = 'Bairro: ' . $bairro;
-  }
-  if ($cidade !== '' || $estado_uf !== '') {
-    $cidadeUf = trim($cidade . ($estado_uf !== '' ? ' - ' . $estado_uf : ''));
-    if ($cidadeUf !== '') {
-      $enderecoPartes[] = $cidadeUf;
-    }
-  }
-  if ($cep !== '') {
-    $enderecoPartes[] = 'CEP: ' . $cep;
-  }
-  $endereco = implode(' | ', $enderecoPartes);
-
-  if (!$nome_fantasia) {
-    $erro = 'Preencha o nome fantasia do fornecedor.';
-  } elseif ($cnpj_cpf !== '' && !validarCpfCnpj($cnpj_cpf)) {
-    $erro = 'Informe um CPF ou CNPJ válido.';
-  } elseif (!validarEmailPedidos($email_pedidos)) {
-    $erro = 'Informe um e-mail de pedidos válido.';
-  } elseif ($qualidade < 0 || $qualidade > 5) {
-    $erro = 'A qualidade deve estar entre 0 e 5.';
-    } else {
-        try {
-      $stmt = $pdo->prepare("INSERT INTO fornecedores (
-        usuario_id, nome_fantasia, razao_social, cnpj_cpf, categoria_ramo, vendedor,
-        whatsapp, telefone_fixo, email_pedidos, site,
-        cep, logradouro, numero, complemento, bairro, cidade, estado_uf,
-        endereco, prazo_entrega_medio, pedido_minimo,
-        condicoes_pagamento, dados_bancarios, chave_pix, qualidade, observacoes_gerais,
-        ultima_atualizacao
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-      $stmt->execute([
-        $usuario_id,
-        $nome_fantasia,
-        $razao_social,
-        $cnpj_cpf,
-        $categoria_ramo,
-        $vendedor,
-        $whatsapp,
-        $telefone_fixo,
-        $email_pedidos,
-        $site,
-        $cep,
-        $logradouro,
-        $numero,
-        $complemento,
-        $bairro,
-        $cidade,
-        $estado_uf,
-        $endereco,
-        $prazo_entrega_medio,
-        $pedido_minimo,
-        $condicoes_pagamento,
-        $dados_bancarios,
-        $chave_pix,
-        $qualidade ?: null,
-        $observacoes_gerais
-      ]);
-            echo '<script>window.location.href="?pagina=fornecedores";</script>';
-            exit;
-        } catch (PDOException $e) {
-            $erro = 'Erro ao cadastrar: ' . $e->getMessage();
-        }
-    }
+  $erro = (string) ($resultado['erro'] ?? 'Erro ao cadastrar.');
 }
 ?>
 <div class="card card-primary">

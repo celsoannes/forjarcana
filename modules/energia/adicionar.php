@@ -4,32 +4,25 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Energia\EnergiaController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $erro = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $prestadora = $_POST['prestadora'] ?? '';
-    $valor_ultima_conta = str_replace(',', '.', $_POST['valor_ultima_conta'] ?? '');
-    $energia_eletrica = $_POST['energia_eletrica'] ?? '';
+$energiaController = new EnergiaController($pdo);
+$dadosFormulario = $energiaController->montarEstadoFormularioAdicao($_POST ?? []);
 
-    if (!$prestadora || !$valor_ultima_conta || !$energia_eletrica) {
-        $erro = 'Preencha todos os campos obrigatórios.';
-    } else {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO energia (usuario_id, prestadora, valor_ultima_conta, energia_eletrica) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$usuario_id, $prestadora, $valor_ultima_conta, $energia_eletrica]);
-            // Sinaliza para o roteador que deve redirecionar
-            echo '<script>window.location.href="?pagina=energia";</script>';
-            exit;
-        } catch (PDOException $e) {
-            if ($e->getCode() == 23000) {
-                $erro = 'Já existe um registro de energia para este usuário.';
-            } else {
-                $erro = 'Erro ao cadastrar: ' . $e->getMessage();
-            }
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $resultadoFluxo = $energiaController->processarFluxoAdicao((int) $usuario_id, $_POST);
+
+  if (!empty($resultadoFluxo['sucesso'])) {
+    echo '<script>window.location.href="?pagina=energia";</script>';
+    exit;
     }
+
+  $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar.');
 }
 ?>
 <div class="card card-primary">
@@ -43,15 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
       <div class="form-group">
         <label for="prestadora">Prestadora</label>
-        <input type="text" class="form-control" id="prestadora" name="prestadora" required>
+        <input type="text" class="form-control" id="prestadora" name="prestadora" required value="<?= htmlspecialchars((string) ($dadosFormulario['prestadora'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="valor_ultima_conta">Valor da Última Conta (R$)</label>
-        <input type="number" step="0.01" class="form-control" id="valor_ultima_conta" name="valor_ultima_conta" required>
+        <input type="number" step="0.01" class="form-control" id="valor_ultima_conta" name="valor_ultima_conta" required value="<?= htmlspecialchars((string) ($dadosFormulario['valor_ultima_conta'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="energia_eletrica">Energia Elétrica (kWh)</label>
-        <input type="number" class="form-control" id="energia_eletrica" name="energia_eletrica" required>
+        <input type="number" class="form-control" id="energia_eletrica" name="energia_eletrica" required value="<?= htmlspecialchars((string) ($dadosFormulario['energia_eletrica'] ?? '')) ?>">
       </div>
     </div>
     <div class="card-footer">

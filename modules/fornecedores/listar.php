@@ -1,10 +1,12 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
-$usuario_id = $_SESSION['usuario_id'] ?? 0;
+require_once __DIR__ . '/../../app/autoload.php';
 
-$stmt = $pdo->prepare("SELECT * FROM fornecedores WHERE usuario_id = ? ORDER BY nome_fantasia ASC");
-$stmt->execute([$usuario_id]);
-$fornecedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+use App\Fornecedores\FornecedorController;
+
+$usuario_id = $_SESSION['usuario_id'] ?? 0;
+$fornecedorController = new FornecedorController($pdo);
+$fornecedores = $fornecedorController->listarPorUsuario((int) $usuario_id);
 ?>
 <div class="card">
   <div class="card-header">

@@ -290,10 +290,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	}
 
 	$tamanhosUpload = [
-		'thumbnail' => [64, 64],
-		'pequena' => [128, 128],
-		'media' => [256, 256],
-		'grande' => [512, 512],
+		'thumbnail' => [150, 150, 'crop'],
+		'pequena' => [300, 300, 'proporcional'],
+		'media' => [300, 300, 'proporcional'],
+		'grande' => [1024, 1024, 'proporcional'],
 	];
 
 	if (!$erro && isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {

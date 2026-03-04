@@ -2,29 +2,25 @@
 $baseUrl = dirname($_SERVER['SCRIPT_NAME']);
 if ($baseUrl === '/' || $baseUrl === '\\') $baseUrl = '';
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Filamentos\FilamentoController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $erro = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $marca = trim($_POST['marca'] ?? '');
-    $cor = trim($_POST['cor'] ?? '');
-    $tipo = $_POST['tipo'] ?? '';
-    $preco_kilo = str_replace(',', '.', $_POST['preco_kilo'] ?? '');
+$filamentoController = new FilamentoController($pdo);
+$dadosFormulario = $filamentoController->montarEstadoFormularioAdicao($_POST ?? []);
 
-    if (!$nome || !$marca || !$cor || !$tipo || !$preco_kilo) {
-        $erro = 'Preencha todos os campos obrigatórios.';
-    } else {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO filamento (usuario_id, nome, marca, cor, tipo, preco_kilo, ultima_atualizacao) VALUES (?, ?, ?, ?, ?, ?, NOW())");
-            $stmt->execute([$usuario_id, $nome, $marca, $cor, $tipo, $preco_kilo]);
-            echo '<script>window.location.href="?pagina=filamentos";</script>';
-            exit;
-        } catch (PDOException $e) {
-            $erro = 'Erro ao cadastrar: ' . $e->getMessage();
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $resultadoFluxo = $filamentoController->processarFluxoAdicao((int) $usuario_id, $_POST);
+
+  if (!empty($resultadoFluxo['sucesso'])) {
+    echo '<script>window.location.href="?pagina=filamentos";</script>';
+    exit;
     }
+
+  $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar.');
 }
 ?>
 <div class="card card-primary">
@@ -38,34 +34,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
       <div class="form-group">
         <label for="nome">Nome</label>
-        <input type="text" class="form-control" id="nome" name="nome" required>
+        <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="marca">Marca</label>
-        <input type="text" class="form-control" id="marca" name="marca" required>
+        <input type="text" class="form-control" id="marca" name="marca" required value="<?= htmlspecialchars((string) ($dadosFormulario['marca'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="cor">Cor</label>
+        <?php $corSelecionada = (string) ($dadosFormulario['cor'] ?? ''); ?>
         <select class="form-control" id="cor" name="cor" required>
           <option value="">Selecione...</option>
-          <option value="Branco">Branco</option>
-          <option value="Cinza">Cinza</option>
-          <option value="Preto">Preto</option>
-          <option value="Transparente">Transparente</option>
+          <option value="Branco" <?= $corSelecionada === 'Branco' ? 'selected' : '' ?>>Branco</option>
+          <option value="Cinza" <?= $corSelecionada === 'Cinza' ? 'selected' : '' ?>>Cinza</option>
+          <option value="Preto" <?= $corSelecionada === 'Preto' ? 'selected' : '' ?>>Preto</option>
+          <option value="Transparente" <?= $corSelecionada === 'Transparente' ? 'selected' : '' ?>>Transparente</option>
         </select>
       </div>
       <div class="form-group">
         <label for="tipo">Tipo</label>
+        <?php $tipoSelecionado = (string) ($dadosFormulario['tipo'] ?? ''); ?>
         <select class="form-control" id="tipo" name="tipo" required>
           <option value="">Selecione</option>
-          <option value="ABS">ABS</option>
-          <option value="PLA">PLA</option>
-          <option value="PET-G">PET-G</option>
+          <option value="ABS" <?= $tipoSelecionado === 'ABS' ? 'selected' : '' ?>>ABS</option>
+          <option value="PLA" <?= $tipoSelecionado === 'PLA' ? 'selected' : '' ?>>PLA</option>
+          <option value="PET-G" <?= $tipoSelecionado === 'PET-G' ? 'selected' : '' ?>>PET-G</option>
         </select>
       </div>
       <div class="form-group">
         <label for="preco_kilo">Preço por Kg (R$)</label>
-        <input type="number" step="0.01" class="form-control" id="preco_kilo" name="preco_kilo" required>
+        <input type="number" step="0.01" class="form-control" id="preco_kilo" name="preco_kilo" required value="<?= htmlspecialchars((string) ($dadosFormulario['preco_kilo'] ?? '')) ?>">
       </div>
     </div>
     <div class="card-footer">

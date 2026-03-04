@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
-require_once __DIR__ . '/../../app/upload_imagem.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Torres\TorreController;
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
@@ -19,561 +21,40 @@ $colecoes_disponiveis = [];
 $tematicas_disponiveis = [];
 $outras_caracteristicas_disponiveis = [];
 
-function normalizarListaTags(string $valor): array {
-  $itens = array_map('trim', explode(',', $valor));
-  $resultado = [];
-  $chaves = [];
+$torreController = new TorreController($pdo);
 
-  foreach ($itens as $item) {
-    if ($item === '') {
-      continue;
-    }
-
-    $chave = function_exists('mb_strtolower') ? mb_strtolower($item, 'UTF-8') : strtolower($item);
-    if (isset($chaves[$chave])) {
-      continue;
-    }
-
-    $chaves[$chave] = true;
-    $resultado[] = $item;
-  }
-
-  return $resultado;
-}
-
-function resolverEstudioTorre(PDO $pdo, int $usuarioId, string $entrada): ?array {
-  $entrada = trim($entrada);
-  if ($entrada === '') {
-    return null;
-  }
-
-  $stmtEstudio = $pdo->prepare("SELECT id, nome FROM estudios WHERE usuario_id = ? AND LOWER(nome) = LOWER(?) LIMIT 1");
-  $stmtEstudio->execute([$usuarioId, $entrada]);
-  $estudio = $stmtEstudio->fetch(PDO::FETCH_ASSOC);
-
-  if ($estudio) {
-    return $estudio;
-  }
-
-  $stmtNovoEstudio = $pdo->prepare("INSERT INTO estudios (nome, site, usuario_id) VALUES (?, ?, ?)");
-  $stmtNovoEstudio->execute([$entrada, 'https://pendente.local', $usuarioId]);
-
-  return [
-    'id' => (int) $pdo->lastInsertId(),
-    'nome' => $entrada,
-  ];
-}
-
-function resolverColecaoTorre(PDO $pdo, int $usuarioId, int $estudioId, string $entrada): ?array {
-  $entrada = trim($entrada);
-  if ($entrada === '') {
-    return null;
-  }
-
-  if ($estudioId > 0) {
-    $stmtColecao = $pdo->prepare("SELECT c.id, c.nome, c.estudio_id
-      FROM colecoes c
-      WHERE c.usuario_id = ?
-        AND c.estudio_id = ?
-        AND LOWER(c.nome) = LOWER(?)
-      LIMIT 1");
-    $stmtColecao->execute([$usuarioId, $estudioId, $entrada]);
-    $colecao = $stmtColecao->fetch(PDO::FETCH_ASSOC);
-
-    if ($colecao) {
-      return $colecao;
-    }
-
-    $stmtNovaColecao = $pdo->prepare("INSERT INTO colecoes (estudio_id, nome, usuario_id) VALUES (?, ?, ?)");
-    $stmtNovaColecao->execute([$estudioId, $entrada, $usuarioId]);
-
-    return [
-      'id' => (int) $pdo->lastInsertId(),
-      'nome' => $entrada,
-      'estudio_id' => $estudioId,
-    ];
-  }
-
-  $stmtColecaoSemEstudio = $pdo->prepare("SELECT c.id, c.nome, c.estudio_id
-    FROM colecoes c
-    WHERE c.usuario_id = ?
-      AND LOWER(c.nome) = LOWER(?)
-    ORDER BY c.id DESC
-    LIMIT 1");
-  $stmtColecaoSemEstudio->execute([$usuarioId, $entrada]);
-  $colecaoSemEstudio = $stmtColecaoSemEstudio->fetch(PDO::FETCH_ASSOC);
-
-  return $colecaoSemEstudio ?: null;
-}
-
-function resolverTematicaTorre(PDO $pdo, string $entrada): ?array {
-  $entrada = trim($entrada);
-  if ($entrada === '') {
-    return null;
-  }
-
-  $stmtTematica = $pdo->prepare("SELECT id, nome FROM tematicas WHERE LOWER(nome) = LOWER(?) LIMIT 1");
-  $stmtTematica->execute([$entrada]);
-  $tematica = $stmtTematica->fetch(PDO::FETCH_ASSOC);
-
-  if ($tematica) {
-    return $tematica;
-  }
-
-  $stmtNovaTematica = $pdo->prepare("INSERT INTO tematicas (nome) VALUES (?)");
-  $stmtNovaTematica->execute([$entrada]);
-
-  return [
-    'id' => (int) $pdo->lastInsertId(),
-    'nome' => $entrada,
-  ];
-}
-
-function gerarSiglaEstudioTorre(string $estudioNome): string {
-  $estudioNome = trim($estudioNome);
-  if ($estudioNome === '') {
-    return 'XXX';
-  }
-
-  $partesOriginais = preg_split('/\s+/', $estudioNome) ?: [];
-  $partes = [];
-
-  foreach ($partesOriginais as $parteOriginal) {
-    $parteOriginal = trim((string) $parteOriginal);
-    if ($parteOriginal === '') {
-      continue;
-    }
-
-    $normalizada = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $parteOriginal);
-    if ($normalizada === false) {
-      $normalizada = $parteOriginal;
-    }
-
-    $normalizada = strtoupper($normalizada);
-    $normalizada = preg_replace('/[^A-Z0-9]/', '', $normalizada);
-    if ($normalizada === '') {
-      continue;
-    }
-
-    $partes[] = $normalizada;
-  }
-
-  if (empty($partes)) {
-    return 'XXX';
-  }
-
-  if (count($partes) === 1) {
-    return str_pad(substr($partes[0], 0, 3), 3, 'X');
-  }
-
-  $iniciais = '';
-  foreach ($partes as $parte) {
-    $iniciais .= substr($parte, 0, 1);
-  }
-
-  return $iniciais;
-}
-
-function gerarSkuTorre(PDO $pdo, string $estudioNome): string {
-  $prefixo = 'TOR-' . gerarSiglaEstudioTorre($estudioNome);
-
-  do {
-    $numero = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    $sku = $prefixo . '-' . $numero;
-    $stmtSku = $pdo->prepare("SELECT COUNT(*) FROM sku WHERE sku = ?");
-    $stmtSku->execute([$sku]);
-    $existe = (int) $stmtSku->fetchColumn() > 0;
-  } while ($existe);
-
-  return $sku;
-}
-
-if ($usuario_uuid === '' && $usuario_id > 0) {
-    try {
-        $stmtUuid = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ? LIMIT 1");
-        $stmtUuid->execute([$usuario_id]);
-        $usuario_uuid = (string) ($stmtUuid->fetchColumn() ?: '');
-    } catch (Throwable $e) {
-        $usuario_uuid = '';
-    }
-}
-
-if ($impressora_id > 0) {
-  $stmtImpressora = $pdo->prepare("SELECT id, marca, modelo, tipo, potencia, fator_uso, custo_hora FROM impressoras WHERE id = ? AND usuario_id = ?");
-  $stmtImpressora->execute([$impressora_id, $usuario_id]);
-  $impressoraSelecionada = $stmtImpressora->fetch(PDO::FETCH_ASSOC);
-
-  if ($impressoraSelecionada) {
-    $materialSelecionado = null;
-
-    if ($impressoraSelecionada['tipo'] === 'Resina' && $resina_id > 0) {
-      $stmtMaterial = $pdo->prepare("SELECT id, nome, marca, cor, preco_litro FROM resinas WHERE id = ? AND usuario_id = ?");
-      $stmtMaterial->execute([$resina_id, $usuario_id]);
-      $materialSelecionado = $stmtMaterial->fetch(PDO::FETCH_ASSOC);
-
-      if ($materialSelecionado) {
-        $selecao_confirmacao = [
-          'impressora' => $impressoraSelecionada,
-          'material_tipo' => 'Resina',
-          'material' => $materialSelecionado,
-        ];
-      } else {
-        $aviso_selecao = 'A resina selecionada não foi encontrada para este usuário.';
-      }
-    } elseif ($impressoraSelecionada['tipo'] === 'FDM' && $filamento_id > 0) {
-      $stmtMaterial = $pdo->prepare("SELECT id, nome, marca, cor, tipo, preco_kilo FROM filamento WHERE id = ? AND usuario_id = ?");
-      $stmtMaterial->execute([$filamento_id, $usuario_id]);
-      $materialSelecionado = $stmtMaterial->fetch(PDO::FETCH_ASSOC);
-
-      if ($materialSelecionado) {
-        $selecao_confirmacao = [
-          'impressora' => $impressoraSelecionada,
-          'material_tipo' => 'Filamento',
-          'material' => $materialSelecionado,
-        ];
-      } else {
-        $aviso_selecao = 'O filamento selecionado não foi encontrado para este usuário.';
-      }
-    } else {
-      $aviso_selecao = 'Seleção de material não corresponde ao tipo da impressora escolhida.';
-    }
-  } else {
-    $aviso_selecao = 'A impressora selecionada não foi encontrada para este usuário.';
-  }
-}
-
-  try {
-    $stmtEstudios = $pdo->prepare("SELECT id, nome FROM estudios WHERE usuario_id = ? ORDER BY nome");
-    $stmtEstudios->execute([$usuario_id]);
-    $estudios_disponiveis = $stmtEstudios->fetchAll(PDO::FETCH_ASSOC);
-  } catch (Throwable $e) {
-    $estudios_disponiveis = [];
-  }
-
-  try {
-    $stmtColecoes = $pdo->prepare("SELECT c.id, c.nome, e.nome AS estudio_nome, e.id AS estudio_id FROM colecoes c INNER JOIN estudios e ON e.id = c.estudio_id WHERE c.usuario_id = ? ORDER BY e.nome, c.nome");
-    $stmtColecoes->execute([$usuario_id]);
-    $colecoes_disponiveis = $stmtColecoes->fetchAll(PDO::FETCH_ASSOC);
-  } catch (Throwable $e) {
-    $colecoes_disponiveis = [];
-  }
-
-  try {
-    $stmtTematicas = $pdo->query("SELECT id, nome FROM tematicas ORDER BY nome");
-    $tematicas_disponiveis = $stmtTematicas->fetchAll(PDO::FETCH_ASSOC);
-  } catch (Throwable $e) {
-    $tematicas_disponiveis = [];
-  }
-
-  try {
-    $stmtOutrasCaracteristicas = $pdo->prepare("SELECT DISTINCT outras_caracteristicas FROM miniaturas WHERE usuario_id = ? AND outras_caracteristicas IS NOT NULL AND outras_caracteristicas <> ''");
-    $stmtOutrasCaracteristicas->execute([$usuario_id]);
-    $linhasOutrasCaracteristicas = $stmtOutrasCaracteristicas->fetchAll(PDO::FETCH_COLUMN) ?: [];
-
-    $itensUnicos = [];
-    $controleUnicos = [];
-    foreach ($linhasOutrasCaracteristicas as $linhaOutrasCaracteristicas) {
-      if (!is_string($linhaOutrasCaracteristicas) || trim($linhaOutrasCaracteristicas) === '') {
-        continue;
-      }
-
-      $itensLinha = array_map('trim', explode(',', $linhaOutrasCaracteristicas));
-      foreach ($itensLinha as $itemLinha) {
-        if ($itemLinha === '') {
-          continue;
-        }
-
-        $chaveItem = function_exists('mb_strtolower') ? mb_strtolower($itemLinha, 'UTF-8') : strtolower($itemLinha);
-        if (isset($controleUnicos[$chaveItem])) {
-          continue;
-        }
-
-        $controleUnicos[$chaveItem] = true;
-        $itensUnicos[] = $itemLinha;
-      }
-    }
-
-    natcasesort($itensUnicos);
-    $outras_caracteristicas_disponiveis = array_values($itensUnicos);
-  } catch (Throwable $e) {
-    $outras_caracteristicas_disponiveis = [];
-  }
+$contextoAdicao = $torreController->carregarContextoAdicao($usuario_id, $usuario_uuid, $impressora_id, $filamento_id, $resina_id);
+$usuario_uuid = (string) ($contextoAdicao['usuario_uuid'] ?? $usuario_uuid);
+$selecao_confirmacao = $contextoAdicao['selecao_confirmacao'] ?? null;
+$aviso_selecao = (string) ($contextoAdicao['aviso_selecao'] ?? '');
+$estudios_disponiveis = is_array($contextoAdicao['estudios_disponiveis'] ?? null) ? $contextoAdicao['estudios_disponiveis'] : [];
+$colecoes_disponiveis = is_array($contextoAdicao['colecoes_disponiveis'] ?? null) ? $contextoAdicao['colecoes_disponiveis'] : [];
+$tematicas_disponiveis = is_array($contextoAdicao['tematicas_disponiveis'] ?? null) ? $contextoAdicao['tematicas_disponiveis'] : [];
+$outras_caracteristicas_disponiveis = is_array($contextoAdicao['outras_caracteristicas_disponiveis'] ?? null) ? $contextoAdicao['outras_caracteristicas_disponiveis'] : [];
+$dadosFormulario = $torreController->montarEstadoFormularioAdicao($_POST ?? []);
 
   $foto = null;
   $imagens = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $nome_original = trim($_POST['nome_original'] ?? '');
-    $estudio = trim($_POST['estudio'] ?? '');
-    $colecao = trim($_POST['colecao'] ?? '');
-    $colecoesSelecionadas = normalizarListaTags($colecao);
-    $tematica = trim($_POST['tematica'] ?? '');
-    $outras_caracteristicas = trim($_POST['outras_caracteristicas'] ?? '');
-    $descricao_produto = trim($_POST['descricao_produto'] ?? '');
-    $observacoes = trim($_POST['observacoes'] ?? '');
-    $markup_lojista = (float) str_replace(',', '.', trim($_POST['markup_lojista'] ?? '2'));
-    $markup_consumidor_final = (float) str_replace(',', '.', trim($_POST['markup_consumidor_final'] ?? '5'));
-    $gramas = (float) str_replace(',', '.', trim($_POST['gramas'] ?? '0'));
-    $tempo_dias = (int) ($_POST['tempo_dias'] ?? 0);
-    $tempo_horas = (int) ($_POST['tempo_horas'] ?? 0);
-    $tempo_minutos = (int) ($_POST['tempo_minutos'] ?? 0);
-    $tempo_total_min = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
-    $unidades_produzidas = (int) ($_POST['unidades_produzidas'] ?? 0);
-    $taxa_falha = (float) str_replace(',', '.', trim($_POST['taxa_falha'] ?? '10'));
+    $resultadoFluxo = $torreController->processarFluxoAdicao(
+      $usuario_id,
+      $usuario_uuid,
+      $_POST,
+      $_FILES,
+      $selecao_confirmacao
+    );
 
-    $custo_material = 0.00;
-    $custo_lavagem_alcool = 0.00;
-    $custo_energia = 0.00;
-    $custo_depreciacao = 0.00;
-    $custo_total_impressao = 0.00;
+    $foto = $resultadoFluxo['foto'] ?? $foto;
+    $imagens = is_array($resultadoFluxo['imagens'] ?? null) ? $resultadoFluxo['imagens'] : $imagens;
 
-    $fotoExistente = trim((string) ($_POST['foto_existente'] ?? ''));
-    $foto = $fotoExistente !== '' ? $fotoExistente : null;
-    $imagens = [];
-    $imagensExistentesRaw = trim((string) ($_POST['imagens_existentes'] ?? ''));
-    if ($imagensExistentesRaw !== '') {
-      $imagensExistentes = json_decode($imagensExistentesRaw, true);
-      if (is_array($imagensExistentes)) {
-        foreach ($imagensExistentes as $imagemExistente) {
-          if (is_string($imagemExistente) && trim($imagemExistente) !== '') {
-            $imagens[] = trim($imagemExistente);
-          }
-        }
-      }
+    if (!empty($resultadoFluxo['sucesso'])) {
+      $torreId = (int) ($resultadoFluxo['torre_id'] ?? 0);
+      echo '<script>window.location.href="?pagina=torres&acao=visualizar&id=' . $torreId . '";</script>';
+      exit;
     }
 
-    if (!$nome) {
-        $erro = 'Preencha o nome da torre.';
-    }
-
-    if (!$erro && $usuario_uuid === '') {
-        $erro = 'Não foi possível identificar o UUID do usuário para upload das imagens.';
-    }
-
-    if (!$erro && !$selecao_confirmacao) {
-      $erro = 'Selecione impressora e material antes de adicionar a torre de dados.';
-    }
-    if (!$erro && $gramas <= 0) {
-      $erro = 'Informe um valor válido para Gramas (g).';
-    }
-    if (!$erro && $tempo_total_min <= 0) {
-      $erro = 'Informe um tempo de impressão válido.';
-    }
-    if (!$erro && $unidades_produzidas <= 0) {
-      $erro = 'Informe um valor válido para Unidades Produzidas.';
-    }
-    if (!$erro && $taxa_falha <= 0) {
-      $erro = 'Informe uma Taxa de Falha (%) maior que zero.';
-    }
-
-    if (!$erro) {
-      $tempo_total_horas = $tempo_total_min / 60;
-      $potencia = isset($selecao_confirmacao['impressora']['potencia']) ? (float) $selecao_confirmacao['impressora']['potencia'] : 0.0;
-      $fator_uso = isset($selecao_confirmacao['impressora']['fator_uso']) ? (float) $selecao_confirmacao['impressora']['fator_uso'] : 1.0;
-      $custo_hora = isset($selecao_confirmacao['impressora']['custo_hora']) ? (float) $selecao_confirmacao['impressora']['custo_hora'] : 0.0;
-
-      $stmtEnergia = $pdo->prepare("SELECT valor_kwh FROM energia WHERE usuario_id = ?");
-      $stmtEnergia->execute([$usuario_id]);
-      $energia = $stmtEnergia->fetch(PDO::FETCH_ASSOC);
-      $valor_kwh = $energia ? (float) $energia['valor_kwh'] : 1.0;
-
-      $custo_energia = ($potencia * $tempo_total_horas * $fator_uso * $valor_kwh) / 1000;
-      $custo_depreciacao = ($custo_hora / 60) * $tempo_total_min;
-
-      if ($selecao_confirmacao['material_tipo'] === 'Filamento') {
-        $preco_kilo = isset($selecao_confirmacao['material']['preco_kilo']) ? (float) $selecao_confirmacao['material']['preco_kilo'] : 0.0;
-        $custo_material = ($gramas / 1000) * $preco_kilo;
-        $base_custo = $custo_material + $custo_energia + $custo_depreciacao;
-        $custo_total_impressao = $base_custo + (($base_custo * 0.7) / $taxa_falha);
-      } else {
-        $preco_litro = isset($selecao_confirmacao['material']['preco_litro']) ? (float) $selecao_confirmacao['material']['preco_litro'] : 0.0;
-        $custo_material = ($gramas / 1000) * $preco_litro;
-
-        $stmtAlcool = $pdo->prepare("SELECT preco_litro FROM alcool WHERE usuario_id = ?");
-        $stmtAlcool->execute([$usuario_id]);
-        $alcool = $stmtAlcool->fetch(PDO::FETCH_ASSOC);
-        $preco_litro_alcool = $alcool ? (float) $alcool['preco_litro'] : 0.0;
-        $custo_lavagem_alcool = ($preco_litro_alcool / 1000) * $gramas;
-
-        $base_custo = $custo_material + $custo_energia + $custo_depreciacao + $custo_lavagem_alcool;
-        $custo_total_impressao = $base_custo + (($base_custo * 0.7) / $taxa_falha);
-      }
-
-      $custo_total_impressao = round($custo_total_impressao, 2);
-    }
-
-    $tamanhosUpload = [
-        'thumbnail' => [64, 64],
-        'pequena' => [128, 128],
-        'media' => [256, 256],
-        'grande' => [512, 512],
-    ];
-
-    if (!$erro && isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $fotoUpload = uploadImagem($_FILES['foto'], $usuario_uuid, 'usuarios', $tamanhosUpload, 'torre_CAPA', false);
-        if ($fotoUpload === false) {
-            $erro = 'Erro ao enviar a imagem de capa.';
-        } else {
-            $foto = $fotoUpload;
-        }
-    }
-
-    if (!$erro && isset($_FILES['fotos']) && isset($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
-        $totalArquivos = count($_FILES['fotos']['name']);
-        for ($i = 0; $i < $totalArquivos; $i++) {
-            $nomeArquivo = trim((string) ($_FILES['fotos']['name'][$i] ?? ''));
-            $erroArquivo = $_FILES['fotos']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
-
-        if ($nomeArquivo === '' || $erroArquivo === UPLOAD_ERR_NO_FILE) {
-          continue;
-        }
-
-        if ($erroArquivo !== UPLOAD_ERR_OK) {
-                continue;
-            }
-
-            $arquivoImagem = [
-                'name' => $nomeArquivo,
-                'type' => $_FILES['fotos']['type'][$i] ?? '',
-                'tmp_name' => $_FILES['fotos']['tmp_name'][$i] ?? '',
-                'error' => $erroArquivo,
-                'size' => $_FILES['fotos']['size'][$i] ?? 0,
-            ];
-
-            $imagemUpload = uploadImagem($arquivoImagem, $usuario_uuid, 'usuarios', $tamanhosUpload, 'torre_IMAGEM', false);
-            if ($imagemUpload !== false) {
-                $imagens[] = $imagemUpload;
-            }
-        }
-    }
-
-    if (!$erro) {
-        try {
-            $pdo->beginTransaction();
-
-            $stmtCategoria = $pdo->prepare("SELECT id FROM categorias WHERE nome = ? LIMIT 1");
-            $stmtCategoria->execute(['Torre de Dados']);
-            $categoriaId = (int) ($stmtCategoria->fetchColumn() ?: 0);
-
-            if ($categoriaId === 0) {
-                $stmtInsertCategoria = $pdo->prepare("INSERT INTO categorias (nome) VALUES (?)");
-                $stmtInsertCategoria->execute(['Torre de Dados']);
-                $categoriaId = (int) $pdo->lastInsertId();
-            }
-
-            $imagensJson = !empty($imagens) ? json_encode($imagens, JSON_UNESCAPED_UNICODE) : null;
-            $preco_lojista = $custo_total_impressao * $markup_lojista;
-            $preco_consumidor_final = $custo_total_impressao * $markup_consumidor_final;
-
-            $stmtProduto = $pdo->prepare("INSERT INTO produtos
-                (usuario_id, nome, categoria, imagem_capa, imagens, descricao, observacoes, markup_lojista, markup_consumidor_final, preco_lojista, preco_consumidor_final)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmtProduto->execute([
-                $usuario_id,
-                $nome,
-                $categoriaId,
-                $foto,
-                $imagensJson,
-              $descricao_produto !== '' ? $descricao_produto : null,
-                $observacoes !== '' ? $observacoes : null,
-                $markup_lojista,
-                $markup_consumidor_final,
-                $preco_lojista,
-                $preco_consumidor_final,
-            ]);
-            $produtoId = (int) $pdo->lastInsertId();
-
-            $estudioResolvido = resolverEstudioTorre($pdo, $usuario_id, $estudio);
-            $colecaoPrincipal = (string) ($colecoesSelecionadas[0] ?? '');
-            $colecaoResolvida = resolverColecaoTorre(
-              $pdo,
-              $usuario_id,
-              (int) ($estudioResolvido['id'] ?? 0),
-              $colecaoPrincipal
-            );
-            $tematicaResolvida = resolverTematicaTorre($pdo, $tematica);
-
-            $estudioIdTorre = (int) ($estudioResolvido['id'] ?? ($colecaoResolvida['estudio_id'] ?? 0));
-            $colecaoIdTorre = (int) ($colecaoResolvida['id'] ?? 0);
-            $tematicaIdTorre = (int) ($tematicaResolvida['id'] ?? 0);
-            $tematicaNomeTorre = (string) ($tematicaResolvida['nome'] ?? $tematica);
-            $estudioNomeParaSku = (string) ($estudioResolvido['nome'] ?? $estudio);
-            $skuCodigoTorre = gerarSkuTorre($pdo, $estudioNomeParaSku);
-
-            $stmtInsertSku = $pdo->prepare("INSERT INTO sku (produto_id, sku, usuario_id) VALUES (?, ?, ?)");
-            $stmtInsertSku->execute([$produtoId, $skuCodigoTorre, $usuario_id]);
-
-            $markupImpressao = max(1, (int) round($markup_consumidor_final));
-            $taxaFalhaImpressao = max(1, (int) round($taxa_falha));
-            $pesoMaterial = max(1, (int) round($gramas));
-            $custoPorUnidade = $unidades_produzidas > 0 ? round($custo_total_impressao / $unidades_produzidas, 2) : 0.00;
-            $precoVendaSugerido = round($custo_total_impressao * $markup_consumidor_final, 2);
-            $precoVendaSugeridoUnidade = $unidades_produzidas > 0 ? round($precoVendaSugerido / $unidades_produzidas, 2) : 0.00;
-            $lucroTotal = round($precoVendaSugerido - $custo_total_impressao, 2);
-            $lucroPorUnidade = $unidades_produzidas > 0 ? round($lucroTotal / $unidades_produzidas, 2) : 0.00;
-            $porcentagemLucro = $custo_total_impressao > 0 ? (int) round(($lucroTotal / $custo_total_impressao) * 100) : 0;
-            $filamentoIdImpressao = $selecao_confirmacao['material_tipo'] === 'Filamento' ? (int) $selecao_confirmacao['material']['id'] : null;
-            $resinaIdImpressao = $selecao_confirmacao['material_tipo'] === 'Resina' ? (int) $selecao_confirmacao['material']['id'] : null;
-
-            $stmtInsertCusto = $pdo->prepare("INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)");
-            $stmtInsertCusto->execute([$produtoId, $custo_total_impressao, $custoPorUnidade]);
-
-            $stmtImpressao = $pdo->prepare("INSERT INTO impressoes
-              (impressora_id, tempo_impressao, unidades_produzidas, markup, taxa_falha, valor_energia, peso_material, custo_material, custo_lavagem_alcool, custo_energia, depreciacao, custo_total_impressao, custo_por_unidade, lucro_total_impressao, lucro_por_unidade, porcentagem_lucro, preco_venda_sugerido, preco_venda_sugerido_unidade, observacoes, usuario_id, filamento_id, resina_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmtImpressao->execute([
-              (int) $selecao_confirmacao['impressora']['id'],
-              $tempo_total_min,
-              $unidades_produzidas,
-              $markupImpressao,
-              $taxaFalhaImpressao,
-              $valor_kwh,
-              $pesoMaterial,
-              round($custo_material, 2),
-              round($custo_lavagem_alcool, 2),
-              round($custo_energia, 2),
-              round($custo_depreciacao, 2),
-              $custo_total_impressao,
-              $custoPorUnidade,
-              $lucroTotal,
-              $lucroPorUnidade,
-              $porcentagemLucro,
-              $precoVendaSugerido,
-              $precoVendaSugeridoUnidade,
-              $observacoes !== '' ? $observacoes : null,
-              $usuario_id,
-              $filamentoIdImpressao,
-              $resinaIdImpressao,
-            ]);
-            $impressaoId = (int) $pdo->lastInsertId();
-
-            $stmtTorre = $pdo->prepare("INSERT INTO torres (id_sku, produto_id, usuario_id, id_impressao, nome_original, id_estudio, id_colecao, id_tematica, tematica, capa, imagens, outras_caracteristicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmtTorre->execute([
-              $skuCodigoTorre,
-                $produtoId,
-                $usuario_id,
-              $impressaoId > 0 ? $impressaoId : null,
-                $nome_original !== '' ? $nome_original : null,
-              $estudioIdTorre > 0 ? $estudioIdTorre : null,
-              $colecaoIdTorre > 0 ? $colecaoIdTorre : null,
-              $tematicaIdTorre > 0 ? $tematicaIdTorre : null,
-              $tematicaNomeTorre !== '' ? $tematicaNomeTorre : null,
-              $foto,
-              $imagensJson,
-              $outras_caracteristicas !== '' ? $outras_caracteristicas : null,
-            ]);
-
-            $pdo->commit();
-            echo '<script>window.location.href="?pagina=torres";</script>';
-            exit;
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $erro = 'Erro ao cadastrar torre: ' . $e->getMessage();
-        }
-    }
+    $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar torre.');
 }
 ?>
 
@@ -598,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <h2><?= htmlspecialchars($selecao_confirmacao['impressora']['marca'] . ' ' . $selecao_confirmacao['impressora']['modelo']) ?></h2>
               <p>
                 <strong>Tipo:</strong> <?= htmlspecialchars($selecao_confirmacao['impressora']['tipo']) ?><br>
-                <strong>Etapa:</strong> Impressora selecionada
+                <strong>Custo Hora:</strong> R$ <?= number_format((float) ($selecao_confirmacao['impressora']['custo_hora'] ?? 0), 4, ',', '.') ?>
               </p>
             </div>
           </div>
@@ -763,21 +244,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="form-row">
             <div class="form-group col-md-12">
               <label for="nome">Nome *</label>
-              <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>">
+              <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group col-md-12">
               <label for="nome_original">Nome Original</label>
-              <input type="text" class="form-control" id="nome_original" name="nome_original" value="<?= htmlspecialchars($_POST['nome_original'] ?? '') ?>">
+              <input type="text" class="form-control" id="nome_original" name="nome_original" value="<?= htmlspecialchars((string) ($dadosFormulario['nome_original'] ?? '')) ?>">
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group col-md-12 position-relative">
               <label for="estudio">Estúdio</label>
-              <input type="text" class="form-control" id="estudio" name="estudio" value="<?= htmlspecialchars($_POST['estudio'] ?? '') ?>" placeholder="Digite ou selecione um estúdio" autocomplete="off">
+              <input type="text" class="form-control" id="estudio" name="estudio" value="<?= htmlspecialchars((string) ($dadosFormulario['estudio'] ?? '')) ?>" placeholder="Digite ou selecione um estúdio" autocomplete="off">
               <ul id="estudio-sugestoes" class="autocomplete-list"></ul>
             </div>
           </div>
@@ -788,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="colecao-container">
                 <div id="colecao-tags" class="colecao-tags"></div>
                 <input type="text" class="colecao-input" id="colecao-input" placeholder="Digite uma coleção..." autocomplete="off">
-                <input type="hidden" id="colecao" name="colecao" value="<?= htmlspecialchars($_POST['colecao'] ?? '') ?>">
+                <input type="hidden" id="colecao" name="colecao" value="<?= htmlspecialchars((string) ($dadosFormulario['colecao'] ?? '')) ?>">
               </div>
               <ul id="colecao-sugestoes" class="autocomplete-list"></ul>
             </div>
@@ -801,12 +282,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </label>
               <select class="form-control" id="tematica" name="tematica">
                 <option value="">-- Selecione --</option>
-                <option value="Cyberpunk" <?= (($_POST['tematica'] ?? '') === 'Cyberpunk') ? 'selected' : '' ?>>Cyberpunk</option>
-                <option value="Fantasia" <?= (($_POST['tematica'] ?? '') === 'Fantasia') ? 'selected' : '' ?>>Fantasia</option>
-                <option value="Faroeste" <?= (($_POST['tematica'] ?? '') === 'Faroeste') ? 'selected' : '' ?>>Faroeste</option>
-                <option value="Horror Cósmico" <?= (($_POST['tematica'] ?? '') === 'Horror Cósmico') ? 'selected' : '' ?>>Horror Cósmico</option>
-                <option value="Paranormal" <?= (($_POST['tematica'] ?? '') === 'Paranormal') ? 'selected' : '' ?>>Paranormal</option>
-                <option value="Space Opera" <?= (($_POST['tematica'] ?? '') === 'Space Opera') ? 'selected' : '' ?>>Space Opera</option>
+                <option value="Cyberpunk" <?= (($dadosFormulario['tematica'] ?? '') === 'Cyberpunk') ? 'selected' : '' ?>>Cyberpunk</option>
+                <option value="Fantasia" <?= (($dadosFormulario['tematica'] ?? '') === 'Fantasia') ? 'selected' : '' ?>>Fantasia</option>
+                <option value="Faroeste" <?= (($dadosFormulario['tematica'] ?? '') === 'Faroeste') ? 'selected' : '' ?>>Faroeste</option>
+                <option value="Horror Cósmico" <?= (($dadosFormulario['tematica'] ?? '') === 'Horror Cósmico') ? 'selected' : '' ?>>Horror Cósmico</option>
+                <option value="Paranormal" <?= (($dadosFormulario['tematica'] ?? '') === 'Paranormal') ? 'selected' : '' ?>>Paranormal</option>
+                <option value="Space Opera" <?= (($dadosFormulario['tematica'] ?? '') === 'Space Opera') ? 'selected' : '' ?>>Space Opera</option>
               </select>
             </div>
           </div>
@@ -817,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="outras_caracteristicas-container">
                 <div id="outras_caracteristicas-tags" class="outras_caracteristicas-tags"></div>
                 <input type="text" class="outras_caracteristicas-input" id="outras_caracteristicas-input" placeholder="Digite uma característica..." autocomplete="off">
-                <input type="hidden" id="outras_caracteristicas" name="outras_caracteristicas" value="<?= htmlspecialchars($_POST['outras_caracteristicas'] ?? '') ?>">
+                <input type="hidden" id="outras_caracteristicas" name="outras_caracteristicas" value="<?= htmlspecialchars((string) ($dadosFormulario['outras_caracteristicas'] ?? '')) ?>">
               </div>
               <ul id="outras_caracteristicas-sugestoes" class="autocomplete-list"></ul>
             </div>
@@ -829,7 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-row">
         <div class="form-group col-md-12">
           <label for="descricao_produto">Descrição</label>
-          <textarea class="form-control" id="descricao_produto" name="descricao_produto" rows="2"><?= htmlspecialchars($_POST['descricao_produto'] ?? '') ?></textarea>
+          <textarea class="form-control" id="descricao_produto" name="descricao_produto" rows="2"><?= htmlspecialchars((string) ($dadosFormulario['descricao_produto'] ?? '')) ?></textarea>
         </div>
       </div>
 
@@ -851,19 +332,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="form-row">
             <div class="form-group col-md-4">
               <label for="gramas">Gramas (g)</label>
-              <input type="number" step="0.01" min="0" class="form-control" id="gramas" name="gramas" value="<?= htmlspecialchars($_POST['gramas'] ?? '') ?>">
+              <input type="number" step="0.01" min="0" class="form-control" id="gramas" name="gramas" value="<?= htmlspecialchars((string) ($dadosFormulario['gramas'] ?? '')) ?>">
             </div>
             <div class="form-group col-md-8">
               <label>Tempo de impressão (dias, horas, minutos)</label>
               <div class="form-row">
                 <div class="col-4">
-                  <input type="number" min="0" class="form-control" id="tempo_dias" name="tempo_dias" placeholder="Dias" value="<?= htmlspecialchars($_POST['tempo_dias'] ?? '') ?>">
+                  <input type="number" min="0" class="form-control" id="tempo_dias" name="tempo_dias" placeholder="Dias" value="<?= htmlspecialchars((string) ($dadosFormulario['tempo_dias'] ?? '')) ?>">
                 </div>
                 <div class="col-4">
-                  <input type="number" min="0" class="form-control" id="tempo_horas" name="tempo_horas" placeholder="Horas" value="<?= htmlspecialchars($_POST['tempo_horas'] ?? '') ?>">
+                  <input type="number" min="0" class="form-control" id="tempo_horas" name="tempo_horas" placeholder="Horas" value="<?= htmlspecialchars((string) ($dadosFormulario['tempo_horas'] ?? '')) ?>">
                 </div>
                 <div class="col-4">
-                  <input type="number" min="0" class="form-control" id="tempo_minutos" name="tempo_minutos" placeholder="Min" value="<?= htmlspecialchars($_POST['tempo_minutos'] ?? '') ?>">
+                  <input type="number" min="0" class="form-control" id="tempo_minutos" name="tempo_minutos" placeholder="Min" value="<?= htmlspecialchars((string) ($dadosFormulario['tempo_minutos'] ?? '')) ?>">
                 </div>
               </div>
             </div>
@@ -873,18 +354,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="form-row">
             <div class="form-group col-md-4">
               <label for="unidades_produzidas">Unidades Produzidas</label>
-              <input type="number" min="0" class="form-control" id="unidades_produzidas" name="unidades_produzidas" value="<?= htmlspecialchars($_POST['unidades_produzidas'] ?? '') ?>">
+              <input type="number" min="0" class="form-control" id="unidades_produzidas" name="unidades_produzidas" value="<?= htmlspecialchars((string) ($dadosFormulario['unidades_produzidas'] ?? '')) ?>">
             </div>
             <div class="form-group col-md-4">
               <label for="taxa_falha">Taxa de Falha (%)</label>
-              <input type="number" step="0.01" min="0" class="form-control" id="taxa_falha" name="taxa_falha" value="<?= htmlspecialchars($_POST['taxa_falha'] ?? '10') ?>">
+              <input type="number" step="0.01" min="0" class="form-control" id="taxa_falha" name="taxa_falha" value="<?= htmlspecialchars((string) ($dadosFormulario['taxa_falha'] ?? '10')) ?>">
             </div>
             <div class="form-group col-md-4">
               <label for="markup_consumidor_final">Markup Consumidor Final</label>
               <select class="form-control" id="markup_consumidor_final" name="markup_consumidor_final">
                 <option value="">-- Selecione --</option>
                 <?php for ($i = 1; $i <= 10; $i++): ?>
-                  <option value="<?= $i ?>" <?= (string)($_POST['markup_consumidor_final'] ?? '5') === (string)$i ? 'selected' : '' ?>><?= $i ?></option>
+                  <option value="<?= $i ?>" <?= (string)($dadosFormulario['markup_consumidor_final'] ?? '5') === (string)$i ? 'selected' : '' ?>><?= $i ?></option>
                 <?php endfor; ?>
               </select>
             </div>
@@ -894,7 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="form-group">
         <label for="observacoes">Observações</label>
-        <textarea class="form-control" id="observacoes" name="observacoes" rows="3"><?= htmlspecialchars($_POST['observacoes'] ?? '') ?></textarea>
+        <textarea class="form-control" id="observacoes" name="observacoes" rows="3"><?= htmlspecialchars((string) ($dadosFormulario['observacoes'] ?? '')) ?></textarea>
       </div>
     </div>
 

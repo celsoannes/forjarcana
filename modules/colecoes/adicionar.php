@@ -2,48 +2,27 @@
 $baseUrl = dirname($_SERVER['SCRIPT_NAME']);
 if ($baseUrl === '/' || $baseUrl === '\\') $baseUrl = '';
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Colecoes\ColecaoController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $erro = '';
 
-// Busca estudios do usuário para o select
-$stmt = $pdo->prepare("SELECT id, nome FROM estudios WHERE usuario_id = ?");
-$stmt->execute([$usuario_id]);
-$estudios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$colecaoController = new ColecaoController($pdo);
+$contextoAdicao = $colecaoController->carregarContextoAdicao((int) $usuario_id);
+$estudios = is_array($contextoAdicao['estudios'] ?? null) ? $contextoAdicao['estudios'] : [];
+$dadosFormulario = $colecaoController->montarEstadoFormularioAdicao($_POST ?? []);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $estudio_nome = trim($_POST['estudio_nome'] ?? '');
+  $resultadoFluxo = $colecaoController->processarFluxoAdicao((int) $usuario_id, $_POST);
 
-    // Busca o id do estudio pelo nome
-    $stmt = $pdo->prepare("SELECT id FROM estudios WHERE nome = ? AND usuario_id = ?");
-    $stmt->execute([$estudio_nome, $usuario_id]);
-    $estudio = $stmt->fetch(PDO::FETCH_ASSOC);
-    $estudio_id = $estudio ? $estudio['id'] : 0;
-
-    // Se não existe, cria o estudio e pega o id
-    if (!$estudio_id && $estudio_nome) {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO estudios (usuario_id, nome, site, ultima_atualizacao) VALUES (?, ?, ?, NOW())");
-            $stmt->execute([$usuario_id, $estudio_nome, '']);
-            $estudio_id = $pdo->lastInsertId();
-        } catch (PDOException $e) {
-            $erro = 'Erro ao cadastrar estudio: ' . $e->getMessage();
-        }
+  if (!empty($resultadoFluxo['sucesso'])) {
+    echo '<script>window.location.href="?pagina=colecoes";</script>';
+    exit;
     }
 
-    if (!$nome || !$estudio_id) {
-        $erro = 'Preencha todos os campos obrigatórios.';
-    } else {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO colecoes (usuario_id, estudio_id, nome, ultima_atualizacao) VALUES (?, ?, ?, NOW())");
-            $stmt->execute([$usuario_id, $estudio_id, $nome]);
-            echo '<script>window.location.href="?pagina=colecoes";</script>';
-            exit;
-        } catch (PDOException $e) {
-            $erro = 'Erro ao cadastrar coleção: ' . $e->getMessage();
-        }
-    }
+  $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar coleção.');
 }
 ?>
 <!-- Select2 CSS já está correto -->
@@ -61,14 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
       <div class="form-group">
         <label for="nome">Nome</label>
-        <input type="text" class="form-control" id="nome" name="nome" required>
+        <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="estudio_nome">Estudio</label>
         <select class="form-control select2" id="estudio_nome" name="estudio_nome" required style="width: 100%;">
           <option value="">Selecione...</option>
           <?php foreach ($estudios as $estudio): ?>
-            <option value="<?= htmlspecialchars($estudio['nome']) ?>"><?= htmlspecialchars($estudio['nome']) ?></option>
+            <?php $nomeEstudio = (string) ($estudio['nome'] ?? ''); ?>
+            <option value="<?= htmlspecialchars($nomeEstudio) ?>" <?= ((string) ($dadosFormulario['estudio_nome'] ?? '') === $nomeEstudio) ? 'selected' : '' ?>><?= htmlspecialchars($nomeEstudio) ?></option>
           <?php endforeach; ?>
         </select>
         <small id="estudio-msg" class="form-text text-danger" style="display:none;"></small>
@@ -101,6 +81,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
       }
     });
+
+    var estudioInicial = <?= json_encode((string) ($dadosFormulario['estudio_nome'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    if (estudioInicial) {
+      var existe = estudios.some(function (e) { return e.toLowerCase() === estudioInicial.toLowerCase(); });
+      if (!existe) {
+        var novaOpcao = new Option(estudioInicial, estudioInicial, true, true);
+        $('#estudio_nome').append(novaOpcao);
+      }
+      $('#estudio_nome').val(estudioInicial).trigger('change');
+    }
 
     $('#estudio_nome').on('change input', function() {
       var valor = $(this).val().trim();

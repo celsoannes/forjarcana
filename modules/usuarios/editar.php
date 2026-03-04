@@ -4,7 +4,9 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../app/db.php';
-require_once __DIR__ . '/../../app/upload_imagem.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Usuarios\UsuarioController;
 
 // Apenas admins podem acessar
 if (!isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] !== 'admin') {
@@ -13,16 +15,16 @@ if (!isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] !== 'admin'
 }
 
 $erro = '';
-$usuario_id = $_GET['id'] ?? '';
-if (!$usuario_id) {
+$usuario_id = (int) ($_GET['id'] ?? 0);
+if ($usuario_id <= 0) {
     echo '<div class="alert alert-danger">Usuário não encontrado!</div>';
     exit;
 }
 
+$usuarioController = new UsuarioController($pdo);
+
 // Busca dados do usuário
-$stmt = $pdo->prepare("SELECT * FROM usuarios WHERE id = ?");
-$stmt->execute([$usuario_id]);
-$usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+$usuario = $usuarioController->buscarPorId($usuario_id);
 
 if (!$usuario) {
     echo '<div class="alert alert-danger">Usuário não encontrado!</div>';
@@ -30,91 +32,19 @@ if (!$usuario) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $sobrenome = trim($_POST['sobrenome'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $cargo = $_POST['cargo'] ?? '';
-    $celular = trim($_POST['celular'] ?? '');
-    $cpf = trim($_POST['cpf'] ?? '');
-    $data_expiracao = $_POST['data_expiracao'] ?? '';
-    $foto_nome = $usuario['foto'];
+    $nome = trim((string) ($_POST['nome'] ?? ''));
+    $sobrenome = trim((string) ($_POST['sobrenome'] ?? ''));
+    $resultado = $usuarioController->processarEdicao($usuario_id, $_POST, $_FILES, (string) ($usuario['foto'] ?? ''));
+    if (!empty($resultado['sucesso'])) {
+        $_SESSION['usuario_nome'] = $nome;
+        $_SESSION['usuario_sobrenome'] = $sobrenome;
+        $_SESSION['usuario_foto'] = (string) ($resultado['foto_nome'] ?? '');
 
-    // Validação dos campos obrigatórios
-    if (
-        !$nome ||
-        !$sobrenome ||
-        !$email ||
-        !$cargo ||
-        !$celular ||
-        !$cpf ||
-        !$data_expiracao
-    ) {
-        $erro = 'Preencha todos os campos obrigatórios.';
-    } else {
-        $data_expiracao = DateTime::createFromFormat('d/m/Y', $data_expiracao);
-        if ($data_expiracao) {
-            $data_expiracao = $data_expiracao->format('Y-m-d');
-        } else {
-            $erro = 'Data de expiração inválida.';
-        }
-
-        try {
-            $stmt = $pdo->prepare("UPDATE usuarios SET nome = ?, sobrenome = ?, email = ?, cargo = ?, celular = ?, cpf = ?, data_expiracao = ? WHERE id = ?");
-            $stmt->execute([$nome, $sobrenome, $email, $cargo, $celular, $cpf, $data_expiracao, $usuario_id]);
-
-            // Atualiza os dados na sessão
-            $_SESSION['usuario_nome'] = $nome;
-            $_SESSION['usuario_sobrenome'] = $sobrenome;
-            $_SESSION['usuario_foto'] = $foto_nome;
-
-            // Recupera o uuid do usuário
-            $stmtUuid = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ?");
-            $stmtUuid->execute([$usuario_id]);
-            $uuid = $stmtUuid->fetchColumn();
-
-            $dir = __DIR__ . "/../../uploads/usuarios/$uuid";
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-
-            // Se uma nova foto foi enviada, exclui as fotos antigas e faz upload da nova
-            if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-                // Remove imagens antigas do usuário (com prefixo foto_*)
-                foreach (glob("$dir/foto_*_*.png") as $foto_antiga) {
-                    if (file_exists($foto_antiga)) {
-                        unlink($foto_antiga);
-                    }
-                }
-                $foto_nome = uploadImagem($_FILES['foto'], $uuid, 'usuarios');
-                if (!$foto_nome) {
-                    $erro = 'Formato de imagem não suportado. Use apenas PNG, JPG, WEBP ou GIF.';
-                }
-            }
-
-            // Atualiza o campo foto no banco
-            if ($foto_nome) {
-                $stmtFoto = $pdo->prepare("UPDATE usuarios SET foto = ? WHERE id = ?");
-                $stmtFoto->execute([$foto_nome, $usuario_id]);
-                // Carrega a thumbnail na sessão
-                $thumb = str_replace('_media.png', '_thumb.png', $foto_nome);
-                $thumbPath = __DIR__ . '/../../' . $thumb;
-                if (file_exists($thumbPath)) {
-                    $_SESSION['usuario_foto'] = $thumb;
-                } else {
-                    $_SESSION['usuario_foto'] = $foto_nome;
-                }
-            }
-
-            echo '<script>window.location.href="?pagina=usuarios";</script>';
-            exit;
-        } catch (PDOException $e) {
-            if ($e->getCode() == 23000) {
-                $erro = 'Já existe um usuário com este e-mail ou CPF.';
-            } else {
-                $erro = 'Erro ao editar: ' . $e->getMessage();
-            }
-        }
+        echo '<script>window.location.href="?pagina=usuarios";</script>';
+        exit;
     }
+
+    $erro = (string) ($resultado['erro'] ?? 'Erro ao editar.');
 }
 
 ?>
@@ -127,61 +57,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php if ($erro): ?>
         <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
       <?php endif; ?>
-      <div class="form-group">
-        <label for="nome">Nome</label>
-        <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars($usuario['nome']) ?>">
-      </div>
-      <div class="form-group">
-        <label for="sobrenome">Sobrenome</label>
-        <input type="text" class="form-control" id="sobrenome" name="sobrenome" required value="<?= htmlspecialchars($usuario['sobrenome']) ?>">
-      </div>
-      <div class="form-group">
-        <label for="email">E-mail</label>
-        <input type="email" class="form-control" id="email" name="email" required value="<?= htmlspecialchars($usuario['email']) ?>">
-      </div>
-      <div class="form-group">
-        <label for="cargo">Cargo</label>
-        <select class="form-control" id="cargo" name="cargo" required>
-          <option value="">Selecione</option>
-          <option value="user" <?= $usuario['cargo'] === 'user' ? 'selected' : '' ?>>Usuário</option>
-          <option value="admin" <?= $usuario['cargo'] === 'admin' ? 'selected' : '' ?>>Administrador</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="celular">Celular</label>
-        <div class="input-group">
-          <div class="input-group-prepend">
-            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+      <input type="hidden" id="foto_existente" value="<?= htmlspecialchars((string) ($usuario['foto'] ?? '')) ?>">
+      <div class="form-row align-items-stretch">
+        <div class="col-md-3 d-flex">
+          <div class="form-group h-100 w-100">
+            <label for="foto">Foto do Perfil</label>
+            <div id="capa-preview-area" class="border rounded bg-light position-relative d-flex align-items-center justify-content-center w-100" style="width: 100%; height: calc(100% - 32px); min-height: 220px; cursor: pointer;" onclick="document.getElementById('foto').click();">
+              <img id="preview-capa" src="" alt="Pré-visualização da foto" class="img-fluid d-none" style="width: 100%; aspect-ratio: 1 / 1; border-radius: 50%; object-fit: cover; border: 1px solid #dee2e6;">
+              <button type="button" id="remove-capa-btn" class="btn btn-danger btn-sm rounded-circle d-none" style="position:absolute; top:8px; right:8px; width:28px; height:28px; padding:0; line-height:26px;" onclick="event.stopPropagation();">&times;</button>
+              <div id="capa-placeholder" class="align-items-center justify-content-center text-muted" style="position:absolute; top:0; right:0; bottom:0; left:0; display:flex;">
+                Clique para selecionar a foto
+              </div>
+            </div>
+            <input type="file" id="foto" name="foto" accept=".jpg,.png,.webp,.gif" style="display:none;">
           </div>
-          <input type="text" class="form-control" id="celular" name="celular" required data-inputmask='"mask": "(99) 99999-9999"' data-mask value="<?= htmlspecialchars($usuario['celular']) ?>">
         </div>
-      </div>
-      <div class="form-group">
-        <label for="cpf">CPF</label>
-        <input type="text" class="form-control" id="cpf" name="cpf" required value="<?= htmlspecialchars($usuario['cpf']) ?>">
-      </div>
-      <div class="form-group">
-        <label for="data_expiracao">Data de Expiração</label>
-        <div class="input-group date" id="dataExpiracaoPicker" data-target-input="nearest">
-          <div class="input-group-prepend" data-target="#dataExpiracaoPicker" data-toggle="datetimepicker">
-            <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+        <div class="col-md-9">
+          <div class="form-group">
+            <label for="nome">Nome</label>
+            <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars($usuario['nome']) ?>">
           </div>
-          <input type="text" class="form-control datetimepicker-input" data-target="#dataExpiracaoPicker" id="data_expiracao" name="data_expiracao" required value="<?= date('d/m/Y', strtotime($usuario['data_expiracao'])) ?>" />
+          <div class="form-group">
+            <label for="sobrenome">Sobrenome</label>
+            <input type="text" class="form-control" id="sobrenome" name="sobrenome" required value="<?= htmlspecialchars($usuario['sobrenome']) ?>">
+          </div>
+          <div class="form-group">
+            <label for="celular">Celular</label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+              </div>
+              <input type="text" class="form-control" id="celular" name="celular" required data-inputmask='"mask": "(99) 99999-9999"' data-mask value="<?= htmlspecialchars($usuario['celular']) ?>">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" class="form-control" id="email" name="email" required value="<?= htmlspecialchars($usuario['email']) ?>">
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="senha">Senha</label>
+              <input type="password" class="form-control" id="senha" name="senha" autocomplete="new-password" placeholder="Deixe em branco para manter a senha atual.">
+            </div>
+            <div class="form-group col-md-6">
+              <label for="confirmar_senha">Confirmar Senha</label>
+              <input type="password" class="form-control" id="confirmar_senha" name="confirmar_senha" autocomplete="new-password">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cargo">Cargo</label>
+            <select class="form-control" id="cargo" name="cargo" required>
+              <option value="">Selecione</option>
+              <option value="user" <?= $usuario['cargo'] === 'user' ? 'selected' : '' ?>>Usuário</option>
+              <option value="admin" <?= $usuario['cargo'] === 'admin' ? 'selected' : '' ?>>Administrador</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cpf">CPF</label>
+            <input type="text" class="form-control" id="cpf" name="cpf" required maxlength="14" inputmode="numeric" data-inputmask='"mask": "999.999.999-99"' data-mask value="<?= htmlspecialchars($usuario['cpf']) ?>">
+          </div>
+          <div class="form-group">
+            <label for="data_expiracao">Data de Expiração</label>
+            <div class="input-group date" id="dataExpiracaoPicker" data-target-input="nearest">
+              <div class="input-group-prepend" data-target="#dataExpiracaoPicker" data-toggle="datetimepicker">
+                <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+              </div>
+              <input type="text" class="form-control datetimepicker-input" data-target="#dataExpiracaoPicker" id="data_expiracao" name="data_expiracao" required value="<?= date('d/m/Y', strtotime($usuario['data_expiracao'])) ?>" />
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="form-group">
-        <label for="customFile">Foto (PNG, JPG, WEBP ou GIF)</label>
-        <div class="custom-file mb-2">
-          <input type="file" class="custom-file-input" id="customFile" name="foto" accept="image/png,image/jpeg,image/webp,image/gif">
-          <label class="custom-file-label" for="customFile">Selecione uma foto</label>
-        </div>
-        <?php
-          // Exibe a foto atual, se existir
-          if (!empty($usuario['foto']) && file_exists(__DIR__ . '/../../uploads/usuarios/' . $usuario['uuid'] . '/' . $usuario['foto'])) {
-            $fotoUrl = 'uploads/usuarios/' . $usuario['uuid'] . '/' . $usuario['foto'];
-            echo '<div class="mb-2"><img src="' . htmlspecialchars($fotoUrl) . '" alt="Foto do usuário" class="img-thumbnail" style="max-width:120px;"></div>';
-          }
-        ?>
       </div>
     </div>
     <div class="card-footer">
@@ -214,12 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!-- Scripts -->
 <script src="plugins/jquery/jquery.min.js"></script>
-<script src="plugins/bs-custom-file-input/bs-custom-file-input.min.js"></script>
-<script>
-  $(function () {
-    bsCustomFileInput.init();
-  });
-</script>
 <script src="plugins/inputmask/jquery.inputmask.min.js"></script>
 <script>
   $(function () {
@@ -246,12 +184,160 @@ $(function () {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var form = document.getElementById('formUsuario');
-  var inputFoto = document.getElementById('customFile');
+  var inputFoto = document.getElementById('foto');
+  var inputCpf = document.getElementById('cpf');
+  var inputEmail = document.getElementById('email');
+  var inputSenha = document.getElementById('senha');
+  var inputConfirmarSenha = document.getElementById('confirmar_senha');
+  var previewImagem = document.getElementById('preview-capa');
+  var capaPlaceholder = document.getElementById('capa-placeholder');
+  var removeCapaBtn = document.getElementById('remove-capa-btn');
+  var fotoExistenteInput = document.getElementById('foto_existente');
   var modalWarning = $('#modal-warning');
   var modalWarningTexto = document.getElementById('modal-warning-texto');
 
+  var aplicarMascaraCpf = function(valor) {
+    var apenasNumeros = (valor || '').replace(/\D/g, '').slice(0, 11);
+    if (apenasNumeros.length <= 3) return apenasNumeros;
+    if (apenasNumeros.length <= 6) return apenasNumeros.slice(0, 3) + '.' + apenasNumeros.slice(3);
+    if (apenasNumeros.length <= 9) return apenasNumeros.slice(0, 3) + '.' + apenasNumeros.slice(3, 6) + '.' + apenasNumeros.slice(6);
+    return apenasNumeros.slice(0, 3) + '.' + apenasNumeros.slice(3, 6) + '.' + apenasNumeros.slice(6, 9) + '-' + apenasNumeros.slice(9);
+  };
+
+  var cpfEhValido = function(valor) {
+    var cpf = (valor || '').replace(/\D/g, '');
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+      return false;
+    }
+
+    for (var t = 9; t < 11; t++) {
+      var soma = 0;
+      for (var i = 0; i < t; i++) {
+        soma += parseInt(cpf.charAt(i), 10) * ((t + 1) - i);
+      }
+      var digito = ((10 * soma) % 11) % 10;
+      if (parseInt(cpf.charAt(t), 10) !== digito) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  var emailEhValido = function(valor) {
+    var email = (valor || '').trim().toLowerCase();
+    if (email === '' || email.length > 150) {
+      return false;
+    }
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  var renderizarCapaExistente = function () {
+    if (!previewImagem || !capaPlaceholder || !removeCapaBtn || !fotoExistenteInput) {
+      return;
+    }
+
+    var caminhoCapaExistente = typeof fotoExistenteInput.value === 'string'
+      ? fotoExistenteInput.value.trim()
+      : '';
+
+    if (caminhoCapaExistente !== '') {
+      var caminhoCapaGrande = caminhoCapaExistente.replace(/_(thumbnail|pequena|media|thumb)\.(png|webp)$/i, '_grande.$2');
+      previewImagem.onerror = function () {
+        previewImagem.onerror = null;
+        previewImagem.src = caminhoCapaExistente;
+      };
+      previewImagem.src = caminhoCapaGrande;
+      previewImagem.classList.remove('d-none');
+      capaPlaceholder.classList.add('d-none');
+      capaPlaceholder.style.display = 'none';
+      removeCapaBtn.classList.remove('d-none');
+    } else {
+      previewImagem.src = '';
+      previewImagem.classList.add('d-none');
+      capaPlaceholder.classList.remove('d-none');
+      capaPlaceholder.style.display = 'flex';
+      removeCapaBtn.classList.add('d-none');
+    }
+  };
+
+  if (inputCpf) {
+    inputCpf.addEventListener('input', function () {
+      this.value = aplicarMascaraCpf(this.value);
+    });
+
+    inputCpf.value = aplicarMascaraCpf(inputCpf.value);
+  }
+
+  if (inputEmail) {
+    inputEmail.addEventListener('input', function () {
+      this.value = (this.value || '').replace(/\s+/g, '').toLowerCase();
+    });
+  }
+
+  renderizarCapaExistente();
+
+  if (inputFoto && previewImagem && capaPlaceholder && removeCapaBtn) {
+    inputFoto.addEventListener('change', function () {
+      var arquivo = this.files && this.files[0] ? this.files[0] : null;
+
+      if (!arquivo) {
+        renderizarCapaExistente();
+        return;
+      }
+
+      if (!arquivo.type || arquivo.type.indexOf('image/') !== 0) {
+        renderizarCapaExistente();
+        return;
+      }
+
+      var leitor = new FileReader();
+      leitor.onload = function (evento) {
+        previewImagem.src = evento.target.result;
+        previewImagem.classList.remove('d-none');
+        capaPlaceholder.classList.add('d-none');
+        capaPlaceholder.style.display = 'none';
+        removeCapaBtn.classList.remove('d-none');
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+
+    removeCapaBtn.addEventListener('click', function () {
+      inputFoto.value = '';
+      renderizarCapaExistente();
+    });
+  }
+
   form.addEventListener('submit', function(e) {
-    if (inputFoto.files.length > 0) {
+    if ((inputSenha && inputSenha.value !== '') || (inputConfirmarSenha && inputConfirmarSenha.value !== '')) {
+      if (!inputSenha || !inputConfirmarSenha || inputSenha.value !== inputConfirmarSenha.value) {
+        e.preventDefault();
+        modalWarningTexto.innerText = 'Senha e confirmação de senha não conferem.';
+        modalWarning.modal('show');
+        if (inputConfirmarSenha) {
+          inputConfirmarSenha.focus();
+        }
+        return false;
+      }
+    }
+
+    if (inputEmail && !emailEhValido(inputEmail.value)) {
+      e.preventDefault();
+      modalWarningTexto.innerText = 'Informe um e-mail válido.';
+      modalWarning.modal('show');
+      inputEmail.focus();
+      return false;
+    }
+
+    if (inputCpf && !cpfEhValido(inputCpf.value)) {
+      e.preventDefault();
+      modalWarningTexto.innerText = 'Informe um CPF válido.';
+      modalWarning.modal('show');
+      inputCpf.focus();
+      return false;
+    }
+
+    if (inputFoto && inputFoto.files.length > 0) {
       var file = inputFoto.files[0];
       var ext = file.name.split('.').pop().toLowerCase();
       var tiposPermitidos = ['jpg', 'jpeg', 'png', 'webp', 'gif'];

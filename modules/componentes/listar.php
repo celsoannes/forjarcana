@@ -38,7 +38,13 @@ $componentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <td>
                 <?php
                   if (!empty($componente['imagem'])) {
-                    $thumb = str_replace('_media.png', '_thumb.png', $componente['imagem']);
+                    $thumb = preg_replace('/_media\.(png|webp)$/i', '_thumbnail.$1', $componente['imagem']);
+                    $thumbPath = __DIR__ . '/../../' . $thumb;
+                    if (!file_exists($thumbPath)) {
+                      $thumbLegado = preg_replace('/_media\.(png|webp)$/i', '_thumb.$1', $componente['imagem']);
+                      $thumbLegadoPath = __DIR__ . '/../../' . $thumbLegado;
+                      $thumb = file_exists($thumbLegadoPath) ? $thumbLegado : $componente['imagem'];
+                    }
                     echo '<img src="' . htmlspecialchars($thumb) . '" alt="Thumb" style="width:32px;height:32px;border-radius:4px;">';
                   } else {
                     echo '<span class="text-muted">-</span>';

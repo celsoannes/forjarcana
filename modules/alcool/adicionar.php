@@ -4,31 +4,25 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Alcool\AlcoolController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $erro = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $marca = trim($_POST['marca'] ?? '');
-    $preco_litro = str_replace(',', '.', $_POST['preco_litro'] ?? '');
+$alcoolController = new AlcoolController($pdo);
+$dadosFormulario = $alcoolController->montarEstadoFormularioAdicao($_POST ?? []);
 
-    if (!$nome || !$marca || !$preco_litro) {
-        $erro = 'Preencha todos os campos obrigatórios.';
-    } else {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO alcool (usuario_id, nome, marca, preco_litro) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$usuario_id, $nome, $marca, $preco_litro]);
-            echo '<script>window.location.href="?pagina=alcool";</script>';
-            exit;
-        } catch (PDOException $e) {
-            if ($e->getCode() == 23000) {
-                $erro = 'Já existe um registro de álcool para este usuário.';
-            } else {
-                $erro = 'Erro ao cadastrar: ' . $e->getMessage();
-            }
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $resultadoFluxo = $alcoolController->processarFluxoAdicao((int) $usuario_id, $_POST);
+
+  if (!empty($resultadoFluxo['sucesso'])) {
+    echo '<script>window.location.href="?pagina=alcool";</script>';
+    exit;
     }
+
+  $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar.');
 }
 ?>
 <div class="card card-primary">
@@ -42,15 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
       <div class="form-group">
         <label for="nome">Nome</label>
-        <input type="text" class="form-control" id="nome" name="nome" required placeholder="Isopropílico, Etanol, etc...">
+        <input type="text" class="form-control" id="nome" name="nome" required placeholder="Isopropílico, Etanol, etc..." value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="marca">Marca</label>
-        <input type="text" class="form-control" id="marca" name="marca" required>
+        <input type="text" class="form-control" id="marca" name="marca" required value="<?= htmlspecialchars((string) ($dadosFormulario['marca'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="preco_litro">Preço por Litro (R$)</label>
-        <input type="number" step="0.01" class="form-control" id="preco_litro" name="preco_litro" required>
+        <input type="number" step="0.01" class="form-control" id="preco_litro" name="preco_litro" required value="<?= htmlspecialchars((string) ($dadosFormulario['preco_litro'] ?? '')) ?>">
       </div>
     </div>
     <div class="card-footer">

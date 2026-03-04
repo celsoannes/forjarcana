@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Produtos\ProdutoController;
 
 $id = (int) ($_GET['id'] ?? 0);
 $usuario_id = (int) ($_SESSION['usuario_id'] ?? 0);
@@ -10,91 +13,34 @@ if ($usuario_id <= 0) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT
-    p.id,
-    p.descricao,
-    p.observacoes,
-    p.markup_lojista,
-    p.markup_consumidor_final,
-    p.preco_lojista,
-    p.preco_consumidor_final,
-    p.imagem_capa,
-    c.custo_total,
-    c.custo_por_unidade,
-    s.sku AS sku_codigo,
-    cg.nome AS categoria_nome,
-    m.nome_original AS miniatura_nome
-FROM produtos p
-LEFT JOIN sku s ON s.produto_id = p.id
-LEFT JOIN categorias cg ON cg.id = p.categoria
-LEFT JOIN custos c ON c.produto_id = p.id
-LEFT JOIN miniaturas m ON m.produto_id = p.id
-WHERE p.id = ? AND p.usuario_id = ?
-LIMIT 1");
-$stmt->execute([$id, $usuario_id]);
-$produto = $stmt->fetch(PDO::FETCH_ASSOC);
+$produtoController = new ProdutoController($pdo);
+$produto = $produtoController->buscarParaEdicao($id, $usuario_id);
 
 if (!$produto) {
     header('Location: /404.php');
     exit;
 }
 
+$compatibilidade = (array) ($produto['__compatibilidade'] ?? []);
+unset($produto['__compatibilidade']);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $descricao = trim($_POST['descricao'] ?? '');
-    $observacoes = trim($_POST['observacoes'] ?? '');
-    $custo_total = (float) str_replace(',', '.', trim($_POST['custo_total'] ?? '0'));
-    $custo_por_unidade = (float) str_replace(',', '.', trim($_POST['custo_por_unidade'] ?? '0'));
-    $markup_lojista = (float) str_replace(',', '.', trim($_POST['markup_lojista'] ?? '0'));
-    $markup_consumidor_final = (float) str_replace(',', '.', trim($_POST['markup_consumidor_final'] ?? '0'));
-    $preco_lojista = (float) str_replace(',', '.', trim($_POST['preco_lojista'] ?? '0'));
-    $preco_consumidor_final = (float) str_replace(',', '.', trim($_POST['preco_consumidor_final'] ?? '0'));
-
-    if ($custo_total < 0 || $custo_por_unidade < 0 || $markup_lojista < 0 || $markup_consumidor_final < 0 || $preco_lojista < 0 || $preco_consumidor_final < 0) {
-        $erro = 'Informe valores numéricos válidos (maiores ou iguais a zero).';
-    } else {
-        try {
-            $pdo->beginTransaction();
-
-            $stmtCusto = $pdo->prepare("UPDATE custos
-              SET custo_total = ?,
-                custo_por_unidade = ?
-              WHERE produto_id = ?");
-            $stmtCusto->execute([$custo_total, $custo_por_unidade, $id]);
-
-            if ($stmtCusto->rowCount() < 1) {
-              $stmtInsertCusto = $pdo->prepare("INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)");
-              $stmtInsertCusto->execute([$id, $custo_total, $custo_por_unidade]);
-            }
-
-            $stmtProduto = $pdo->prepare("UPDATE produtos
-              SET descricao = ?,
-                observacoes = ?,
-                markup_lojista = ?,
-                markup_consumidor_final = ?,
-                preco_lojista = ?,
-                preco_consumidor_final = ?
-              WHERE id = ? AND usuario_id = ?");
-            $stmtProduto->execute([
-                $descricao !== '' ? $descricao : null,
-                $observacoes !== '' ? $observacoes : null,
-                $markup_lojista,
-                $markup_consumidor_final,
-                $preco_lojista,
-                $preco_consumidor_final,
-                $id,
-                $usuario_id,
-            ]);
-
-            $pdo->commit();
-            echo '<script>window.location.href="?pagina=produtos";</script>';
-            exit;
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $erro = 'Erro ao editar produto: ' . $e->getMessage();
-        }
+    $resultado = $produtoController->processarEdicao($id, $usuario_id, $_POST, $compatibilidade);
+    if (!empty($resultado['sucesso'])) {
+      echo '<script>window.location.href="?pagina=produtos";</script>';
+      exit;
     }
+
+    $erro = (string) ($resultado['erro'] ?? 'Erro ao editar produto.');
+
+    $produto['descricao'] = (string) ($_POST['descricao'] ?? ($produto['descricao'] ?? ''));
+    $produto['observacoes'] = (string) ($_POST['observacoes'] ?? ($produto['observacoes'] ?? ''));
+    $produto['custo_total'] = (string) ($_POST['custo_total'] ?? ($produto['custo_total'] ?? 0));
+    $produto['custo_por_unidade'] = (string) ($_POST['custo_por_unidade'] ?? ($produto['custo_por_unidade'] ?? 0));
+    $produto['markup_lojista'] = (string) ($_POST['markup_lojista'] ?? ($produto['markup_lojista'] ?? 0));
+    $produto['markup_consumidor_final'] = (string) ($_POST['markup_consumidor_final'] ?? ($produto['markup_consumidor_final'] ?? 0));
+    $produto['preco_lojista'] = (string) ($_POST['preco_lojista'] ?? ($produto['preco_lojista'] ?? 0));
+    $produto['preco_consumidor_final'] = (string) ($_POST['preco_consumidor_final'] ?? ($produto['preco_consumidor_final'] ?? 0));
 }
 ?>
 <div class="card card-primary">

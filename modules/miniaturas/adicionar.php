@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
 require_once __DIR__ . '/../../app/upload_imagem.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Miniaturas\MiniaturaController;
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
   session_start();
@@ -9,6 +12,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 $erro = '';
 $usuario_id = (int) ($_SESSION['usuario_id'] ?? 0);
 $usuario_uuid = trim($_SESSION['usuario_uuid'] ?? '');
+
+$miniaturaController = new MiniaturaController($pdo);
 
 if (empty($_SESSION['miniatura_form_token'])) {
   $_SESSION['miniatura_form_token'] = bin2hex(random_bytes(16));
@@ -20,106 +25,11 @@ if (($_GET['action'] ?? '') === 'sugerir') {
 
   $campo = trim((string) ($_GET['campo'] ?? ''));
   $termo = trim((string) ($_GET['termo'] ?? ''));
-  $tamanhoTermo = function_exists('mb_strlen') ? mb_strlen($termo, 'UTF-8') : strlen($termo);
-
-  if ($usuario_id <= 0 || !in_array($campo, ['outras_caracteristicas', 'colecao'], true) || $tamanhoTermo < 2) {
-    echo json_encode([]);
-    exit;
-  }
-
-  try {
-    $sugestoes = [];
-    $controleUnicos = [];
-
-    if ($campo === 'colecao') {
-      $estudioNome = trim((string) ($_GET['estudio'] ?? ''));
-
-      if ($estudioNome !== '') {
-        $stmtSugestoesColecao = $pdo->prepare("SELECT DISTINCT c.nome
-          FROM colecoes c
-          INNER JOIN estudios e ON e.id = c.estudio_id
-          WHERE c.usuario_id = ?
-            AND c.nome LIKE ?
-            AND LOWER(e.nome) = LOWER(?)
-          ORDER BY c.nome ASC
-          LIMIT 50");
-        $stmtSugestoesColecao->execute([$usuario_id, '%' . $termo . '%', $estudioNome]);
-      } else {
-        $stmtSugestoesColecao = $pdo->prepare("SELECT DISTINCT nome
-          FROM colecoes
-          WHERE usuario_id = ?
-            AND nome LIKE ?
-          ORDER BY nome ASC
-          LIMIT 50");
-        $stmtSugestoesColecao->execute([$usuario_id, '%' . $termo . '%']);
-      }
-
-      $linhasColecao = $stmtSugestoesColecao->fetchAll(PDO::FETCH_COLUMN) ?: [];
-      foreach ($linhasColecao as $item) {
-        if (!is_string($item) || trim($item) === '') {
-          continue;
-        }
-
-        $item = trim($item);
-        $chave = function_exists('mb_strtolower') ? mb_strtolower($item, 'UTF-8') : strtolower($item);
-        if (isset($controleUnicos[$chave])) {
-          continue;
-        }
-
-        $controleUnicos[$chave] = true;
-        $sugestoes[] = $item;
-
-        if (count($sugestoes) >= 10) {
-          break;
-        }
-      }
-    } else {
-      $stmtSugestoes = $pdo->prepare("SELECT DISTINCT outras_caracteristicas FROM miniaturas WHERE usuario_id = ? AND outras_caracteristicas IS NOT NULL AND outras_caracteristicas <> '' AND outras_caracteristicas LIKE ? ORDER BY outras_caracteristicas ASC LIMIT 80");
-      $stmtSugestoes->execute([$usuario_id, '%' . $termo . '%']);
-      $linhas = $stmtSugestoes->fetchAll(PDO::FETCH_COLUMN) ?: [];
-
-      foreach ($linhas as $linha) {
-        if (!is_string($linha) || $linha === '') {
-          continue;
-        }
-
-        $itens = array_map('trim', explode(',', $linha));
-        foreach ($itens as $item) {
-          if ($item === '' || stripos($item, $termo) === false) {
-            continue;
-          }
-
-          $chave = function_exists('mb_strtolower') ? mb_strtolower($item, 'UTF-8') : strtolower($item);
-          if (isset($controleUnicos[$chave])) {
-            continue;
-          }
-
-          $controleUnicos[$chave] = true;
-          $sugestoes[] = $item;
-
-          if (count($sugestoes) >= 10) {
-            break 2;
-          }
-        }
-      }
-    }
-
-    echo json_encode($sugestoes, JSON_UNESCAPED_UNICODE);
-  } catch (Throwable $e) {
-    echo json_encode([]);
-  }
+  $estudioNome = trim((string) ($_GET['estudio'] ?? ''));
+  $sugestoes = $miniaturaController->sugerirCampo($usuario_id, $campo, $termo, $estudioNome);
+  echo json_encode($sugestoes, JSON_UNESCAPED_UNICODE);
 
   exit;
-}
-
-if ($usuario_uuid === '' && $usuario_id > 0) {
-  try {
-    $stmtUuid = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ? LIMIT 1");
-    $stmtUuid->execute([$usuario_id]);
-    $usuario_uuid = (string) ($stmtUuid->fetchColumn() ?: '');
-  } catch (Throwable $e) {
-    $usuario_uuid = '';
-  }
 }
 
 $impressora_id = (int) ($_GET['impressora_id'] ?? 0);
@@ -137,417 +47,25 @@ $classes_disponiveis = [];
 $armaduras_disponiveis = [];
 $armas_disponiveis = [];
 $outras_caracteristicas_disponiveis = [];
-
-try {
-  $stmtEstudios = $pdo->prepare("SELECT id, nome FROM estudios WHERE usuario_id = ? ORDER BY nome");
-  $stmtEstudios->execute([$usuario_id]);
-  $estudios_disponiveis = $stmtEstudios->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-  $estudios_disponiveis = [];
-}
-
-try {
-  $stmtColecoes = $pdo->prepare("SELECT c.id, c.nome, e.nome AS estudio_nome, e.id AS estudio_id FROM colecoes c INNER JOIN estudios e ON e.id = c.estudio_id WHERE c.usuario_id = ? ORDER BY e.nome, c.nome");
-  $stmtColecoes->execute([$usuario_id]);
-  $colecoes_disponiveis = $stmtColecoes->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-  $colecoes_disponiveis = [];
-}
-
-try {
-  $stmtTematicas = $pdo->query("SELECT id, nome FROM tematicas ORDER BY nome");
-  $tematicas_disponiveis = $stmtTematicas->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-  $tematicas_disponiveis = [];
-}
-
-try {
-  $stmtRacas = $pdo->prepare("SELECT DISTINCT raca AS nome FROM miniaturas WHERE usuario_id = ? AND raca IS NOT NULL AND raca <> '' ORDER BY raca");
-  $stmtRacas->execute([$usuario_id]);
-  $racas_disponiveis = $stmtRacas->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-  $racas_disponiveis = [];
-}
-
-try {
-  $stmtClasses = $pdo->prepare("SELECT DISTINCT classe AS nome FROM miniaturas WHERE usuario_id = ? AND classe IS NOT NULL AND classe <> '' ORDER BY classe");
-  $stmtClasses->execute([$usuario_id]);
-  $classes_disponiveis = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-  $classes_disponiveis = [];
-}
-
-try {
-  $stmtArmaduras = $pdo->prepare("SELECT DISTINCT armadura AS nome FROM miniaturas WHERE usuario_id = ? AND armadura IS NOT NULL AND armadura <> '' ORDER BY armadura");
-  $stmtArmaduras->execute([$usuario_id]);
-  $armaduras_disponiveis = $stmtArmaduras->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-  $armaduras_disponiveis = [];
-}
-
-try {
-  $stmtArmas = $pdo->prepare("SELECT DISTINCT arma_principal AS nome FROM miniaturas WHERE usuario_id = ? AND arma_principal IS NOT NULL AND arma_principal <> '' ORDER BY arma_principal");
-  $stmtArmas->execute([$usuario_id]);
-  $armasPrincipais = $stmtArmas->fetchAll(PDO::FETCH_COLUMN) ?: [];
-
-  $stmtArmasSec = $pdo->prepare("SELECT DISTINCT arma_secundaria AS nome FROM miniaturas WHERE usuario_id = ? AND arma_secundaria IS NOT NULL AND arma_secundaria <> '' ORDER BY arma_secundaria");
-  $stmtArmasSec->execute([$usuario_id]);
-  $armasSecundarias = $stmtArmasSec->fetchAll(PDO::FETCH_COLUMN) ?: [];
-
-  $armasUnicas = [];
-  $armasControle = [];
-  foreach (array_merge($armasPrincipais, $armasSecundarias) as $armaItem) {
-    if (!is_string($armaItem)) {
-      continue;
-    }
-    $armaItem = trim($armaItem);
-    if ($armaItem === '') {
-      continue;
-    }
-    $chave = function_exists('mb_strtolower') ? mb_strtolower($armaItem, 'UTF-8') : strtolower($armaItem);
-    if (isset($armasControle[$chave])) {
-      continue;
-    }
-    $armasControle[$chave] = true;
-    $armasUnicas[] = ['nome' => $armaItem];
-  }
-  $armas_disponiveis = $armasUnicas;
-} catch (Throwable $e) {
-  $armas_disponiveis = [];
-}
-
-try {
-  $stmtOutrasCaracteristicas = $pdo->prepare("SELECT DISTINCT outras_caracteristicas FROM miniaturas WHERE usuario_id = ? AND outras_caracteristicas IS NOT NULL AND outras_caracteristicas <> ''");
-  $stmtOutrasCaracteristicas->execute([$usuario_id]);
-  $linhasOutrasCaracteristicas = $stmtOutrasCaracteristicas->fetchAll(PDO::FETCH_COLUMN) ?: [];
-
-  $itensUnicos = [];
-  $controleUnicos = [];
-  foreach ($linhasOutrasCaracteristicas as $linhaOutrasCaracteristicas) {
-    if (!is_string($linhaOutrasCaracteristicas) || trim($linhaOutrasCaracteristicas) === '') {
-      continue;
-    }
-
-    $itensLinha = array_map('trim', explode(',', $linhaOutrasCaracteristicas));
-    foreach ($itensLinha as $itemLinha) {
-      if ($itemLinha === '') {
-        continue;
-      }
-
-      $chaveItem = function_exists('mb_strtolower') ? mb_strtolower($itemLinha, 'UTF-8') : strtolower($itemLinha);
-      if (isset($controleUnicos[$chaveItem])) {
-        continue;
-      }
-
-      $controleUnicos[$chaveItem] = true;
-      $itensUnicos[] = $itemLinha;
-    }
-  }
-
-  natcasesort($itensUnicos);
-  $outras_caracteristicas_disponiveis = array_values($itensUnicos);
-} catch (Throwable $e) {
-  $outras_caracteristicas_disponiveis = [];
-}
-
-if ($impressora_id > 0) {
-  $stmtImpressora = $pdo->prepare("SELECT id, marca, modelo, tipo, potencia, fator_uso, custo_hora FROM impressoras WHERE id = ? AND usuario_id = ?");
-  $stmtImpressora->execute([$impressora_id, $usuario_id]);
-  $impressoraSelecionada = $stmtImpressora->fetch(PDO::FETCH_ASSOC);
-
-  if ($impressoraSelecionada) {
-    $materialSelecionado = null;
-
-    if ($impressoraSelecionada['tipo'] === 'Resina' && $resina_id > 0) {
-      $stmtMaterial = $pdo->prepare("SELECT id, nome, marca, cor, preco_litro FROM resinas WHERE id = ? AND usuario_id = ?");
-      $stmtMaterial->execute([$resina_id, $usuario_id]);
-      $materialSelecionado = $stmtMaterial->fetch(PDO::FETCH_ASSOC);
-
-      if ($materialSelecionado) {
-        $selecao_confirmacao = [
-          'impressora' => $impressoraSelecionada,
-          'material_tipo' => 'Resina',
-          'material' => $materialSelecionado,
-        ];
-      } else {
-        $aviso_selecao = 'A resina selecionada não foi encontrada para este usuário.';
-      }
-    } elseif ($impressoraSelecionada['tipo'] === 'FDM' && $filamento_id > 0) {
-      $stmtMaterial = $pdo->prepare("SELECT id, nome, marca, cor, tipo, preco_kilo FROM filamento WHERE id = ? AND usuario_id = ?");
-      $stmtMaterial->execute([$filamento_id, $usuario_id]);
-      $materialSelecionado = $stmtMaterial->fetch(PDO::FETCH_ASSOC);
-
-      if ($materialSelecionado) {
-        $selecao_confirmacao = [
-          'impressora' => $impressoraSelecionada,
-          'material_tipo' => 'Filamento',
-          'material' => $materialSelecionado,
-        ];
-      } else {
-        $aviso_selecao = 'O filamento selecionado não foi encontrado para este usuário.';
-      }
-    } else {
-      $aviso_selecao = 'Seleção de material não corresponde ao tipo da impressora escolhida.';
-    }
-  } else {
-    $aviso_selecao = 'A impressora selecionada não foi encontrada para este usuário.';
-  }
-}
-
-function gerarSigla3(string $texto): string {
-  $texto = trim($texto);
-  if ($texto === '') {
-    return 'XXX';
-  }
-
-  $normalizado = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
-  if ($normalizado === false) {
-    $normalizado = $texto;
-  }
-
-  $normalizado = strtoupper($normalizado);
-  $normalizado = preg_replace('/[^A-Z0-9]/', '', $normalizado);
-  $normalizado = substr($normalizado, 0, 3);
-
-  return str_pad($normalizado, 3, 'X');
-}
-
-function gerarSiglaEstudio(string $estudioNome): string {
-  $estudioNome = trim($estudioNome);
-  if ($estudioNome === '') {
-    return 'XXX';
-  }
-
-  $partesOriginais = preg_split('/\s+/', $estudioNome) ?: [];
-  $partes = [];
-
-  foreach ($partesOriginais as $parteOriginal) {
-    $parteOriginal = trim((string) $parteOriginal);
-    if ($parteOriginal === '') {
-      continue;
-    }
-
-    $normalizada = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $parteOriginal);
-    if ($normalizada === false) {
-      $normalizada = $parteOriginal;
-    }
-
-    $normalizada = strtoupper($normalizada);
-    $normalizada = preg_replace('/[^A-Z0-9]/', '', $normalizada);
-    if ($normalizada === '') {
-      continue;
-    }
-
-    $partes[] = $normalizada;
-  }
-
-  if (empty($partes)) {
-    return 'XXX';
-  }
-
-  if (count($partes) === 1) {
-    return str_pad(substr($partes[0], 0, 3), 3, 'X');
-  }
-
-  $iniciais = '';
-  foreach ($partes as $parte) {
-    $iniciais .= substr($parte, 0, 1);
-  }
-
-  return $iniciais;
-}
-
-function gerarSkuAutomatico(PDO $pdo, string $estudioNome, string $raca, string $classe): string {
-  $prefixo = 'MIN' . '-' . gerarSiglaEstudio($estudioNome) . '-' . gerarSigla3($raca) . '-' . gerarSigla3($classe);
-
-  do {
-    $numero = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    $sku = $prefixo . '-' . $numero;
-    $stmtSku = $pdo->prepare("SELECT COUNT(*) FROM sku WHERE sku = ?");
-    $stmtSku->execute([$sku]);
-    $existe = (int) $stmtSku->fetchColumn() > 0;
-  } while ($existe);
-
-  return $sku;
-}
-
-function resolverEstudio(PDO $pdo, int $usuarioId, string $entrada): array {
-  $entrada = trim($entrada);
-  if ($entrada === '') {
-    throw new RuntimeException('Informe um estúdio válido.');
-  }
-
-  $stmtEstudio = $pdo->prepare("SELECT id, nome FROM estudios WHERE usuario_id = ? AND LOWER(nome) = LOWER(?) LIMIT 1");
-  $stmtEstudio->execute([$usuarioId, $entrada]);
-  $estudio = $stmtEstudio->fetch(PDO::FETCH_ASSOC);
-
-  if ($estudio) {
-    return $estudio;
-  }
-
-  $stmtNovoEstudio = $pdo->prepare("INSERT INTO estudios (nome, site, usuario_id) VALUES (?, ?, ?)");
-  $stmtNovoEstudio->execute([$entrada, 'https://pendente.local', $usuarioId]);
-
-  return [
-    'id' => (int) $pdo->lastInsertId(),
-    'nome' => $entrada,
-  ];
-}
-
-function resolverColecao(PDO $pdo, int $usuarioId, int $estudioId, string $entrada): array {
-  $entrada = trim($entrada);
-  if ($entrada === '') {
-    throw new RuntimeException('Informe uma coleção válida.');
-  }
-
-  $stmtColecao = $pdo->prepare("SELECT c.id, c.nome, c.estudio_id, e.nome AS estudio_nome
-    FROM colecoes c
-    INNER JOIN estudios e ON e.id = c.estudio_id
-    WHERE c.usuario_id = ?
-      AND c.estudio_id = ?
-      AND LOWER(c.nome) = LOWER(?)
-    LIMIT 1");
-  $stmtColecao->execute([$usuarioId, $estudioId, $entrada]);
-  $colecaoExistente = $stmtColecao->fetch(PDO::FETCH_ASSOC);
-
-  if ($colecaoExistente) {
-    return $colecaoExistente;
-  }
-  $stmtNovaColecao = $pdo->prepare("INSERT INTO colecoes (estudio_id, nome, usuario_id) VALUES (?, ?, ?)");
-  $stmtNovaColecao->execute([$estudioId, $entrada, $usuarioId]);
-
-  $stmtEstudioNome = $pdo->prepare("SELECT nome FROM estudios WHERE id = ? LIMIT 1");
-  $stmtEstudioNome->execute([$estudioId]);
-  $estudioNome = (string) ($stmtEstudioNome->fetchColumn() ?: '');
-
-  return [
-    'id' => (int) $pdo->lastInsertId(),
-    'nome' => $entrada,
-    'estudio_id' => $estudioId,
-    'estudio_nome' => $estudioNome,
-  ];
-}
-
-function resolverTematica(PDO $pdo, string $entrada): array {
-  $entrada = trim($entrada);
-  if ($entrada === '') {
-    throw new RuntimeException('Informe uma temática válida.');
-  }
-
-  $stmtTematica = $pdo->prepare("SELECT id, nome FROM tematicas WHERE LOWER(nome) = LOWER(?) LIMIT 1");
-  $stmtTematica->execute([$entrada]);
-  $tematica = $stmtTematica->fetch(PDO::FETCH_ASSOC);
-
-  if ($tematica) {
-    return $tematica;
-  }
-
-  $stmtNovaTematica = $pdo->prepare("INSERT INTO tematicas (nome) VALUES (?)");
-  $stmtNovaTematica->execute([$entrada]);
-
-  return [
-    'id' => (int) $pdo->lastInsertId(),
-    'nome' => $entrada,
-  ];
-}
-
-function buscarEstudioPorId(PDO $pdo, int $usuarioId, int $estudioId): ?array {
-  if ($estudioId <= 0) {
-    return null;
-  }
-
-  $stmt = $pdo->prepare("SELECT id, nome FROM estudios WHERE id = ? AND usuario_id = ? LIMIT 1");
-  $stmt->execute([$estudioId, $usuarioId]);
-  $estudio = $stmt->fetch(PDO::FETCH_ASSOC);
-
-  return $estudio ?: null;
-}
-
-function buscarColecaoPorId(PDO $pdo, int $usuarioId, int $colecaoId): ?array {
-  if ($colecaoId <= 0) {
-    return null;
-  }
-
-  $stmt = $pdo->prepare("SELECT c.id, c.nome, c.estudio_id, e.nome AS estudio_nome
-    FROM colecoes c
-    INNER JOIN estudios e ON e.id = c.estudio_id
-    WHERE c.id = ?
-      AND c.usuario_id = ?
-    LIMIT 1");
-  $stmt->execute([$colecaoId, $usuarioId]);
-  $colecao = $stmt->fetch(PDO::FETCH_ASSOC);
-
-  return $colecao ?: null;
-}
-
-function buscarTematicaPorId(PDO $pdo, int $tematicaId): ?array {
-  if ($tematicaId <= 0) {
-    return null;
-  }
-
-  $stmt = $pdo->prepare("SELECT id, nome FROM tematicas WHERE id = ? LIMIT 1");
-  $stmt->execute([$tematicaId]);
-  $tematica = $stmt->fetch(PDO::FETCH_ASSOC);
-
-  return $tematica ?: null;
-}
-
-function descreverErroUpload(int $codigoErro): string {
-  $mapa = [
-    UPLOAD_ERR_INI_SIZE => 'Arquivo maior que o limite configurado no servidor.',
-    UPLOAD_ERR_FORM_SIZE => 'Arquivo maior que o limite permitido pelo formulário.',
-    UPLOAD_ERR_PARTIAL => 'Upload foi enviado parcialmente.',
-    UPLOAD_ERR_NO_FILE => 'Nenhum arquivo foi enviado.',
-    UPLOAD_ERR_NO_TMP_DIR => 'Pasta temporária ausente no servidor.',
-    UPLOAD_ERR_CANT_WRITE => 'Falha ao gravar o arquivo no disco.',
-    UPLOAD_ERR_EXTENSION => 'Upload bloqueado por uma extensão do PHP.',
-  ];
-
-  return $mapa[$codigoErro] ?? 'Erro desconhecido no envio do arquivo.';
-}
-
-function normalizarListaTags(string $valor): array {
-  $itens = array_map('trim', explode(',', $valor));
-  $resultado = [];
-  $chaves = [];
-
-  foreach ($itens as $item) {
-    if ($item === '') {
-      continue;
-    }
-
-    $chave = function_exists('mb_strtolower') ? mb_strtolower($item, 'UTF-8') : strtolower($item);
-    if (isset($chaves[$chave])) {
-      continue;
-    }
-
-    $chaves[$chave] = true;
-    $resultado[] = $item;
-  }
-
-  return $resultado;
-}
-
-function vincularMiniaturaColecoes(PDO $pdo, int $miniaturaId, int $usuarioId, array $colecaoIds): void {
-  if ($miniaturaId <= 0 || $usuarioId <= 0 || empty($colecaoIds)) {
-    return;
-  }
-
-  $stmtVinculo = $pdo->prepare("INSERT IGNORE INTO miniaturas_colecoes (miniatura_id, colecao_id, usuario_id) VALUES (?, ?, ?)");
-  foreach ($colecaoIds as $colecaoId) {
-    $colecaoId = (int) $colecaoId;
-    if ($colecaoId <= 0) {
-      continue;
-    }
-    $stmtVinculo->execute([$miniaturaId, $colecaoId, $usuarioId]);
-  }
-}
+$contextoAdicao = $miniaturaController->carregarContextoAdicao($usuario_id, $usuario_uuid, $impressora_id, $filamento_id, $resina_id);
+$usuario_uuid = (string) ($contextoAdicao['usuario_uuid'] ?? $usuario_uuid);
+$selecao_confirmacao = $contextoAdicao['selecao_confirmacao'] ?? null;
+$aviso_selecao = (string) ($contextoAdicao['aviso_selecao'] ?? '');
+$estudios_disponiveis = is_array($contextoAdicao['estudios_disponiveis'] ?? null) ? $contextoAdicao['estudios_disponiveis'] : [];
+$colecoes_disponiveis = is_array($contextoAdicao['colecoes_disponiveis'] ?? null) ? $contextoAdicao['colecoes_disponiveis'] : [];
+$tematicas_disponiveis = is_array($contextoAdicao['tematicas_disponiveis'] ?? null) ? $contextoAdicao['tematicas_disponiveis'] : [];
+$racas_disponiveis = is_array($contextoAdicao['racas_disponiveis'] ?? null) ? $contextoAdicao['racas_disponiveis'] : [];
+$classes_disponiveis = is_array($contextoAdicao['classes_disponiveis'] ?? null) ? $contextoAdicao['classes_disponiveis'] : [];
+$armaduras_disponiveis = is_array($contextoAdicao['armaduras_disponiveis'] ?? null) ? $contextoAdicao['armaduras_disponiveis'] : [];
+$armas_disponiveis = is_array($contextoAdicao['armas_disponiveis'] ?? null) ? $contextoAdicao['armas_disponiveis'] : [];
+$outras_caracteristicas_disponiveis = is_array($contextoAdicao['outras_caracteristicas_disponiveis'] ?? null) ? $contextoAdicao['outras_caracteristicas_disponiveis'] : [];
+$dadosFormulario = $miniaturaController->montarEstadoFormularioAdicao($_POST ?? []);
 
 $foto = null;
 $imagens = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $form_token = (string) ($_POST['form_token'] ?? '');
+  $form_token = (string) ($dadosFormulario['form_token'] ?? '');
 
     if (!isset($_SESSION['miniatura_form_token']) || $form_token === '' || !hash_equals((string) $_SESSION['miniatura_form_token'], $form_token)) {
       $erro = 'Este formulário já foi enviado. Atualize a página e tente novamente.';
@@ -556,319 +74,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $miniatura_form_token = (string) $_SESSION['miniatura_form_token'];
     }
 
-    $nome = trim($_POST['nome'] ?? '');
-  $nome_original = trim($_POST['nome_original'] ?? '');
-  $estudio = trim($_POST['estudio'] ?? '');
-    $estudio_id_post = (int) ($_POST['estudio_id'] ?? 0);
-    $colecao = trim($_POST['colecao'] ?? '');
-    $colecoesSelecionadas = normalizarListaTags($colecao);
-    $tematica = trim($_POST['tematica'] ?? '');
-    $tematica_id_post = (int) ($_POST['tematica_id'] ?? 0);
-    $raca = trim($_POST['raca'] ?? '');
-    $classe = trim($_POST['classe'] ?? '');
-    $classesSelecionadas = normalizarListaTags($classe);
-    $classe = implode(', ', $classesSelecionadas);
-    $genero = trim($_POST['genero'] ?? '');
-    $criatura = trim($_POST['criatura'] ?? '');
-    $papel = trim($_POST['papel'] ?? '');
-    $tamanho = trim($_POST['tamanho'] ?? '');
-    $base = trim($_POST['base'] ?? '');
-    $pintada = $_POST['pintada'] ?? '';
-    $arma_principal = trim($_POST['arma_principal'] ?? '');
-    $arma_secundaria = trim($_POST['arma_secundaria'] ?? '');
-    $armadura = trim($_POST['armadura'] ?? '');
-    $outras_caracteristicas = trim($_POST['outras_caracteristicas'] ?? '');
-    $gramas = (float) str_replace(',', '.', trim($_POST['gramas'] ?? '0'));
-    $tempo_dias = (int) ($_POST['tempo_dias'] ?? 0);
-    $tempo_horas = (int) ($_POST['tempo_horas'] ?? 0);
-    $tempo_minutos = (int) ($_POST['tempo_minutos'] ?? 0);
-    $tempo_total_min = ($tempo_dias * 24 * 60) + ($tempo_horas * 60) + $tempo_minutos;
-    $unidades_produzidas = (int) ($_POST['unidades_produzidas'] ?? 0);
-    $taxa_falha = (float) str_replace(',', '.', trim($_POST['taxa_falha'] ?? '10'));
-    $markup_lojista = trim($_POST['markup_lojista'] ?? '2');
-    $markup_consumidor_final = trim($_POST['markup_consumidor_final'] ?? '5');
-    $observacoes = trim($_POST['observacoes'] ?? '');
-    $descricao_produto = trim($_POST['descricao_produto'] ?? '');
-    $fotoExistente = trim((string) ($_POST['foto_existente'] ?? ''));
-    $foto = $fotoExistente !== '' ? $fotoExistente : null;
-    $imagens = [];
-    $imagensExistentesRaw = trim((string) ($_POST['imagens_existentes'] ?? ''));
-    if ($imagensExistentesRaw !== '') {
-      $imagensExistentes = json_decode($imagensExistentesRaw, true);
-      if (is_array($imagensExistentes)) {
-        foreach ($imagensExistentes as $imagemExistente) {
-          if (is_string($imagemExistente) && trim($imagemExistente) !== '') {
-            $imagens[] = trim($imagemExistente);
-          }
-        }
-      }
-    }
-    $custo_total_impressao = 0.00;
-
-    $markup_lojista_valor = is_numeric($markup_lojista) ? (float) $markup_lojista : 2.0;
-    $markup_consumidor_final_valor = is_numeric($markup_consumidor_final) ? (float) $markup_consumidor_final : 5.0;
-
-    if (!$erro && $usuario_uuid === '') {
-      $erro = 'Não foi possível identificar o UUID do usuário para upload das imagens.';
-    }
-
-    $tamanhosUpload = [
-      'thumbnail' => [64, 64],
-      'pequena' => [128, 128],
-      'media' => [256, 256],
-      'grande' => [512, 512],
-    ];
-
-    if (!$erro && isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
-      $fotoUpload = uploadImagem($_FILES['foto'], $usuario_uuid, 'usuarios', $tamanhosUpload, 'miniatura_CAPA', false);
-      if ($fotoUpload === false) {
-        $erro = 'Erro ao enviar a imagem de capa. Verifique formato e tamanho do arquivo.';
-      } else {
-        $foto = $fotoUpload;
-      }
-    }
-
-    if (!$erro && isset($_FILES['fotos']) && isset($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
-      $totalArquivos = count($_FILES['fotos']['name']);
-      for ($i = 0; $i < $totalArquivos; $i++) {
-        $nomeArquivo = trim((string) ($_FILES['fotos']['name'][$i] ?? ''));
-        $erroArquivo = $_FILES['fotos']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
-
-        if ($nomeArquivo === '' || $erroArquivo === UPLOAD_ERR_NO_FILE) {
-          continue;
-        }
-
-        if ($erroArquivo !== UPLOAD_ERR_OK) {
-          $avisos_upload[] = 'A imagem adicional "' . $nomeArquivo . '" não foi enviada: ' . descreverErroUpload((int) $erroArquivo);
-          continue;
-        }
-
-        $arquivoImagem = [
-          'name' => $nomeArquivo,
-          'type' => $_FILES['fotos']['type'][$i] ?? '',
-          'tmp_name' => $_FILES['fotos']['tmp_name'][$i] ?? '',
-          'error' => $erroArquivo,
-          'size' => $_FILES['fotos']['size'][$i] ?? 0,
-        ];
-
-        $imagemUpload = uploadImagem($arquivoImagem, $usuario_uuid, 'usuarios', $tamanhosUpload, 'miniatura_IMAGEM', false);
-        if ($imagemUpload === false) {
-          $avisos_upload[] = 'A imagem adicional "' . $nomeArquivo . '" não pôde ser processada (formato ou conteúdo inválido).';
-          continue;
-        }
-
-        $imagens[] = $imagemUpload;
-      }
-    }
-
-    if (!$erro && !$nome) {
-      $erro = 'Preencha o campo obrigatório: Nome.';
-    }
-    if (!$erro && $estudio === '') {
-      $erro = 'Selecione um estúdio.';
-    }
-    if (!$erro && empty($colecoesSelecionadas)) {
-      $erro = 'Selecione ao menos uma coleção.';
-    }
-    if (!$erro && $tematica === '') {
-      $erro = 'Selecione uma temática.';
-    }
-    if (!$erro && !$raca) {
-      $erro = 'Preencha o campo obrigatório: Raça.';
-    }
-    if (!$erro && empty($classesSelecionadas)) {
-      $erro = 'Preencha o campo obrigatório: Classe.';
-    }
-    if (!$erro && !$selecao_confirmacao) {
-      $erro = 'Selecione impressora e material antes de adicionar a miniatura.';
-    }
-    if (!$erro && $gramas <= 0) {
-      $erro = 'Informe um valor válido para Gramas (g).';
-    }
-    if (!$erro && $tempo_total_min <= 0) {
-      $erro = 'Informe um tempo de impressão válido.';
-    }
-    if (!$erro && $unidades_produzidas <= 0) {
-      $erro = 'Informe um valor válido para Unidades Produzidas.';
-    }
-    if (!$erro && $taxa_falha <= 0) {
-      $erro = 'Informe uma Taxa de Falha (%) maior que zero.';
-    }
+    $dadosPost = $miniaturaController->parseDadosAdicao($_POST);
+    $nome = (string) ($dadosPost['nome'] ?? '');
+    $nome_original = (string) ($dadosPost['nome_original'] ?? '');
+    $estudio = (string) ($dadosPost['estudio'] ?? '');
+    $colecao = (string) ($dadosPost['colecao'] ?? '');
+    $tematica = (string) ($dadosPost['tematica'] ?? '');
+    $raca = (string) ($dadosPost['raca'] ?? '');
+    $classe = (string) ($dadosPost['classe'] ?? '');
+    $genero = (string) ($dadosPost['genero'] ?? '');
+    $criatura = (string) ($dadosPost['criatura'] ?? '');
+    $papel = (string) ($dadosPost['papel'] ?? '');
+    $tamanho = (string) ($dadosPost['tamanho'] ?? '');
+    $base = (string) ($dadosPost['base'] ?? '');
+    $pintada = $dadosPost['pintada'] ?? '';
+    $arma_principal = (string) ($dadosPost['arma_principal'] ?? '');
+    $arma_secundaria = (string) ($dadosPost['arma_secundaria'] ?? '');
+    $armadura = (string) ($dadosPost['armadura'] ?? '');
+    $outras_caracteristicas = (string) ($dadosPost['outras_caracteristicas'] ?? '');
+    $gramas = (float) ($dadosPost['gramas'] ?? 0);
+    $tempo_dias = (int) ($dadosPost['tempo_dias'] ?? 0);
+    $tempo_horas = (int) ($dadosPost['tempo_horas'] ?? 0);
+    $tempo_minutos = (int) ($dadosPost['tempo_minutos'] ?? 0);
+    $tempo_total_min = (int) ($dadosPost['tempo_total_min'] ?? 0);
+    $unidades_produzidas = (int) ($dadosPost['unidades_produzidas'] ?? 0);
+    $taxa_falha = (float) ($dadosPost['taxa_falha'] ?? 0);
+    $markup_lojista = (string) ($dadosPost['markup_lojista'] ?? '2');
+    $markup_consumidor_final = (string) ($dadosPost['markup_consumidor_final'] ?? '5');
+    $observacoes = (string) ($dadosPost['observacoes'] ?? '');
+    $descricao_produto = (string) ($dadosPost['descricao_produto'] ?? '');
 
     if (!$erro) {
-      $tempo_total_horas = $tempo_total_min / 60;
-      $potencia = isset($selecao_confirmacao['impressora']['potencia']) ? (float) $selecao_confirmacao['impressora']['potencia'] : 0.0;
-      $fator_uso = isset($selecao_confirmacao['impressora']['fator_uso']) ? (float) $selecao_confirmacao['impressora']['fator_uso'] : 1.0;
-      $custo_hora = isset($selecao_confirmacao['impressora']['custo_hora']) ? (float) $selecao_confirmacao['impressora']['custo_hora'] : 0.0;
+      $resultadoFluxo = $miniaturaController->processarFluxoAdicao(
+        $usuario_id,
+        $usuario_uuid,
+        $_POST,
+        $_FILES,
+        $selecao_confirmacao
+      );
 
-      $stmtEnergia = $pdo->prepare("SELECT valor_kwh FROM energia WHERE usuario_id = ?");
-      $stmtEnergia->execute([$usuario_id]);
-      $energia = $stmtEnergia->fetch(PDO::FETCH_ASSOC);
-      $valor_kwh = $energia ? (float) $energia['valor_kwh'] : 1.0;
+      $foto = $resultadoFluxo['foto'] ?? $foto;
+      $imagens = is_array($resultadoFluxo['imagens'] ?? null) ? $resultadoFluxo['imagens'] : $imagens;
+      $avisos_upload = is_array($resultadoFluxo['avisos_upload'] ?? null) ? $resultadoFluxo['avisos_upload'] : $avisos_upload;
 
-      $custo_energia = ($potencia * $tempo_total_horas * $fator_uso * $valor_kwh) / 1000;
-      $custo_depreciacao = ($custo_hora / 60) * $tempo_total_min;
-
-      if ($selecao_confirmacao['material_tipo'] === 'Filamento') {
-        $preco_kilo = isset($selecao_confirmacao['material']['preco_kilo']) ? (float) $selecao_confirmacao['material']['preco_kilo'] : 0.0;
-        $custo_material = ($gramas / 1000) * $preco_kilo;
-        $base_custo = $custo_material + $custo_energia + $custo_depreciacao;
-        $custo_total_impressao = $base_custo + (($base_custo * 0.7) / $taxa_falha);
-      } else {
-        $preco_litro = isset($selecao_confirmacao['material']['preco_litro']) ? (float) $selecao_confirmacao['material']['preco_litro'] : 0.0;
-        $custo_material = ($gramas / 1000) * $preco_litro;
-
-        $stmtAlcool = $pdo->prepare("SELECT preco_litro FROM alcool WHERE usuario_id = ?");
-        $stmtAlcool->execute([$usuario_id]);
-        $alcool = $stmtAlcool->fetch(PDO::FETCH_ASSOC);
-        $preco_litro_alcool = $alcool ? (float) $alcool['preco_litro'] : 0.0;
-        $custo_lavagem_alcool = ($preco_litro_alcool / 1000) * $gramas;
-
-        $base_custo = $custo_material + $custo_energia + $custo_depreciacao + $custo_lavagem_alcool;
-        $custo_total_impressao = $base_custo + (($base_custo * 0.7) / $taxa_falha);
-      }
-
-      $custo_total_impressao = round($custo_total_impressao, 2);
-    }
-
-    if (!$erro) {
-      try {
-        $pdo->beginTransaction();
-
-        if ($estudio_id_post > 0) {
-          $estudioEscolhido = buscarEstudioPorId($pdo, $usuario_id, $estudio_id_post);
-          if (!$estudioEscolhido) {
-            throw new RuntimeException('O estúdio selecionado não é válido para este usuário.');
-          }
-        } else {
-          $estudioEscolhido = resolverEstudio($pdo, $usuario_id, $estudio);
-        }
-
-        $colecoesResolvidas = [];
-        foreach ($colecoesSelecionadas as $colecaoItem) {
-          $colecaoResolvida = resolverColecao($pdo, $usuario_id, (int) $estudioEscolhido['id'], $colecaoItem);
-
-          if ((int) ($colecaoResolvida['id'] ?? 0) <= 0) {
-            $stmtColecaoFallback = $pdo->prepare("SELECT c.id, c.nome, c.estudio_id, e.nome AS estudio_nome
-              FROM colecoes c
-              INNER JOIN estudios e ON e.id = c.estudio_id
-              WHERE c.usuario_id = ?
-                AND LOWER(c.nome) = LOWER(?)
-              ORDER BY c.id DESC
-              LIMIT 1");
-            $stmtColecaoFallback->execute([$usuario_id, $colecaoItem]);
-            $colecaoFallback = $stmtColecaoFallback->fetch(PDO::FETCH_ASSOC);
-
-            if ($colecaoFallback) {
-              $colecaoResolvida = $colecaoFallback;
-            }
-          }
-
-          $colecoesResolvidas[] = $colecaoResolvida;
-        }
-
-        if ($tematica_id_post > 0) {
-          $tematicaEscolhida = buscarTematicaPorId($pdo, $tematica_id_post);
-          if (!$tematicaEscolhida) {
-            throw new RuntimeException('A temática selecionada não é válida.');
-          }
-        } else {
-          $tematicaEscolhida = resolverTematica($pdo, $tematica);
-        }
-
-        $estudioIdEscolhido = (int) ($estudioEscolhido['id'] ?? 0);
-        $colecaoIdsEscolhidas = array_values(array_unique(array_map(static function ($colecaoItem): int {
-          return (int) ($colecaoItem['id'] ?? 0);
-        }, $colecoesResolvidas)));
-        $colecaoIdsEscolhidas = array_values(array_filter($colecaoIdsEscolhidas, static function (int $id): bool {
-          return $id > 0;
-        }));
-        $colecaoIdEscolhida = (int) ($colecaoIdsEscolhidas[0] ?? 0);
-
-        if ($colecaoIdEscolhida <= 0) {
-          throw new RuntimeException('Não foi possível identificar uma coleção válida para este cadastro.');
-        }
-
-        if ($estudioIdEscolhido <= 0) {
-          throw new RuntimeException('Não foi possível identificar um estúdio válido para este cadastro.');
-        }
-
-        $stmtCategoria = $pdo->prepare("SELECT id FROM categorias WHERE nome = ? LIMIT 1");
-        $stmtCategoria->execute(['Miniaturas']);
-        $categoriaId = (int) ($stmtCategoria->fetchColumn() ?: 0);
-
-        if ($categoriaId === 0) {
-          $stmtInsertCategoria = $pdo->prepare("INSERT INTO categorias (nome) VALUES (?)");
-          $stmtInsertCategoria->execute(['Miniaturas']);
-          $categoriaId = (int) $pdo->lastInsertId();
-        }
-
-        $classeParaSku = (string) ($classesSelecionadas[0] ?? '');
-        $skuCodigo = gerarSkuAutomatico($pdo, (string) ($estudioEscolhido['nome'] ?? ''), $raca, $classeParaSku);
-
-        $precoLojista = $custo_total_impressao * $markup_lojista_valor;
-        $precoConsumidorFinal = $custo_total_impressao * $markup_consumidor_final_valor;
-        $imagensJson = !empty($imagens) ? json_encode($imagens, JSON_UNESCAPED_UNICODE) : null;
-
-        $stmtInsertProduto = $pdo->prepare("INSERT INTO produtos (usuario_id, nome, categoria, imagem_capa, imagens, descricao, observacoes, markup_lojista, markup_consumidor_final, preco_lojista, preco_consumidor_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmtInsertProduto->execute([
-          $usuario_id,
-          $nome,
-          $categoriaId,
-          $foto,
-          $imagensJson,
-          $descricao_produto !== '' ? $descricao_produto : null,
-          $observacoes !== '' ? $observacoes : null,
-          $markup_lojista_valor,
-          $markup_consumidor_final_valor,
-          $precoLojista,
-          $precoConsumidorFinal,
-        ]);
-        $produtoId = (int) $pdo->lastInsertId();
-
-        $stmtInsertSku = $pdo->prepare("INSERT INTO sku (produto_id, sku, usuario_id) VALUES (?, ?, ?)");
-        $stmtInsertSku->execute([$produtoId, $skuCodigo, $usuario_id]);
-
-        $custoPorUnidade = $unidades_produzidas > 0 ? round($custo_total_impressao / $unidades_produzidas, 2) : 0.00;
-        $stmtInsertCusto = $pdo->prepare("INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)");
-        $stmtInsertCusto->execute([$produtoId, $custo_total_impressao, $custoPorUnidade]);
-
-        $stmtMiniatura = $pdo->prepare("INSERT INTO miniaturas (id_sku, produto_id, usuario_id, nome_original, id_estudio, id_colecao, id_tematica, tematica, raca, classe, genero, criatura, papel, tamanho, base, pintada, arma_principal, arma_secundaria, armadura, outras_caracteristicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmtMiniatura->execute([
-          $skuCodigo,
-          $produtoId,
-          $usuario_id,
-          $nome_original !== '' ? $nome_original : null,
-          $estudioIdEscolhido,
-          $colecaoIdEscolhida,
-          (int) $tematicaEscolhida['id'],
-          $tematicaEscolhida['nome'],
-          $raca !== '' ? $raca : null,
-          $classe !== '' ? $classe : null,
-          $genero !== '' ? $genero : null,
-          $criatura !== '' ? $criatura : null,
-          $papel !== '' ? $papel : null,
-          $tamanho !== '' ? $tamanho : null,
-          $base !== '' ? $base : null,
-          $pintada !== '' ? (int) $pintada : null,
-          $arma_principal !== '' ? $arma_principal : null,
-          $arma_secundaria !== '' ? $arma_secundaria : null,
-          $armadura !== '' ? $armadura : null,
-          $outras_caracteristicas !== '' ? $outras_caracteristicas : null,
-        ]);
-
-        $miniaturaId = (int) $pdo->lastInsertId();
-        vincularMiniaturaColecoes($pdo, $miniaturaId, $usuario_id, $colecaoIdsEscolhidas);
-
-        $pdo->commit();
+      if (($resultadoFluxo['sucesso'] ?? false) === true) {
         echo '<script>window.location.href="?pagina=produtos";</script>';
         exit;
-      } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-          $pdo->rollBack();
-        }
-        $erro = 'Erro ao cadastrar miniatura/produto: ' . $e->getMessage();
       }
+
+      $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar miniatura/produto.');
     }
 }
 ?>
@@ -1144,21 +398,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="form-row">
             <div class="form-group col-md-12">
               <label for="nome">Nome</label>
-              <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>">
+              <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group col-md-12">
               <label for="nome_original">Nome Original</label>
-              <input type="text" class="form-control" id="nome_original" name="nome_original" value="<?= htmlspecialchars($_POST['nome_original'] ?? '') ?>">
+              <input type="text" class="form-control" id="nome_original" name="nome_original" value="<?= htmlspecialchars((string) ($dadosFormulario['nome_original'] ?? '')) ?>">
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group col-md-4 position-relative">
               <label for="estudio">Estúdio *</label>
-              <input type="text" class="form-control" id="estudio" name="estudio" required value="<?= htmlspecialchars($_POST['estudio'] ?? '') ?>" placeholder="Digite ou selecione um estúdio" autocomplete="off">
+              <input type="text" class="form-control" id="estudio" name="estudio" required value="<?= htmlspecialchars((string) ($dadosFormulario['estudio'] ?? '')) ?>" placeholder="Digite ou selecione um estúdio" autocomplete="off">
               <ul id="estudio-sugestoes" class="autocomplete-list"></ul>
             </div>
             <div class="form-group col-md-4 position-relative">
@@ -1166,7 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="colecao-container">
                 <div id="colecao-tags" class="colecao-tags"></div>
                 <input type="text" class="colecao-input" id="colecao-input" placeholder="Digite uma coleção..." autocomplete="off">
-                <input type="hidden" id="colecao" name="colecao" value="<?= htmlspecialchars($_POST['colecao'] ?? '') ?>">
+                <input type="hidden" id="colecao" name="colecao" value="<?= htmlspecialchars((string) ($dadosFormulario['colecao'] ?? '')) ?>">
               </div>
               <ul id="colecao-sugestoes" class="autocomplete-list"></ul>
             </div>
@@ -1176,24 +430,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </label>
               <select class="form-control" id="tematica" name="tematica" required>
                 <option value="">-- Selecione --</option>
-                <option value="Cyberpunk" <?= (($_POST['tematica'] ?? '') === 'Cyberpunk') ? 'selected' : '' ?>>Cyberpunk</option>
-                <option value="Fantasia" <?= (($_POST['tematica'] ?? '') === 'Fantasia') ? 'selected' : '' ?>>Fantasia</option>
-                <option value="Faroeste" <?= (($_POST['tematica'] ?? '') === 'Faroeste') ? 'selected' : '' ?>>Faroeste</option>
-                <option value="Horror Cósmico" <?= (($_POST['tematica'] ?? '') === 'Horror Cósmico') ? 'selected' : '' ?>>Horror Cósmico</option>
-                <option value="Paranormal" <?= (($_POST['tematica'] ?? '') === 'Paranormal') ? 'selected' : '' ?>>Paranormal</option>
-                <option value="Space Opera" <?= (($_POST['tematica'] ?? '') === 'Space Opera') ? 'selected' : '' ?>>Space Opera</option>
+                <option value="Cyberpunk" <?= (($dadosFormulario['tematica'] ?? '') === 'Cyberpunk') ? 'selected' : '' ?>>Cyberpunk</option>
+                <option value="Fantasia" <?= (($dadosFormulario['tematica'] ?? '') === 'Fantasia') ? 'selected' : '' ?>>Fantasia</option>
+                <option value="Faroeste" <?= (($dadosFormulario['tematica'] ?? '') === 'Faroeste') ? 'selected' : '' ?>>Faroeste</option>
+                <option value="Horror Cósmico" <?= (($dadosFormulario['tematica'] ?? '') === 'Horror Cósmico') ? 'selected' : '' ?>>Horror Cósmico</option>
+                <option value="Paranormal" <?= (($dadosFormulario['tematica'] ?? '') === 'Paranormal') ? 'selected' : '' ?>>Paranormal</option>
+                <option value="Space Opera" <?= (($dadosFormulario['tematica'] ?? '') === 'Space Opera') ? 'selected' : '' ?>>Space Opera</option>
               </select>
             </div>
           </div>
 
           <div class="form-row">
-            <div class="form-group col-md-4"><label for="raca">Raça</label><input type="text" class="form-control" id="raca" name="raca" list="lista-racas" value="<?= htmlspecialchars($_POST['raca'] ?? '') ?>"></div>
+            <div class="form-group col-md-4"><label for="raca">Raça</label><input type="text" class="form-control" id="raca" name="raca" list="lista-racas" value="<?= htmlspecialchars((string) ($dadosFormulario['raca'] ?? '')) ?>"></div>
             <div class="form-group col-md-4 position-relative">
               <label for="classe-input">Classe</label>
               <div class="classe-container">
                 <div id="classe-tags" class="classe-tags"></div>
                 <input type="text" class="classe-input" id="classe-input" placeholder="Digite uma classe..." autocomplete="off">
-                <input type="hidden" id="classe" name="classe" value="<?= htmlspecialchars($_POST['classe'] ?? '') ?>">
+                <input type="hidden" id="classe" name="classe" value="<?= htmlspecialchars((string) ($dadosFormulario['classe'] ?? '')) ?>">
               </div>
               <ul id="classe-sugestoes" class="autocomplete-list"></ul>
             </div>
@@ -1203,10 +457,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </label>
               <select class="form-control" id="genero" name="genero">
                 <option value="">-- Selecione --</option>
-                <option value="Masculino" <?= (($_POST['genero'] ?? '') === 'Masculino') ? 'selected' : '' ?>>Masculino</option>
-                <option value="Feminino" <?= (($_POST['genero'] ?? '') === 'Feminino') ? 'selected' : '' ?>>Feminino</option>
-                <option value="Neutro / Unissex" <?= in_array(($_POST['genero'] ?? ''), ['Neutro / Unissex', 'Neutro'], true) ? 'selected' : '' ?>>Neutro / Unissex</option>
-                <option value="Não Especificado" <?= (($_POST['genero'] ?? '') === 'Não Especificado') ? 'selected' : '' ?>>Não Especificado</option>
+                <option value="Masculino" <?= (($dadosFormulario['genero'] ?? '') === 'Masculino') ? 'selected' : '' ?>>Masculino</option>
+                <option value="Feminino" <?= (($dadosFormulario['genero'] ?? '') === 'Feminino') ? 'selected' : '' ?>>Feminino</option>
+                <option value="Neutro / Unissex" <?= in_array(($dadosFormulario['genero'] ?? ''), ['Neutro / Unissex', 'Neutro'], true) ? 'selected' : '' ?>>Neutro / Unissex</option>
+                <option value="Não Especificado" <?= (($dadosFormulario['genero'] ?? '') === 'Não Especificado') ? 'selected' : '' ?>>Não Especificado</option>
               </select>
             </div>
           </div>
@@ -1218,20 +472,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </label>
               <select class="form-control" id="criatura" name="criatura">
                 <option value="">-- Selecione --</option>
-                <option value="Aberração" <?= (($_POST['criatura'] ?? '') === 'Aberração') ? 'selected' : '' ?>>Aberração</option>
-                <option value="Alienígena" <?= (($_POST['criatura'] ?? '') === 'Alienígena') ? 'selected' : '' ?>>Alienígena</option>
-                <option value="Celestial" <?= (($_POST['criatura'] ?? '') === 'Celestial') ? 'selected' : '' ?>>Celestial</option>
-                <option value="Ciborgue" <?= (($_POST['criatura'] ?? '') === 'Ciborgue') ? 'selected' : '' ?>>Ciborgue</option>
-                <option value="Constructo" <?= (($_POST['criatura'] ?? '') === 'Constructo') ? 'selected' : '' ?>>Constructo</option>
-                <option value="Ínfero / Demônio" <?= (($_POST['criatura'] ?? '') === 'Ínfero / Demônio') ? 'selected' : '' ?>>Ínfero / Demônio</option>
-                <option value="Dragão" <?= (($_POST['criatura'] ?? '') === 'Dragão') ? 'selected' : '' ?>>Dragão</option>
-                <option value="Elemental" <?= (($_POST['criatura'] ?? '') === 'Elemental') ? 'selected' : '' ?>>Elemental</option>
-                <option value="Fada" <?= (($_POST['criatura'] ?? '') === 'Fada') ? 'selected' : '' ?>>Fada</option>
-                <option value="Fera" <?= (($_POST['criatura'] ?? '') === 'Fera') ? 'selected' : '' ?>>Fera</option>
-                <option value="Gigante" <?= (($_POST['criatura'] ?? '') === 'Gigante') ? 'selected' : '' ?>>Gigante</option>
-                <option value="Humanoide" <?= (($_POST['criatura'] ?? '') === 'Humanoide') ? 'selected' : '' ?>>Humanoide</option>
-                <option value="Monstruosidade" <?= (($_POST['criatura'] ?? '') === 'Monstruosidade') ? 'selected' : '' ?>>Monstruosidade</option>
-                <option value="Morto-vivo" <?= (($_POST['criatura'] ?? '') === 'Morto-vivo') ? 'selected' : '' ?>>Morto-vivo</option>
+                <option value="Aberração" <?= (($dadosFormulario['criatura'] ?? '') === 'Aberração') ? 'selected' : '' ?>>Aberração</option>
+                <option value="Alienígena" <?= (($dadosFormulario['criatura'] ?? '') === 'Alienígena') ? 'selected' : '' ?>>Alienígena</option>
+                <option value="Celestial" <?= (($dadosFormulario['criatura'] ?? '') === 'Celestial') ? 'selected' : '' ?>>Celestial</option>
+                <option value="Ciborgue" <?= (($dadosFormulario['criatura'] ?? '') === 'Ciborgue') ? 'selected' : '' ?>>Ciborgue</option>
+                <option value="Constructo" <?= (($dadosFormulario['criatura'] ?? '') === 'Constructo') ? 'selected' : '' ?>>Constructo</option>
+                <option value="Ínfero / Demônio" <?= (($dadosFormulario['criatura'] ?? '') === 'Ínfero / Demônio') ? 'selected' : '' ?>>Ínfero / Demônio</option>
+                <option value="Dragão" <?= (($dadosFormulario['criatura'] ?? '') === 'Dragão') ? 'selected' : '' ?>>Dragão</option>
+                <option value="Elemental" <?= (($dadosFormulario['criatura'] ?? '') === 'Elemental') ? 'selected' : '' ?>>Elemental</option>
+                <option value="Fada" <?= (($dadosFormulario['criatura'] ?? '') === 'Fada') ? 'selected' : '' ?>>Fada</option>
+                <option value="Fera" <?= (($dadosFormulario['criatura'] ?? '') === 'Fera') ? 'selected' : '' ?>>Fera</option>
+                <option value="Gigante" <?= (($dadosFormulario['criatura'] ?? '') === 'Gigante') ? 'selected' : '' ?>>Gigante</option>
+                <option value="Humanoide" <?= (($dadosFormulario['criatura'] ?? '') === 'Humanoide') ? 'selected' : '' ?>>Humanoide</option>
+                <option value="Monstruosidade" <?= (($dadosFormulario['criatura'] ?? '') === 'Monstruosidade') ? 'selected' : '' ?>>Monstruosidade</option>
+                <option value="Morto-vivo" <?= (($dadosFormulario['criatura'] ?? '') === 'Morto-vivo') ? 'selected' : '' ?>>Morto-vivo</option>
               </select>
             </div>
             <div class="form-group col-md-4">
@@ -1240,29 +494,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </label>
               <select class="form-control" id="papel" name="papel">
                 <option value="">-- Selecione --</option>
-                <option value="Acessório / Objeto" <?= (($_POST['papel'] ?? '') === 'Acessório / Objeto') ? 'selected' : '' ?>>Acessório / Objeto</option>
-                <option value="Baú" <?= (($_POST['papel'] ?? '') === 'Baú') ? 'selected' : '' ?>>Baú</option>
-                <option value="Cenário Modular" <?= (($_POST['papel'] ?? '') === 'Cenário Modular') ? 'selected' : '' ?>>Cenário Modular</option>
-                <option value="Cosplay" <?= (($_POST['papel'] ?? '') === 'Cosplay') ? 'selected' : '' ?>>Cosplay</option>
-                <option value="Diorama" <?= (($_POST['papel'] ?? '') === 'Diorama') ? 'selected' : '' ?>>Diorama</option>
-                <option value="Elementos de Cenário" <?= (($_POST['papel'] ?? '') === 'Elementos de Cenário') ? 'selected' : '' ?>>Elementos de Cenário</option>
-                <option value="Herói" <?= (($_POST['papel'] ?? '') === 'Herói') ? 'selected' : '' ?>>Herói</option>
-                <option value="Inimigo" <?= (($_POST['papel'] ?? '') === 'Inimigo') ? 'selected' : '' ?>>Inimigo</option>
-                <option value="Monstro" <?= (($_POST['papel'] ?? '') === 'Monstro') ? 'selected' : '' ?>>Monstro</option>
-                <option value="NPC / PNJ" <?= (($_POST['papel'] ?? '') === 'NPC / PNJ') ? 'selected' : '' ?>>NPC / PNJ</option>
-                <option value="Personagem Jogável" <?= (($_POST['papel'] ?? '') === 'Personagem Jogável') ? 'selected' : '' ?>>Personagem Jogável</option>
-                <option value="Pet / Familiar" <?= (($_POST['papel'] ?? '') === 'Pet / Familiar') ? 'selected' : '' ?>>Pet / Familiar</option>
-                <option value="Veículo" <?= (($_POST['papel'] ?? '') === 'Veículo') ? 'selected' : '' ?>>Veículo</option>
+                <option value="Acessório / Objeto" <?= (($dadosFormulario['papel'] ?? '') === 'Acessório / Objeto') ? 'selected' : '' ?>>Acessório / Objeto</option>
+                <option value="Baú" <?= (($dadosFormulario['papel'] ?? '') === 'Baú') ? 'selected' : '' ?>>Baú</option>
+                <option value="Cenário Modular" <?= (($dadosFormulario['papel'] ?? '') === 'Cenário Modular') ? 'selected' : '' ?>>Cenário Modular</option>
+                <option value="Cosplay" <?= (($dadosFormulario['papel'] ?? '') === 'Cosplay') ? 'selected' : '' ?>>Cosplay</option>
+                <option value="Diorama" <?= (($dadosFormulario['papel'] ?? '') === 'Diorama') ? 'selected' : '' ?>>Diorama</option>
+                <option value="Elementos de Cenário" <?= (($dadosFormulario['papel'] ?? '') === 'Elementos de Cenário') ? 'selected' : '' ?>>Elementos de Cenário</option>
+                <option value="Herói" <?= (($dadosFormulario['papel'] ?? '') === 'Herói') ? 'selected' : '' ?>>Herói</option>
+                <option value="Inimigo" <?= (($dadosFormulario['papel'] ?? '') === 'Inimigo') ? 'selected' : '' ?>>Inimigo</option>
+                <option value="Monstro" <?= (($dadosFormulario['papel'] ?? '') === 'Monstro') ? 'selected' : '' ?>>Monstro</option>
+                <option value="NPC / PNJ" <?= (($dadosFormulario['papel'] ?? '') === 'NPC / PNJ') ? 'selected' : '' ?>>NPC / PNJ</option>
+                <option value="Personagem Jogável" <?= (($dadosFormulario['papel'] ?? '') === 'Personagem Jogável') ? 'selected' : '' ?>>Personagem Jogável</option>
+                <option value="Pet / Familiar" <?= (($dadosFormulario['papel'] ?? '') === 'Pet / Familiar') ? 'selected' : '' ?>>Pet / Familiar</option>
+                <option value="Veículo" <?= (($dadosFormulario['papel'] ?? '') === 'Veículo') ? 'selected' : '' ?>>Veículo</option>
               </select>
             </div>
             <div class="form-group col-md-4">
               <label for="tamanho">Tamanho</label>
               <select class="form-control" id="tamanho" name="tamanho">
                 <option value="">-- Selecione --</option>
-                <option value="Pequeno" <?= (($_POST['tamanho'] ?? '') === 'Pequeno') ? 'selected' : '' ?>>Pequeno</option>
-                <option value="Médio" <?= (($_POST['tamanho'] ?? '') === 'Médio') ? 'selected' : '' ?>>Médio</option>
-                <option value="Grande" <?= (($_POST['tamanho'] ?? '') === 'Grande') ? 'selected' : '' ?>>Grande</option>
-                <option value="Gigantesco" <?= (($_POST['tamanho'] ?? '') === 'Gigantesco') ? 'selected' : '' ?>>Gigantesco</option>
+                <option value="Pequeno" <?= (($dadosFormulario['tamanho'] ?? '') === 'Pequeno') ? 'selected' : '' ?>>Pequeno</option>
+                <option value="Médio" <?= (($dadosFormulario['tamanho'] ?? '') === 'Médio') ? 'selected' : '' ?>>Médio</option>
+                <option value="Grande" <?= (($dadosFormulario['tamanho'] ?? '') === 'Grande') ? 'selected' : '' ?>>Grande</option>
+                <option value="Gigantesco" <?= (($dadosFormulario['tamanho'] ?? '') === 'Gigantesco') ? 'selected' : '' ?>>Gigantesco</option>
               </select>
             </div>
           </div>
@@ -1270,17 +524,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="form-row">
             <div class="form-group col-md-4 position-relative">
               <label for="arma_principal">Arma Principal</label>
-              <input type="text" class="form-control" id="arma_principal" name="arma_principal" placeholder="Ex: Espada Longa" value="<?= htmlspecialchars($_POST['arma_principal'] ?? '') ?>" autocomplete="off">
+              <input type="text" class="form-control" id="arma_principal" name="arma_principal" placeholder="Ex: Espada Longa" value="<?= htmlspecialchars((string) ($dadosFormulario['arma_principal'] ?? '')) ?>" autocomplete="off">
               <ul id="arma-principal-sugestoes" class="autocomplete-list"></ul>
             </div>
             <div class="form-group col-md-4 position-relative">
               <label for="arma_secundaria">Arma Secundária</label>
-              <input type="text" class="form-control" id="arma_secundaria" name="arma_secundaria" placeholder="Ex: Escudo" value="<?= htmlspecialchars($_POST['arma_secundaria'] ?? '') ?>" autocomplete="off">
+              <input type="text" class="form-control" id="arma_secundaria" name="arma_secundaria" placeholder="Ex: Escudo" value="<?= htmlspecialchars((string) ($dadosFormulario['arma_secundaria'] ?? '')) ?>" autocomplete="off">
               <ul id="arma-secundaria-sugestoes" class="autocomplete-list"></ul>
             </div>
             <div class="form-group col-md-4 position-relative">
               <label for="armadura">Armadura</label>
-              <input type="text" class="form-control" id="armadura" name="armadura" placeholder="Ex: Couro" value="<?= htmlspecialchars($_POST['armadura'] ?? '') ?>" autocomplete="off">
+              <input type="text" class="form-control" id="armadura" name="armadura" placeholder="Ex: Couro" value="<?= htmlspecialchars((string) ($dadosFormulario['armadura'] ?? '')) ?>" autocomplete="off">
               <ul id="armadura-sugestoes" class="autocomplete-list"></ul>
             </div>
           </div>
@@ -1298,7 +552,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="outras_caracteristicas-container">
           <div id="outras_caracteristicas-tags" class="outras_caracteristicas-tags"></div>
           <input type="text" class="outras_caracteristicas-input" id="outras_caracteristicas-input" placeholder="Digite uma característica..." autocomplete="off">
-          <input type="hidden" id="outras_caracteristicas" name="outras_caracteristicas" value="<?= htmlspecialchars($_POST['outras_caracteristicas'] ?? '') ?>">
+          <input type="hidden" id="outras_caracteristicas" name="outras_caracteristicas" value="<?= htmlspecialchars((string) ($dadosFormulario['outras_caracteristicas'] ?? '')) ?>">
         </div>
         <ul id="outras_caracteristicas-sugestoes" class="autocomplete-list"></ul>
       </div>
@@ -1306,7 +560,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-row">
         <div class="form-group col-md-12">
           <label for="descricao_produto">Descrição</label>
-          <textarea class="form-control" id="descricao_produto" name="descricao_produto" rows="2"><?= htmlspecialchars($_POST['descricao_produto'] ?? '') ?></textarea>
+          <textarea class="form-control" id="descricao_produto" name="descricao_produto" rows="2"><?= htmlspecialchars((string) ($dadosFormulario['descricao_produto'] ?? '')) ?></textarea>
         </div>
       </div>
 
@@ -1325,20 +579,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label for="base">Base</label>
           <select class="form-control" id="base" name="base">
             <option value="">-- Selecione --</option>
-            <option value="25mm" <?= (($_POST['base'] ?? '') === '25mm') ? 'selected' : '' ?>>25mm</option>
-            <option value="32mm" <?= (($_POST['base'] ?? '') === '32mm') ? 'selected' : '' ?>>32mm</option>
-            <option value="51mm" <?= (($_POST['base'] ?? '') === '51mm') ? 'selected' : '' ?>>51mm</option>
-            <option value="75mm" <?= (($_POST['base'] ?? '') === '75mm') ? 'selected' : '' ?>>75mm</option>
-            <option value="100mm" <?= (($_POST['base'] ?? '') === '100mm') ? 'selected' : '' ?>>100mm</option>
-            <option value="Outra" <?= (($_POST['base'] ?? '') === 'Outra') ? 'selected' : '' ?>>Outra</option>
+            <option value="25mm" <?= (($dadosFormulario['base'] ?? '') === '25mm') ? 'selected' : '' ?>>25mm</option>
+            <option value="32mm" <?= (($dadosFormulario['base'] ?? '') === '32mm') ? 'selected' : '' ?>>32mm</option>
+            <option value="51mm" <?= (($dadosFormulario['base'] ?? '') === '51mm') ? 'selected' : '' ?>>51mm</option>
+            <option value="75mm" <?= (($dadosFormulario['base'] ?? '') === '75mm') ? 'selected' : '' ?>>75mm</option>
+            <option value="100mm" <?= (($dadosFormulario['base'] ?? '') === '100mm') ? 'selected' : '' ?>>100mm</option>
+            <option value="Outra" <?= (($dadosFormulario['base'] ?? '') === 'Outra') ? 'selected' : '' ?>>Outra</option>
           </select>
         </div>
         <div class="form-group col-md-6">
           <label for="pintada">Pintada</label>
           <select class="form-control" id="pintada" name="pintada">
-            <option value="" <?= !isset($_POST['pintada']) || $_POST['pintada'] === '' ? 'selected' : '' ?>>-- Selecione --</option>
-            <option value="0" <?= (string)($_POST['pintada'] ?? '') === '0' ? 'selected' : '' ?>>Não</option>
-            <option value="1" <?= (string)($_POST['pintada'] ?? '') === '1' ? 'selected' : '' ?>>Sim</option>
+            <option value="" <?= (($dadosFormulario['pintada'] ?? '') === '') ? 'selected' : '' ?>>-- Selecione --</option>
+            <option value="0" <?= (string)($dadosFormulario['pintada'] ?? '') === '0' ? 'selected' : '' ?>>Não</option>
+            <option value="1" <?= (string)($dadosFormulario['pintada'] ?? '') === '1' ? 'selected' : '' ?>>Sim</option>
           </select>
         </div>
       </div>
@@ -1351,19 +605,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="form-row">
             <div class="form-group col-md-4">
               <label for="gramas">Gramas (g)</label>
-              <input type="number" step="0.01" min="0" class="form-control" id="gramas" name="gramas" value="<?= htmlspecialchars($_POST['gramas'] ?? '') ?>">
+              <input type="number" step="0.01" min="0" class="form-control" id="gramas" name="gramas" value="<?= htmlspecialchars((string) ($dadosFormulario['gramas'] ?? '')) ?>">
             </div>
             <div class="form-group col-md-8">
               <label>Tempo de impressão (dias, horas, minutos)</label>
               <div class="form-row">
                 <div class="col-4">
-                  <input type="number" min="0" class="form-control" id="tempo_dias" name="tempo_dias" placeholder="Dias" value="<?= htmlspecialchars($_POST['tempo_dias'] ?? '') ?>">
+                  <input type="number" min="0" class="form-control" id="tempo_dias" name="tempo_dias" placeholder="Dias" value="<?= htmlspecialchars((string) ($dadosFormulario['tempo_dias'] ?? '')) ?>">
                 </div>
                 <div class="col-4">
-                  <input type="number" min="0" class="form-control" id="tempo_horas" name="tempo_horas" placeholder="Horas" value="<?= htmlspecialchars($_POST['tempo_horas'] ?? '') ?>">
+                  <input type="number" min="0" class="form-control" id="tempo_horas" name="tempo_horas" placeholder="Horas" value="<?= htmlspecialchars((string) ($dadosFormulario['tempo_horas'] ?? '')) ?>">
                 </div>
                 <div class="col-4">
-                  <input type="number" min="0" class="form-control" id="tempo_minutos" name="tempo_minutos" placeholder="Min" value="<?= htmlspecialchars($_POST['tempo_minutos'] ?? '') ?>">
+                  <input type="number" min="0" class="form-control" id="tempo_minutos" name="tempo_minutos" placeholder="Min" value="<?= htmlspecialchars((string) ($dadosFormulario['tempo_minutos'] ?? '')) ?>">
                 </div>
               </div>
             </div>
@@ -1373,18 +627,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="form-row">
             <div class="form-group col-md-4">
               <label for="unidades_produzidas">Unidades Produzidas</label>
-              <input type="number" min="0" class="form-control" id="unidades_produzidas" name="unidades_produzidas" value="<?= htmlspecialchars($_POST['unidades_produzidas'] ?? '') ?>">
+              <input type="number" min="0" class="form-control" id="unidades_produzidas" name="unidades_produzidas" value="<?= htmlspecialchars((string) ($dadosFormulario['unidades_produzidas'] ?? '')) ?>">
             </div>
             <div class="form-group col-md-4">
               <label for="taxa_falha">Taxa de Falha (%)</label>
-              <input type="number" step="0.01" min="0" class="form-control" id="taxa_falha" name="taxa_falha" value="<?= htmlspecialchars($_POST['taxa_falha'] ?? '10') ?>">
+              <input type="number" step="0.01" min="0" class="form-control" id="taxa_falha" name="taxa_falha" value="<?= htmlspecialchars((string) ($dadosFormulario['taxa_falha'] ?? '10')) ?>">
             </div>
             <div class="form-group col-md-4">
               <label for="markup_consumidor_final">Markup Consumidor Final</label>
               <select class="form-control" id="markup_consumidor_final" name="markup_consumidor_final">
                 <option value="">-- Selecione --</option>
                 <?php for ($i = 1; $i <= 10; $i++): ?>
-                  <option value="<?= $i ?>" <?= (string)($_POST['markup_consumidor_final'] ?? '5') === (string)$i ? 'selected' : '' ?>><?= $i ?></option>
+                  <option value="<?= $i ?>" <?= (string)($dadosFormulario['markup_consumidor_final'] ?? '5') === (string)$i ? 'selected' : '' ?>><?= $i ?></option>
                 <?php endfor; ?>
               </select>
             </div>
@@ -1395,7 +649,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-row">
         <div class="form-group col-md-12">
           <label for="observacoes">Observações</label>
-          <input type="text" class="form-control" id="observacoes" name="observacoes" value="<?= htmlspecialchars($_POST['observacoes'] ?? '') ?>">
+          <input type="text" class="form-control" id="observacoes" name="observacoes" value="<?= htmlspecialchars((string) ($dadosFormulario['observacoes'] ?? '')) ?>">
         </div>
       </div>
     </div>

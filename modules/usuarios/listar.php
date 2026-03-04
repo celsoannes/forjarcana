@@ -1,5 +1,9 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Usuarios\UsuarioFotoResolver;
+use App\Usuarios\UsuarioService;
 
 // Apenas admins podem acessar
 if (!isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] !== 'admin') {
@@ -7,44 +11,11 @@ if (!isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] !== 'admin'
     exit;
 }
 
-// Excluir usuário via AJAX
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_id'])) {
-    $id = $_POST['excluir_id'];
-    // Busca o uuid do usuário
-    $stmt = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ?");
-    $stmt->execute([$id]);
-    $uuid = $stmt->fetchColumn();
-
-    if ($uuid) {
-        $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
-        $stmt->execute([$id]);
-        // Exclui a pasta de imagens do usuário
-        $dir = __DIR__ . "/../../uploads/usuarios/$uuid";
-        if (is_dir($dir)) {
-            function excluirPasta($pasta) {
-                $arquivos = array_diff(scandir($pasta), ['.', '..']);
-                foreach ($arquivos as $arquivo) {
-                    $caminho = "$pasta/$arquivo";
-                    if (is_dir($caminho)) {
-                        excluirPasta($caminho);
-                    } else {
-                        unlink($caminho);
-                    }
-                }
-                rmdir($pasta);
-            }
-            excluirPasta($dir);
-        }
-        echo 'ok';
-        exit;
-    }
-    echo 'erro';
-    exit;
-}
+$usuarioService = new UsuarioService($pdo);
+$fotoResolver = new UsuarioFotoResolver(__DIR__ . '/../../');
 
 // Busca todos os usuários
-$stmt = $pdo->query("SELECT id, nome, sobrenome, email, cargo, celular, cpf, foto, data_expiracao FROM usuarios ORDER BY nome, sobrenome");
-$usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$usuarios = $usuarioService->listarTodos();
 ?>
 <div class="card">
   <div class="card-header">
@@ -76,15 +47,34 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <tr>
               <td><?= htmlspecialchars($usuario['id']) ?></td>
               <td>
-                <?php if (!empty($usuario['foto'])): ?>
-                  <img src="<?= htmlspecialchars($usuario['foto']) ?>" alt="Foto" style="width:32px;height:32px;border-radius:50%;">
+                <?php
+                  $fotoLista = !empty($usuario['foto']) ? $fotoResolver->resolverParaLista((string) $usuario['foto']) : '';
+                  if ($fotoLista !== ''):
+                ?>
+                  <img src="<?= htmlspecialchars($fotoLista) ?>" alt="Foto" style="width:32px;height:32px;border-radius:50%;">
                 <?php else: ?>
                   <span class="text-muted">-</span>
                 <?php endif; ?>
               </td>
               <td><?= htmlspecialchars($usuario['nome'] . ' ' . $usuario['sobrenome']) ?></td>
               <td><?= htmlspecialchars($usuario['email']) ?></td>
-              <td><?= htmlspecialchars($usuario['cargo']) ?></td>
+              <td>
+                <?php
+                  $cargo = trim((string) ($usuario['cargo'] ?? ''));
+                  $badgeCargoClass = 'badge-secondary';
+                  $cargoLabel = '-';
+                  if ($cargo === 'admin') {
+                    $badgeCargoClass = 'badge-danger';
+                    $cargoLabel = 'Administrador';
+                  } elseif ($cargo === 'user') {
+                    $badgeCargoClass = 'badge-primary';
+                    $cargoLabel = 'Usuário';
+                  } elseif ($cargo !== '') {
+                    $cargoLabel = ucfirst($cargo);
+                  }
+                ?>
+                <span class="badge <?= $badgeCargoClass ?>"><?= htmlspecialchars($cargoLabel) ?></span>
+              </td>
               <td><?= htmlspecialchars($usuario['celular']) ?></td>
               <td><?= htmlspecialchars($usuario['cpf']) ?></td>
               <td>

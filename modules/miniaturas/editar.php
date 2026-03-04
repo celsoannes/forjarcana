@@ -1,12 +1,15 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Miniaturas\MiniaturaController;
 
 $id = intval($_GET['id'] ?? 0);
 $erro = '';
 
-$stmt = $pdo->prepare("SELECT * FROM miniaturas WHERE id = ?");
-$stmt->execute([$id]);
-$miniatura = $stmt->fetch(PDO::FETCH_ASSOC);
+$miniaturaController = new MiniaturaController($pdo);
+
+$miniatura = $miniaturaController->buscarPorId($id);
 
 if (!$miniatura) {
     header('Location: ?pagina=miniaturas');
@@ -37,40 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$sku || !$estudio) {
         $erro = 'Preencha os campos obrigatórios: SKU e Estúdio.';
     } else {
-        try {
-            $stmt = $pdo->prepare("UPDATE miniaturas SET nome = ?, sku = ?, estudio = ?, tematica = ?, colecao = ?, raca = ?, classe = ?, genero = ?, criatura = ?, papel = ?, tamanho = ?, base = ?, material = ?, pintada = ?, arma_principal = ?, arma_secundaria = ?, armadura = ?, outras_caracteristicas = ?, foto = ? WHERE id = ?");
-            $stmt->execute([
-                $nome ?: null,
-                $sku,
-                $estudio,
-                $tematica ?: null,
-                $colecao ?: null,
-                $raca ?: null,
-                $classe ?: null,
-                $genero ?: null,
-                $criatura ?: null,
-                $papel ?: null,
-                $tamanho ?: null,
-                $base ?: null,
-                $material ?: null,
-                $pintada,
-                $arma_principal ?: null,
-                $arma_secundaria ?: null,
-                $armadura ?: null,
-                $outras_caracteristicas ?: null,
-                $foto ?: null,
-                $id
-            ]);
+      $resultado = $miniaturaController->processarEdicao($id, $_POST);
+      if (!empty($resultado['sucesso'])) {
+        echo '<script>window.location.href="?pagina=miniaturas";</script>';
+        exit;
+      }
 
-            echo '<script>window.location.href="?pagina=miniaturas";</script>';
-            exit;
-        } catch (PDOException $e) {
-            if ($e->getCode() == 23000) {
-                $erro = 'SKU já cadastrado. Informe um SKU único.';
-            } else {
-                $erro = 'Erro ao editar miniatura: ' . $e->getMessage();
-            }
-        }
+      $erro = (string) ($resultado['erro'] ?? 'Erro ao editar miniatura.');
     }
 
     $miniatura = array_merge($miniatura, [

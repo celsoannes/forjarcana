@@ -1,8 +1,11 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
 
-$stmt = $pdo->query("SELECT * FROM miniaturas ORDER BY data_cadastro DESC, id DESC");
-$miniaturas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+use App\Miniaturas\MiniaturaController;
+
+$miniaturaController = new MiniaturaController($pdo);
+$miniaturas = $miniaturaController->listarTodas();
 ?>
 <div class="card">
   <div class="card-header">

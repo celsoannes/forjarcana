@@ -3,6 +3,9 @@ $baseUrl = dirname($_SERVER['SCRIPT_NAME']);
 if ($baseUrl === '/' || $baseUrl === '\\') $baseUrl = '';
 require_once __DIR__ . '/../../app/db.php';
 require_once __DIR__ . '/../../app/upload_imagem.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Mapas\MapaController;
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
   session_start();
@@ -10,444 +13,46 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $usuario_uuid = trim($_SESSION['usuario_uuid'] ?? '');
-$fluxo_origem = trim((string) ($_GET['fluxo'] ?? $_POST['fluxo_origem'] ?? ''));
+$fluxoOrigemPost = trim((string) (filter_input(INPUT_POST, 'fluxo_origem', FILTER_UNSAFE_RAW) ?? ''));
+$fluxo_origem = trim((string) ($_GET['fluxo'] ?? $fluxoOrigemPost));
 $erro = '';
 $foto = null;
 $imagens = [];
 $avisos_upload = [];
 $fornecedores_disponiveis = [];
 
-function descreverErroUploadMapa(int $codigoErro): string {
-  $mapa = [
-    UPLOAD_ERR_INI_SIZE => 'Arquivo maior que o limite configurado no servidor.',
-    UPLOAD_ERR_FORM_SIZE => 'Arquivo maior que o limite permitido pelo formulário.',
-    UPLOAD_ERR_PARTIAL => 'Upload foi enviado parcialmente.',
-    UPLOAD_ERR_NO_FILE => 'Nenhum arquivo foi enviado.',
-    UPLOAD_ERR_NO_TMP_DIR => 'Pasta temporária ausente no servidor.',
-    UPLOAD_ERR_CANT_WRITE => 'Falha ao gravar o arquivo no disco.',
-    UPLOAD_ERR_EXTENSION => 'Upload bloqueado por uma extensão do PHP.',
-  ];
+$mapaController = new MapaController($pdo);
 
-  return $mapa[$codigoErro] ?? 'Erro desconhecido no envio do arquivo.';
-}
-
-function normalizarTextoSkuMapa(string $texto): string {
-  $texto = trim($texto);
-  if ($texto === '') {
-    return '';
-  }
-
-  $normalizado = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
-  if ($normalizado === false) {
-    $normalizado = $texto;
-  }
-
-  $normalizado = strtoupper($normalizado);
-  $normalizado = preg_replace('/[^A-Z0-9\s]/', '', $normalizado);
-
-  return trim((string) $normalizado);
-}
-
-function gerarIniciaisNomeMapa(string $nome): string {
-  $nomeNormalizado = normalizarTextoSkuMapa($nome);
-  if ($nomeNormalizado === '') {
-    return 'XX';
-  }
-
-  $partes = preg_split('/\s+/', $nomeNormalizado) ?: [];
-  $iniciais = '';
-
-  foreach ($partes as $parte) {
-    $parte = trim((string) $parte);
-    if ($parte === '') {
-      continue;
-    }
-    $iniciais .= substr($parte, 0, 1);
-  }
-
-  if ($iniciais === '') {
-    return 'XX';
-  }
-
-  return $iniciais;
-}
-
-function formatarBlocoDimensaoSku(float $valor): string {
-  $texto = number_format($valor, 2, '.', '');
-  $texto = rtrim(rtrim($texto, '0'), '.');
-  if ($texto === '') {
-    $texto = '0';
-  }
-  $texto = str_replace('.', 'P', $texto);
-
-  return strtoupper((string) preg_replace('/[^A-Z0-9]/', '', $texto));
-}
-
-function formatarBlocoFormatoGradeSku(string $formatoGrade): string {
-  $formatoGrade = strtoupper(trim($formatoGrade));
-  $formatoGrade = preg_replace('/[^A-Z0-9]/', '', $formatoGrade);
-
-  return $formatoGrade !== '' ? $formatoGrade : 'SEMGRD';
-}
-
-function gerarSkuMapaAutomatico(PDO $pdo, string $nome, string $formatoGrade, float $largura, float $comprimento): string {
-  $blocoNome = gerarIniciaisNomeMapa($nome);
-  $blocoFormatoGrade = formatarBlocoFormatoGradeSku($formatoGrade);
-  $blocoLargura = formatarBlocoDimensaoSku($largura);
-  $blocoComprimento = formatarBlocoDimensaoSku($comprimento);
-  $prefixo = 'MAP-' . $blocoNome . '-' . $blocoFormatoGrade . '-' . $blocoLargura . '-' . $blocoComprimento;
-
-  do {
-    $numero = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    $sku = $prefixo . '-' . $numero;
-    $stmtSku = $pdo->prepare("SELECT COUNT(*) FROM sku WHERE sku = ?");
-    $stmtSku->execute([$sku]);
-    $existe = (int) $stmtSku->fetchColumn() > 0;
-  } while ($existe);
-
-  return $sku;
-}
-
-if ($usuario_uuid === '' && $usuario_id > 0) {
-  try {
-    $stmtUuid = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ? LIMIT 1");
-    $stmtUuid->execute([$usuario_id]);
-    $usuario_uuid = (string) ($stmtUuid->fetchColumn() ?: '');
-  } catch (Throwable $e) {
-    $usuario_uuid = '';
-  }
-}
-
-try {
-  $stmtFornecedoresDisponiveis = $pdo->prepare("SELECT id, nome_fantasia FROM fornecedores WHERE usuario_id = ? ORDER BY nome_fantasia");
-  $stmtFornecedoresDisponiveis->execute([(int) $usuario_id]);
-  $fornecedores_disponiveis = $stmtFornecedoresDisponiveis->fetchAll(PDO::FETCH_ASSOC) ?: [];
-} catch (Throwable $e) {
-  $fornecedores_disponiveis = [];
-}
+$contextoAdicao = $mapaController->carregarContextoAdicao((int) $usuario_id, $usuario_uuid);
+$usuario_uuid = (string) ($contextoAdicao['usuario_uuid'] ?? $usuario_uuid);
+$fornecedores_disponiveis = is_array($contextoAdicao['fornecedores_disponiveis'] ?? null) ? $contextoAdicao['fornecedores_disponiveis'] : [];
+$dadosFormulario = $mapaController->montarEstadoFormularioAdicao($_POST ?? []);
 
 if (($_GET['action'] ?? '') === 'sugerir') {
   header('Content-Type: application/json; charset=UTF-8');
 
   $campo = trim((string) ($_GET['campo'] ?? ''));
   $termo = trim((string) ($_GET['termo'] ?? ''));
-  $tamanhoTermo = function_exists('mb_strlen') ? mb_strlen($termo, 'UTF-8') : strlen($termo);
-
-  if ((int) $usuario_id <= 0 || $campo !== 'fornecedor' || $tamanhoTermo < 2) {
-    echo json_encode([]);
-    exit;
-  }
-
-  try {
-    $stmtFornecedores = $pdo->prepare("SELECT DISTINCT nome_fantasia FROM fornecedores WHERE usuario_id = ? AND nome_fantasia IS NOT NULL AND nome_fantasia <> '' AND nome_fantasia LIKE ? ORDER BY nome_fantasia ASC LIMIT 30");
-    $stmtFornecedores->execute([(int) $usuario_id, '%' . $termo . '%']);
-    $fornecedores = $stmtFornecedores->fetchAll(PDO::FETCH_COLUMN) ?: [];
-
-    $sugestoes = [];
-    $controleUnicos = [];
-    foreach ($fornecedores as $fornecedorNome) {
-      if (!is_string($fornecedorNome)) {
-        continue;
-      }
-
-      $fornecedorNome = trim($fornecedorNome);
-      if ($fornecedorNome === '') {
-        continue;
-      }
-
-      $chave = function_exists('mb_strtolower') ? mb_strtolower($fornecedorNome, 'UTF-8') : strtolower($fornecedorNome);
-      if (isset($controleUnicos[$chave])) {
-        continue;
-      }
-
-      $controleUnicos[$chave] = true;
-      $sugestoes[] = $fornecedorNome;
-    }
-
-    echo json_encode($sugestoes, JSON_UNESCAPED_UNICODE);
-  } catch (Throwable $e) {
-    echo json_encode([]);
-  }
+  $sugestoes = $mapaController->sugerirCampo((int) $usuario_id, $campo, $termo);
+  echo json_encode($sugestoes, JSON_UNESCAPED_UNICODE);
 
   exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $descricao = trim($_POST['descricao'] ?? '');
-    $link_compra = trim($_POST['link_compra'] ?? '');
-    $formato_grade = trim($_POST['formato_grade'] ?? '');
-    $largura = (float) ($_POST['largura'] ?? 0);
-    $comprimento = (float) ($_POST['comprimento'] ?? 0);
-    $material = trim($_POST['material'] ?? '');
-    $fornecedor = trim($_POST['fornecedor'] ?? '');
-    $fornecedor_id = null;
-    $custo = (float) ($_POST['custo'] ?? 0);
-    $unidades_produzidas = (int) ($_POST['unidades_produzidas'] ?? 0);
-    $markup = (float) ($_POST['markup'] ?? 2);
-    $markup_valido = ($markup >= 1 && $markup <= 10 && ((int) round($markup * 2)) === (int) ($markup * 2));
-    $fotoExistente = trim((string) ($_POST['foto_existente'] ?? ''));
-    $foto = $fotoExistente !== '' ? $fotoExistente : null;
-    $imagens = [];
-    $imagensExistentesRaw = trim((string) ($_POST['imagens_existentes'] ?? ''));
-    if ($imagensExistentesRaw !== '') {
-      $imagensExistentes = json_decode($imagensExistentesRaw, true);
-      if (is_array($imagensExistentes)) {
-        foreach ($imagensExistentes as $imagemExistente) {
-          if (is_string($imagemExistente) && trim($imagemExistente) !== '') {
-            $imagens[] = trim($imagemExistente);
-          }
-        }
-      }
+    $resultadoFluxo = $mapaController->processarFluxoAdicao((int) $usuario_id, $usuario_uuid, $_POST, $_FILES);
+
+    $foto = $resultadoFluxo['foto'] ?? $foto;
+    $imagens = is_array($resultadoFluxo['imagens'] ?? null) ? $resultadoFluxo['imagens'] : $imagens;
+    $avisos_upload = is_array($resultadoFluxo['avisos_upload'] ?? null) ? $resultadoFluxo['avisos_upload'] : [];
+
+    if (!empty($resultadoFluxo['sucesso'])) {
+      $urlRedirecionamento = ($fluxo_origem === 'mapas') ? '?pagina=produtos' : '?pagina=mapas';
+      echo '<script>window.location.href=' . json_encode($urlRedirecionamento, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ';</script>';
+      exit;
     }
 
-    if (!$erro && $usuario_uuid === '') {
-      $erro = 'Não foi possível identificar o UUID do usuário para upload da imagem de capa.';
-    }
-
-    $tamanhosUpload = [
-      'thumbnail' => [64, 64],
-      'pequena' => [128, 128],
-      'media' => [256, 256],
-      'grande' => [512, 512],
-    ];
-
-    if (!$erro && isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
-      $fotoUpload = uploadImagem($_FILES['foto'], $usuario_uuid, 'usuarios', $tamanhosUpload, 'mapa_CAPA', false);
-      if ($fotoUpload === false) {
-        $erro = 'Erro ao enviar a imagem de capa. Verifique formato e tamanho do arquivo.';
-      } else {
-        $foto = $fotoUpload;
-      }
-    }
-
-    if (!$erro && isset($_FILES['fotos']) && isset($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
-      $totalArquivos = count($_FILES['fotos']['name']);
-      for ($i = 0; $i < $totalArquivos; $i++) {
-        $nomeArquivo = trim((string) ($_FILES['fotos']['name'][$i] ?? ''));
-        $erroArquivo = $_FILES['fotos']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
-
-        if ($nomeArquivo === '' || $erroArquivo === UPLOAD_ERR_NO_FILE) {
-          continue;
-        }
-
-        if ($erroArquivo !== UPLOAD_ERR_OK) {
-          $avisos_upload[] = 'A imagem adicional "' . $nomeArquivo . '" não foi enviada: ' . descreverErroUploadMapa((int) $erroArquivo);
-          continue;
-        }
-
-        $arquivoImagem = [
-          'name' => $nomeArquivo,
-          'type' => $_FILES['fotos']['type'][$i] ?? '',
-          'tmp_name' => $_FILES['fotos']['tmp_name'][$i] ?? '',
-          'error' => $erroArquivo,
-          'size' => $_FILES['fotos']['size'][$i] ?? 0,
-        ];
-
-        $imagemUpload = uploadImagem($arquivoImagem, $usuario_uuid, 'usuarios', $tamanhosUpload, 'mapa_IMAGEM', false);
-        if ($imagemUpload === false) {
-          $avisos_upload[] = 'A imagem adicional "' . $nomeArquivo . '" não pôde ser processada (formato ou conteúdo inválido).';
-          continue;
-        }
-
-        $imagens[] = $imagemUpload;
-      }
-    }
-
-    if (!$nome || !$formato_grade || $largura <= 0 || $comprimento <= 0 || !$material || $custo < 0 || $unidades_produzidas <= 0 || !$markup_valido) {
-        $erro = 'Preencha todos os campos obrigatórios corretamente.';
-    } elseif ($link_compra !== '' && !filter_var($link_compra, FILTER_VALIDATE_URL)) {
-        $erro = 'Informe uma URL válida para o link de compra.';
-    } else {
-        try {
-      $pdo->beginTransaction();
-
-      if ($fornecedor !== '') {
-        $stmtFornecedorId = $pdo->prepare("SELECT id FROM fornecedores WHERE usuario_id = ? AND LOWER(nome_fantasia) = LOWER(?) LIMIT 1");
-        $stmtFornecedorId->execute([(int) $usuario_id, $fornecedor]);
-        $fornecedor_id = $stmtFornecedorId->fetchColumn();
-        $fornecedor_id = $fornecedor_id !== false ? (int) $fornecedor_id : null;
-      }
-
-      $imagensJson = !empty($imagens) ? json_encode($imagens, JSON_UNESCAPED_UNICODE) : null;
-      $stmtColunaLinkCompra = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'link_compra'");
-      $stmtColunaLinkCompra->execute();
-      $possuiColunaLinkCompra = (bool) $stmtColunaLinkCompra->fetch(PDO::FETCH_ASSOC);
-
-      $stmtColunaFornecedorId = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'fornecedor_id'");
-      $stmtColunaFornecedorId->execute();
-      $possuiColunaFornecedorId = (bool) $stmtColunaFornecedorId->fetch(PDO::FETCH_ASSOC);
-
-      $stmtColunaUnidadesProduzidas = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'unidades_produzidas'");
-      $stmtColunaUnidadesProduzidas->execute();
-      $possuiColunaUnidadesProduzidas = (bool) $stmtColunaUnidadesProduzidas->fetch(PDO::FETCH_ASSOC);
-
-      if ($possuiColunaFornecedorId && $fornecedor !== '' && !$fornecedor_id) {
-        $erro = 'Fornecedor informado não está cadastrado.';
-      }
-
-      if ($erro) {
-        throw new RuntimeException($erro);
-      }
-
-      $stmtCategoria = $pdo->prepare("SELECT id FROM categorias WHERE nome = ? LIMIT 1");
-      $stmtCategoria->execute(['Mapas']);
-      $categoriaId = (int) ($stmtCategoria->fetchColumn() ?: 0);
-      if ($categoriaId === 0) {
-        $stmtInsertCategoria = $pdo->prepare("INSERT INTO categorias (nome) VALUES (?)");
-        $stmtInsertCategoria->execute(['Mapas']);
-        $categoriaId = (int) $pdo->lastInsertId();
-      }
-
-      $skuCodigo = gerarSkuMapaAutomatico($pdo, $nome, $formato_grade, $largura, $comprimento);
-
-      $custoPorUnidade = $unidades_produzidas > 0 ? round($custo / $unidades_produzidas, 2) : 0.00;
-      $precoConsumidorFinal = round($custoPorUnidade * $markup, 2);
-      $lucro = $precoConsumidorFinal - $custoPorUnidade;
-      $precoLojista = round(($lucro / 2) + $custoPorUnidade, 2);
-      $lucroLojista = round($precoLojista - $custoPorUnidade, 2);
-      $lucroConsumidorFinal = round($precoConsumidorFinal - $custoPorUnidade, 2);
-
-      $stmtColunasProdutos = $pdo->query("SHOW COLUMNS FROM produtos");
-      $colunasProdutosRaw = $stmtColunasProdutos ? $stmtColunasProdutos->fetchAll(PDO::FETCH_ASSOC) : [];
-      $colunasProdutosMap = [];
-      foreach ($colunasProdutosRaw as $colunaProduto) {
-        $campoProduto = (string) ($colunaProduto['Field'] ?? '');
-        if ($campoProduto !== '') {
-          $colunasProdutosMap[$campoProduto] = true;
-        }
-      }
-
-      $colunasProdutoInsert = ['usuario_id', 'nome', 'categoria', 'imagem_capa', 'imagens', 'descricao'];
-      $valoresProdutoInsert = [
-        $usuario_id,
-        $nome,
-        $categoriaId,
-        $foto,
-        $imagensJson,
-        $descricao !== '' ? $descricao : null,
-      ];
-
-      if (isset($colunasProdutosMap['observacoes'])) {
-        $colunasProdutoInsert[] = 'observacoes';
-        $valoresProdutoInsert[] = null;
-      }
-
-      if (isset($colunasProdutosMap['markup_lojista'])) {
-        $colunasProdutoInsert[] = 'markup_lojista';
-        $valoresProdutoInsert[] = $markup;
-      }
-      if (isset($colunasProdutosMap['markup_consumidor_final'])) {
-        $colunasProdutoInsert[] = 'markup_consumidor_final';
-        $valoresProdutoInsert[] = $markup;
-      }
-      if (isset($colunasProdutosMap['markup']) && !isset($colunasProdutosMap['markup_lojista'])) {
-        $colunasProdutoInsert[] = 'markup';
-        $valoresProdutoInsert[] = $markup;
-      }
-
-      if (isset($colunasProdutosMap['lucro_lojista'])) {
-        $colunasProdutoInsert[] = 'lucro_lojista';
-        $valoresProdutoInsert[] = $lucroLojista;
-      }
-
-      if (isset($colunasProdutosMap['lucro_consumidor_final'])) {
-        $colunasProdutoInsert[] = 'lucro_consumidor_final';
-        $valoresProdutoInsert[] = $lucroConsumidorFinal;
-      }
-
-      $colunasProdutoInsert[] = 'preco_lojista';
-      $valoresProdutoInsert[] = $precoLojista;
-      $colunasProdutoInsert[] = 'preco_consumidor_final';
-      $valoresProdutoInsert[] = $precoConsumidorFinal;
-
-      $placeholdersProduto = implode(', ', array_fill(0, count($colunasProdutoInsert), '?'));
-      $sqlProduto = "INSERT INTO produtos (" . implode(', ', $colunasProdutoInsert) . ") VALUES (" . $placeholdersProduto . ")";
-      $stmtInsertProduto = $pdo->prepare($sqlProduto);
-      $stmtInsertProduto->execute($valoresProdutoInsert);
-      $produtoId = (int) $pdo->lastInsertId();
-
-      $stmtInsertSku = $pdo->prepare("INSERT INTO sku (produto_id, sku, usuario_id) VALUES (?, ?, ?)");
-      $stmtInsertSku->execute([$produtoId, $skuCodigo, $usuario_id]);
-
-      $stmtInsertCusto = $pdo->prepare("INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)");
-      $stmtInsertCusto->execute([$produtoId, $custo, $custoPorUnidade]);
-
-      $colunasInsert = ['usuario_id', 'nome', 'descricao'];
-      $valoresInsert = [$usuario_id, $nome, $descricao];
-
-      $stmtColunaProdutoId = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'produto_id'");
-      $stmtColunaProdutoId->execute();
-      $possuiColunaProdutoId = (bool) $stmtColunaProdutoId->fetch(PDO::FETCH_ASSOC);
-
-      $stmtColunaIdSku = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'id_sku'");
-      $stmtColunaIdSku->execute();
-      $possuiColunaIdSku = (bool) $stmtColunaIdSku->fetch(PDO::FETCH_ASSOC);
-
-      if ($possuiColunaIdSku) {
-        $colunasInsert[] = 'id_sku';
-        $valoresInsert[] = $skuCodigo;
-      }
-
-      if ($possuiColunaProdutoId) {
-        $colunasInsert[] = 'produto_id';
-        $valoresInsert[] = $produtoId;
-      }
-
-      if ($possuiColunaLinkCompra) {
-        $colunasInsert[] = 'link_compra';
-        $valoresInsert[] = $link_compra !== '' ? $link_compra : null;
-      }
-
-      $colunasInsert[] = 'imagem_capa';
-      $valoresInsert[] = $foto;
-      $colunasInsert[] = 'imagens';
-      $valoresInsert[] = $imagensJson;
-      $colunasInsert[] = 'formato_grade';
-      $valoresInsert[] = $formato_grade;
-      $colunasInsert[] = 'largura';
-      $valoresInsert[] = $largura;
-      $colunasInsert[] = 'comprimento';
-      $valoresInsert[] = $comprimento;
-      $colunasInsert[] = 'material';
-      $valoresInsert[] = $material;
-
-      if ($possuiColunaFornecedorId) {
-        $colunasInsert[] = 'fornecedor_id';
-        $valoresInsert[] = $fornecedor_id;
-      } else {
-        $colunasInsert[] = 'fornecedor';
-        $valoresInsert[] = $fornecedor !== '' ? $fornecedor : null;
-      }
-
-      $stmtColunaCusto = $pdo->prepare("SHOW COLUMNS FROM mapas LIKE 'custo'");
-      $stmtColunaCusto->execute();
-      $possuiColunaCusto = (bool) $stmtColunaCusto->fetch(PDO::FETCH_ASSOC);
-      if ($possuiColunaCusto) {
-        $colunasInsert[] = 'custo';
-        $valoresInsert[] = $custo;
-      }
-
-      if ($possuiColunaUnidadesProduzidas) {
-        $colunasInsert[] = 'unidades_produzidas';
-        $valoresInsert[] = $unidades_produzidas;
-      }
-
-      $placeholders = implode(', ', array_fill(0, count($colunasInsert), '?'));
-      $sqlInsert = "INSERT INTO mapas (" . implode(', ', $colunasInsert) . ", ultima_atualizacao) VALUES (" . $placeholders . ", NOW())";
-      $stmt = $pdo->prepare($sqlInsert);
-      $stmt->execute($valoresInsert);
-        $pdo->commit();
-            $urlRedirecionamento = ($fluxo_origem === 'mapas') ? '?pagina=produtos' : '?pagina=mapas';
-            echo '<script>window.location.href=' . json_encode($urlRedirecionamento, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ';</script>';
-            exit;
-        } catch (Throwable $e) {
-          if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-          }
-            $erro = 'Erro ao cadastrar: ' . $e->getMessage();
-        }
-    }
+    $erro = trim((string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar mapa.'));
 }
 ?>
 <div class="card card-primary">
@@ -487,18 +92,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="col-md-9">
           <div class="form-group">
             <label for="nome">Nome</label>
-            <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>">
+            <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
           </div>
           <div class="form-group">
             <label for="fornecedor">Fornecedor</label>
             <div class="position-relative">
-              <input type="text" class="form-control" id="fornecedor" name="fornecedor" autocomplete="off" value="<?= htmlspecialchars($_POST['fornecedor'] ?? '') ?>">
+              <input type="text" class="form-control" id="fornecedor" name="fornecedor" autocomplete="off" value="<?= htmlspecialchars((string) ($dadosFormulario['fornecedor'] ?? '')) ?>">
               <ul id="fornecedor-sugestoes" class="autocomplete-sugestoes list-group position-absolute w-100 d-none" style="top:100%; left:0; z-index:1060; max-height:220px; overflow-y:auto;"></ul>
             </div>
           </div>
           <div class="form-group">
             <label for="material">Material</label>
-            <input type="text" class="form-control" id="material" name="material" required>
+            <input type="text" class="form-control" id="material" name="material" required value="<?= htmlspecialchars((string) ($dadosFormulario['material'] ?? '')) ?>">
           </div>
           <div class="form-group">
             <label for="formato_grade">
@@ -507,42 +112,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <i class="fas fa-info-circle"></i> Ver opções
               </button>
             </label>
+            <?php $formatoGradeSelecionado = (string) ($dadosFormulario['formato_grade'] ?? ''); ?>
             <select class="form-control" id="formato_grade" name="formato_grade" required>
               <option value="">Selecione...</option>
-              <option value="sq-25">Quadrado 1" (25.4mm)</option>
-              <option value="sq-38">Quadrado 1.5" (38mm)</option>
-              <option value="hx-25">Hexágono 1" (25mm)</option>
-              <option value="hx-32">Hexágono 1.25" (32mm)</option>
-              <option value="hx-12">Hexágono Hexcrawl (12mm)</option>
-              <option value="hx-30">Escaramuça (30mm)</option>
-              <option value="dt-25">Grade de Pontos (Dots)</option>
-              <option value="none">Sem Grade (Liso)</option>
+              <option value="sq-25" <?= $formatoGradeSelecionado === 'sq-25' ? 'selected' : '' ?>>Quadrado 1" (25.4mm)</option>
+              <option value="sq-38" <?= $formatoGradeSelecionado === 'sq-38' ? 'selected' : '' ?>>Quadrado 1.5" (38mm)</option>
+              <option value="hx-25" <?= $formatoGradeSelecionado === 'hx-25' ? 'selected' : '' ?>>Hexágono 1" (25mm)</option>
+              <option value="hx-32" <?= $formatoGradeSelecionado === 'hx-32' ? 'selected' : '' ?>>Hexágono 1.25" (32mm)</option>
+              <option value="hx-12" <?= $formatoGradeSelecionado === 'hx-12' ? 'selected' : '' ?>>Hexágono Hexcrawl (12mm)</option>
+              <option value="hx-30" <?= $formatoGradeSelecionado === 'hx-30' ? 'selected' : '' ?>>Escaramuça (30mm)</option>
+              <option value="dt-25" <?= $formatoGradeSelecionado === 'dt-25' ? 'selected' : '' ?>>Grade de Pontos (Dots)</option>
+              <option value="none" <?= $formatoGradeSelecionado === 'none' ? 'selected' : '' ?>>Sem Grade (Liso)</option>
             </select>
           </div>
           <div class="form-group">
             <label>Tamanho</label>
             <div class="row">
               <div class="col-md-6 mb-2 mb-md-0">
-                <input type="number" class="form-control" id="largura" name="largura" step="0.01" min="0" placeholder="Largura" required>
+                <input type="number" class="form-control" id="largura" name="largura" step="0.01" min="0" placeholder="Largura" required value="<?= htmlspecialchars((string) ($dadosFormulario['largura'] ?? '')) ?>">
               </div>
               <div class="col-md-6">
-                <input type="number" class="form-control" id="comprimento" name="comprimento" step="0.01" min="0" placeholder="Comprimento" required>
+                <input type="number" class="form-control" id="comprimento" name="comprimento" step="0.01" min="0" placeholder="Comprimento" required value="<?= htmlspecialchars((string) ($dadosFormulario['comprimento'] ?? '')) ?>">
               </div>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group col-md-4">
               <label for="custo">Custo</label>
-              <input type="number" class="form-control" id="custo" name="custo" step="0.01" min="0" required value="<?= htmlspecialchars((string) ($_POST['custo'] ?? '')) ?>">
+              <input type="number" class="form-control" id="custo" name="custo" step="0.01" min="0" required value="<?= htmlspecialchars((string) ($dadosFormulario['custo'] ?? '')) ?>">
             </div>
             <div class="form-group col-md-4">
               <label for="unidades_produzidas">Unidades Produzidas</label>
-              <input type="number" class="form-control" id="unidades_produzidas" name="unidades_produzidas" min="1" step="1" required value="<?= htmlspecialchars((string) ($_POST['unidades_produzidas'] ?? '1')) ?>">
+              <input type="number" class="form-control" id="unidades_produzidas" name="unidades_produzidas" min="1" step="1" required value="<?= htmlspecialchars((string) ($dadosFormulario['unidades_produzidas'] ?? '1')) ?>">
             </div>
             <div class="form-group col-md-4">
               <label for="markup">Markup</label>
               <select class="form-control" id="markup" name="markup" required>
-                <?php $markupSelecionado = (string) ($_POST['markup'] ?? '2'); ?>
+                <?php $markupSelecionado = (string) ($dadosFormulario['markup'] ?? '2'); ?>
                 <option value="1" <?= $markupSelecionado === '1' ? 'selected' : '' ?>>1</option>
                 <option value="1.5" <?= $markupSelecionado === '1.5' ? 'selected' : '' ?>>1.5</option>
                 <option value="2" <?= $markupSelecionado === '2' ? 'selected' : '' ?>>2</option>
@@ -569,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <div class="form-group">
         <label for="link_compra">Link de Compra do Produto</label>
-        <input type="url" class="form-control" id="link_compra" name="link_compra" placeholder="https://exemplo.com/produto" value="<?= htmlspecialchars($_POST['link_compra'] ?? '') ?>">
+        <input type="url" class="form-control" id="link_compra" name="link_compra" placeholder="https://exemplo.com/produto" value="<?= htmlspecialchars((string) ($dadosFormulario['link_compra'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="fotos">Imagens</label>
@@ -582,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <div class="form-group">
         <label for="descricao">Descrição</label>
-        <textarea class="form-control" id="descricao" name="descricao" rows="2"><?= htmlspecialchars($_POST['descricao'] ?? '') ?></textarea>
+        <textarea class="form-control" id="descricao" name="descricao" rows="2"><?= htmlspecialchars((string) ($dadosFormulario['descricao'] ?? '')) ?></textarea>
       </div>
     </div>
     <div class="card-footer">

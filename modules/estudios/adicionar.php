@@ -2,26 +2,25 @@
 $baseUrl = dirname($_SERVER['SCRIPT_NAME']);
 if ($baseUrl === '/' || $baseUrl === '\\') $baseUrl = '';
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Estudios\EstudioController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $erro = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $site = trim($_POST['site'] ?? '');
+$estudioController = new EstudioController($pdo);
+$dadosFormulario = $estudioController->montarEstadoFormularioAdicao($_POST ?? []);
 
-    if (!$nome) {
-        $erro = 'Preencha o campo nome obrigatório.';
-    } else {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO estudios (usuario_id, nome, site, ultima_atualizacao) VALUES (?, ?, ?, NOW())");
-            $stmt->execute([$usuario_id, $nome, $site]);
-            echo '<script>window.location.href="?pagina=estudios";</script>';
-            exit;
-        } catch (PDOException $e) {
-            $erro = 'Erro ao cadastrar: ' . $e->getMessage();
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $resultadoFluxo = $estudioController->processarFluxoAdicao((int) $usuario_id, $_POST);
+
+  if (!empty($resultadoFluxo['sucesso'])) {
+    echo '<script>window.location.href="?pagina=estudios";</script>';
+    exit;
     }
+
+  $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar.');
 }
 ?>
 <div class="card card-primary">
@@ -35,11 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
       <div class="form-group">
         <label for="nome">Nome</label>
-        <input type="text" class="form-control" id="nome" name="nome" required>
+        <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="site">Site</label>
-        <input type="url" class="form-control" id="site" name="site" placeholder="https://exemplo.com">
+        <input type="url" class="form-control" id="site" name="site" placeholder="https://exemplo.com" value="<?= htmlspecialchars((string) ($dadosFormulario['site'] ?? '')) ?>">
       </div>
     </div>
     <div class="card-footer">

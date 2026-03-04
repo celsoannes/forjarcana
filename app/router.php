@@ -242,6 +242,9 @@ switch ($pagina) {
             case 'adicionar':
                 include __DIR__ . '/../modules/torres/adicionar.php';
                 break;
+            case 'visualizar':
+                include __DIR__ . '/../modules/torres/visualizar.php';
+                break;
             case 'editar':
                 include __DIR__ . '/../modules/torres/editar.php';
                 break;

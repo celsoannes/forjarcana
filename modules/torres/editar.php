@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Torres\TorreController;
 
 $id = (int) ($_GET['id'] ?? 0);
 $usuario_id = (int) ($_SESSION['usuario_id'] ?? 0);
@@ -10,85 +13,34 @@ if ($usuario_id <= 0 || $id <= 0) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT
-    t.id,
-    t.produto_id,
-    t.nome_original,
-    p.nome,
-    p.descricao,
-    p.observacoes,
-    p.markup_lojista,
-    p.markup_consumidor_final,
-    p.preco_lojista,
-    p.preco_consumidor_final
-FROM torres t
-INNER JOIN produtos p ON p.id = t.produto_id
-WHERE t.id = ? AND t.usuario_id = ?
-LIMIT 1");
-$stmt->execute([$id, $usuario_id]);
-$torre = $stmt->fetch(PDO::FETCH_ASSOC);
+$torreController = new TorreController($pdo);
+$torre = $torreController->buscarParaEdicao($id, $usuario_id);
 
 if (!$torre) {
     header('Location: /404.php');
     exit;
 }
 
+$compatibilidade = (array) ($torre['__compatibilidade'] ?? []);
+unset($torre['__compatibilidade']);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $nome_original = trim($_POST['nome_original'] ?? '');
-    $descricao = trim($_POST['descricao'] ?? '');
-    $observacoes = trim($_POST['observacoes'] ?? '');
-    $markup_lojista = (float) str_replace(',', '.', trim($_POST['markup_lojista'] ?? '0'));
-    $markup_consumidor_final = (float) str_replace(',', '.', trim($_POST['markup_consumidor_final'] ?? '0'));
-    $preco_lojista = (float) str_replace(',', '.', trim($_POST['preco_lojista'] ?? '0'));
-    $preco_consumidor_final = (float) str_replace(',', '.', trim($_POST['preco_consumidor_final'] ?? '0'));
-
-    if ($nome === '') {
-        $erro = 'Preencha o nome da torre.';
-    } elseif ($markup_lojista < 0 || $markup_consumidor_final < 0 || $preco_lojista < 0 || $preco_consumidor_final < 0) {
-        $erro = 'Informe valores numéricos válidos (maiores ou iguais a zero).';
-    } else {
-        try {
-            $pdo->beginTransaction();
-
-            $stmtTorre = $pdo->prepare("UPDATE torres SET nome_original = ? WHERE id = ? AND usuario_id = ?");
-            $stmtTorre->execute([
-                $nome_original !== '' ? $nome_original : null,
-                $id,
-                $usuario_id,
-            ]);
-
-            $stmtProduto = $pdo->prepare("UPDATE produtos
-                SET nome = ?,
-                    descricao = ?,
-                    observacoes = ?,
-                    markup_lojista = ?,
-                    markup_consumidor_final = ?,
-                    preco_lojista = ?,
-                    preco_consumidor_final = ?
-                WHERE id = ? AND usuario_id = ?");
-            $stmtProduto->execute([
-                $nome,
-                $descricao !== '' ? $descricao : null,
-                $observacoes !== '' ? $observacoes : null,
-                $markup_lojista,
-                $markup_consumidor_final,
-                $preco_lojista,
-                $preco_consumidor_final,
-                (int) $torre['produto_id'],
-                $usuario_id,
-            ]);
-
-            $pdo->commit();
-            echo '<script>window.location.href="?pagina=torres";</script>';
-            exit;
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $erro = 'Erro ao editar torre: ' . $e->getMessage();
-        }
+    $resultado = $torreController->processarEdicao($id, $usuario_id, (int) ($torre['produto_id'] ?? 0), $_POST, $compatibilidade);
+    if (!empty($resultado['sucesso'])) {
+      echo '<script>window.location.href="?pagina=torres";</script>';
+      exit;
     }
+
+    $erro = (string) ($resultado['erro'] ?? 'Erro ao editar torre.');
+
+    $torre['nome'] = (string) ($_POST['nome'] ?? ($torre['nome'] ?? ''));
+    $torre['nome_original'] = (string) ($_POST['nome_original'] ?? ($torre['nome_original'] ?? ''));
+    $torre['descricao'] = (string) ($_POST['descricao'] ?? ($torre['descricao'] ?? ''));
+    $torre['observacoes'] = (string) ($_POST['observacoes'] ?? ($torre['observacoes'] ?? ''));
+    $torre['markup_lojista'] = (string) ($_POST['markup_lojista'] ?? ($torre['markup_lojista'] ?? 0));
+    $torre['markup_consumidor_final'] = (string) ($_POST['markup_consumidor_final'] ?? ($torre['markup_consumidor_final'] ?? 0));
+    $torre['preco_lojista'] = (string) ($_POST['preco_lojista'] ?? ($torre['preco_lojista'] ?? 0));
+    $torre['preco_consumidor_final'] = (string) ($_POST['preco_consumidor_final'] ?? ($torre['preco_consumidor_final'] ?? 0));
 }
 ?>
 

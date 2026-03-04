@@ -5,44 +5,28 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Usuarios\UsuarioController;
 
 if (!isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] !== 'admin') {
     echo 'erro';
     exit;
 }
 
-$id = $_POST['id'] ?? 0;
-
-// Busca o uuid do usuário
-$stmt = $pdo->prepare("SELECT uuid FROM usuarios WHERE id = ?");
-$stmt->execute([$id]);
-$uuid = $stmt->fetchColumn();
-
-if (!$uuid) {
+$id = (int) ($_POST['id'] ?? 0);
+if ($id <= 0) {
     echo 'erro';
     exit;
 }
 
 try {
-    $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
-    $stmt->execute([$id]);
+    $usuarioController = new UsuarioController($pdo);
+    $excluiu = $usuarioController->excluir($id, __DIR__ . '/../../uploads');
 
-    // Exclui a pasta de imagens do usuário
-    $dir = __DIR__ . "/../../uploads/usuarios/$uuid";
-    if (is_dir($dir)) {
-        function excluirPasta($pasta) {
-            $arquivos = array_diff(scandir($pasta), ['.', '..']);
-            foreach ($arquivos as $arquivo) {
-                $caminho = "$pasta/$arquivo";
-                if (is_dir($caminho)) {
-                    excluirPasta($caminho);
-                } else {
-                    unlink($caminho);
-                }
-            }
-            rmdir($pasta);
-        }
-        excluirPasta($dir);
+    if (!$excluiu) {
+        echo 'erro';
+        exit;
     }
 
     echo 'ok';

@@ -2,28 +2,25 @@
 $baseUrl = dirname($_SERVER['SCRIPT_NAME']);
 if ($baseUrl === '/' || $baseUrl === '\\') $baseUrl = '';
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Resinas\ResinaController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $erro = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $marca = trim($_POST['marca'] ?? '');
-    $cor = trim($_POST['cor'] ?? '');
-    $preco_litro = str_replace(',', '.', $_POST['preco_litro'] ?? '');
+$resinaController = new ResinaController($pdo);
+$dadosFormulario = $resinaController->montarEstadoFormularioAdicao($_POST ?? []);
 
-    if (!$nome || !$marca || !$cor || !$preco_litro) {
-        $erro = 'Preencha todos os campos obrigatórios.';
-    } else {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO resinas (usuario_id, nome, marca, cor, preco_litro, ultima_atualizacao) VALUES (?, ?, ?, ?, ?, NOW())");
-            $stmt->execute([$usuario_id, $nome, $marca, $cor, $preco_litro]);
-            echo '<script>window.location.href="?pagina=resinas";</script>';
-            exit;
-        } catch (PDOException $e) {
-            $erro = 'Erro ao cadastrar: ' . $e->getMessage();
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $resultadoFluxo = $resinaController->processarFluxoAdicao((int) $usuario_id, $_POST);
+
+  if (!empty($resultadoFluxo['sucesso'])) {
+    echo '<script>window.location.href="?pagina=resinas";</script>';
+    exit;
     }
+
+  $erro = (string) ($resultadoFluxo['erro'] ?? 'Erro ao cadastrar.');
 }
 ?>
 <div class="card card-primary">
@@ -37,25 +34,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
       <div class="form-group">
         <label for="nome">Nome</label>
-        <input type="text" class="form-control" id="nome" name="nome" required>
+        <input type="text" class="form-control" id="nome" name="nome" required value="<?= htmlspecialchars((string) ($dadosFormulario['nome'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="marca">Marca</label>
-        <input type="text" class="form-control" id="marca" name="marca" required>
+        <input type="text" class="form-control" id="marca" name="marca" required value="<?= htmlspecialchars((string) ($dadosFormulario['marca'] ?? '')) ?>">
       </div>
       <div class="form-group">
         <label for="cor">Cor</label>
+        <?php $corSelecionada = (string) ($dadosFormulario['cor'] ?? ''); ?>
         <select class="form-control" id="cor" name="cor" required>
           <option value="">Selecione...</option>
-          <option value="Branco">Branco</option>
-          <option value="Cinza">Cinza</option>
-          <option value="Preto">Preto</option>
-          <option value="Transparente">Transparente</option>
+          <option value="Branco" <?= $corSelecionada === 'Branco' ? 'selected' : '' ?>>Branco</option>
+          <option value="Cinza" <?= $corSelecionada === 'Cinza' ? 'selected' : '' ?>>Cinza</option>
+          <option value="Preto" <?= $corSelecionada === 'Preto' ? 'selected' : '' ?>>Preto</option>
+          <option value="Transparente" <?= $corSelecionada === 'Transparente' ? 'selected' : '' ?>>Transparente</option>
         </select>
       </div>
       <div class="form-group">
         <label for="preco_litro">Preço por Litro (R$)</label>
-        <input type="number" step="0.01" class="form-control" id="preco_litro" name="preco_litro" required>
+        <input type="number" step="0.01" class="form-control" id="preco_litro" name="preco_litro" required value="<?= htmlspecialchars((string) ($dadosFormulario['preco_litro'] ?? '')) ?>">
       </div>
     </div>
     <div class="card-footer">

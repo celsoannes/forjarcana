@@ -1,18 +1,20 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Fornecedores\FornecedorController;
 
 $usuario_id = $_SESSION['usuario_id'] ?? 0;
 $id = (int) ($_GET['id'] ?? 0);
 $erro = '';
+$fornecedorController = new FornecedorController($pdo);
 
 if ($id <= 0) {
 	header('Location: /404.php');
 	exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM fornecedores WHERE id = ? AND usuario_id = ? LIMIT 1");
-$stmt->execute([$id, $usuario_id]);
-$fornecedor = $stmt->fetch(PDO::FETCH_ASSOC);
+$fornecedor = $fornecedorController->buscarPorIdEUsuario($id, (int) $usuario_id);
 
 if (!$fornecedor) {
 	header('Location: /404.php');
@@ -29,205 +31,14 @@ function selectedCampo(string $key, string $value, array $fornecedor, string $de
 	return $current === $value ? 'selected' : '';
 }
 
-function validarCpf(string $cpf): bool {
-	$cpf = preg_replace('/\D/', '', $cpf);
-	if (strlen($cpf) !== 11) {
-		return false;
-	}
-	if (preg_match('/^(\d)\1{10}$/', $cpf)) {
-		return false;
-	}
-
-	for ($t = 9; $t < 11; $t++) {
-		$soma = 0;
-		for ($i = 0; $i < $t; $i++) {
-			$soma += (int) $cpf[$i] * (($t + 1) - $i);
-		}
-		$digito = ((10 * $soma) % 11) % 10;
-		if ((int) $cpf[$t] !== $digito) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-function validarCnpj(string $cnpj): bool {
-	$cnpj = preg_replace('/\D/', '', $cnpj);
-	if (strlen($cnpj) !== 14) {
-		return false;
-	}
-	if (preg_match('/^(\d)\1{13}$/', $cnpj)) {
-		return false;
-	}
-
-	$pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-	$pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-
-	$soma = 0;
-	for ($i = 0; $i < 12; $i++) {
-		$soma += (int) $cnpj[$i] * $pesos1[$i];
-	}
-	$resto = $soma % 11;
-	$digito1 = $resto < 2 ? 0 : 11 - $resto;
-	if ((int) $cnpj[12] !== $digito1) {
-		return false;
-	}
-
-	$soma = 0;
-	for ($i = 0; $i < 13; $i++) {
-		$soma += (int) $cnpj[$i] * $pesos2[$i];
-	}
-	$resto = $soma % 11;
-	$digito2 = $resto < 2 ? 0 : 11 - $resto;
-
-	return (int) $cnpj[13] === $digito2;
-}
-
-function validarCpfCnpj(string $documento): bool {
-	$somenteDigitos = preg_replace('/\D/', '', $documento);
-	if ($somenteDigitos === '') {
-		return true;
-	}
-	if (strlen($somenteDigitos) === 11) {
-		return validarCpf($somenteDigitos);
-	}
-	if (strlen($somenteDigitos) === 14) {
-		return validarCnpj($somenteDigitos);
-	}
-	return false;
-}
-
-function validarEmailPedidos(string $email): bool {
-	$email = trim($email);
-	if ($email === '') {
-		return true;
-	}
-	if (strlen($email) > 150) {
-		return false;
-	}
-	return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-	$nome_fantasia = trim($_POST['nome_fantasia'] ?? '');
-	$razao_social = trim($_POST['razao_social'] ?? '');
-	$cnpj_cpf = trim($_POST['cnpj_cpf'] ?? '');
-	$categoria_ramo = trim($_POST['categoria_ramo'] ?? '');
-	$vendedor = trim($_POST['vendedor'] ?? '');
-	$whatsapp = trim($_POST['whatsapp'] ?? '');
-	$telefone_fixo = trim($_POST['telefone_fixo'] ?? '');
-	$email_pedidos = trim($_POST['email_pedidos'] ?? '');
-	$site = trim($_POST['site'] ?? '');
-	$cep = trim($_POST['cep'] ?? '');
-	$logradouro = trim($_POST['logradouro'] ?? '');
-	$numero = trim($_POST['numero'] ?? '');
-	$complemento = trim($_POST['complemento'] ?? '');
-	$bairro = trim($_POST['bairro'] ?? '');
-	$cidade = trim($_POST['cidade'] ?? '');
-	$estado_uf = trim($_POST['estado_uf'] ?? '');
-	$prazo_entrega_medio = trim($_POST['prazo_entrega_medio'] ?? '');
-	$pedido_minimo = trim($_POST['pedido_minimo'] ?? '');
-	$condicoes_pagamento = trim($_POST['condicoes_pagamento'] ?? '');
-	$dados_bancarios = trim($_POST['dados_bancarios'] ?? '');
-	$chave_pix = trim($_POST['chave_pix'] ?? '');
-	$qualidade = (int) ($_POST['qualidade'] ?? 0);
-	$observacoes_gerais = trim($_POST['observacoes_gerais'] ?? '');
+	$resultado = $fornecedorController->processarEdicao($id, (int) $usuario_id, $_POST);
+	if (!empty($resultado['sucesso'])) {
+		echo '<script>window.location.href="?pagina=fornecedores";</script>';
+		exit;
+	}
 
-	$enderecoPartes = [];
-	if ($logradouro !== '') {
-		$enderecoPartes[] = $logradouro . ($numero !== '' ? ', ' . $numero : '');
-	}
-	if ($complemento !== '') {
-		$enderecoPartes[] = 'Compl.: ' . $complemento;
-	}
-	if ($bairro !== '') {
-		$enderecoPartes[] = 'Bairro: ' . $bairro;
-	}
-	if ($cidade !== '' || $estado_uf !== '') {
-		$cidadeUf = trim($cidade . ($estado_uf !== '' ? ' - ' . $estado_uf : ''));
-		if ($cidadeUf !== '') {
-			$enderecoPartes[] = $cidadeUf;
-		}
-	}
-	if ($cep !== '') {
-		$enderecoPartes[] = 'CEP: ' . $cep;
-	}
-	$endereco = implode(' | ', $enderecoPartes);
-
-	if (!$nome_fantasia) {
-		$erro = 'Preencha o nome fantasia do fornecedor.';
-	} elseif ($cnpj_cpf !== '' && !validarCpfCnpj($cnpj_cpf)) {
-		$erro = 'Informe um CPF ou CNPJ válido.';
-	} elseif (!validarEmailPedidos($email_pedidos)) {
-		$erro = 'Informe um e-mail de pedidos válido.';
-	} elseif ($qualidade < 0 || $qualidade > 5) {
-		$erro = 'A qualidade deve estar entre 0 e 5.';
-	} else {
-		try {
-			$stmtUpdate = $pdo->prepare("UPDATE fornecedores SET
-				nome_fantasia = ?,
-				razao_social = ?,
-				cnpj_cpf = ?,
-				categoria_ramo = ?,
-				vendedor = ?,
-				whatsapp = ?,
-				telefone_fixo = ?,
-				email_pedidos = ?,
-				site = ?,
-				cep = ?,
-				logradouro = ?,
-				numero = ?,
-				complemento = ?,
-				bairro = ?,
-				cidade = ?,
-				estado_uf = ?,
-				endereco = ?,
-				prazo_entrega_medio = ?,
-				pedido_minimo = ?,
-				condicoes_pagamento = ?,
-				dados_bancarios = ?,
-				chave_pix = ?,
-				qualidade = ?,
-				observacoes_gerais = ?,
-				ultima_atualizacao = NOW()
-			WHERE id = ? AND usuario_id = ?");
-
-			$stmtUpdate->execute([
-				$nome_fantasia,
-				$razao_social,
-				$cnpj_cpf,
-				$categoria_ramo,
-				$vendedor,
-				$whatsapp,
-				$telefone_fixo,
-				$email_pedidos,
-				$site,
-				$cep,
-				$logradouro,
-				$numero,
-				$complemento,
-				$bairro,
-				$cidade,
-				$estado_uf,
-				$endereco,
-				$prazo_entrega_medio,
-				$pedido_minimo,
-				$condicoes_pagamento,
-				$dados_bancarios,
-				$chave_pix,
-				$qualidade ?: null,
-				$observacoes_gerais,
-				$id,
-				$usuario_id
-			]);
-
-			echo '<script>window.location.href="?pagina=fornecedores";</script>';
-			exit;
-		} catch (PDOException $e) {
-			$erro = 'Erro ao editar: ' . $e->getMessage();
-		}
-	}
+	$erro = (string) ($resultado['erro'] ?? 'Erro ao editar.');
 }
 ?>
 
@@ -461,6 +272,61 @@ document.addEventListener('DOMContentLoaded', function () {
 		return apenasNumeros.slice(0, 2) + '.' + apenasNumeros.slice(2, 5) + '.' + apenasNumeros.slice(5, 8) + '/' + apenasNumeros.slice(8, 12) + '-' + apenasNumeros.slice(12);
 	};
 
+	var validarCpfCnpjCliente = function (valor) {
+		var documento = (valor || '').replace(/\D/g, '');
+
+		if (documento === '') {
+			return true;
+		}
+
+		var todosIguais = /^(\d)\1+$/.test(documento);
+		if (todosIguais) {
+			return false;
+		}
+
+		if (documento.length === 11) {
+			for (var t = 9; t < 11; t++) {
+				var soma = 0;
+				for (var i = 0; i < t; i++) {
+					soma += parseInt(documento.charAt(i), 10) * ((t + 1) - i);
+				}
+				var digito = ((10 * soma) % 11) % 10;
+				if (parseInt(documento.charAt(t), 10) !== digito) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		if (documento.length === 14) {
+			var pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+			var pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+			var soma1 = 0;
+			var soma2 = 0;
+
+			for (var j = 0; j < 12; j++) {
+				soma1 += parseInt(documento.charAt(j), 10) * pesos1[j];
+			}
+
+			var resto1 = soma1 % 11;
+			var digito1 = resto1 < 2 ? 0 : 11 - resto1;
+			if (parseInt(documento.charAt(12), 10) !== digito1) {
+				return false;
+			}
+
+			for (var k = 0; k < 13; k++) {
+				soma2 += parseInt(documento.charAt(k), 10) * pesos2[k];
+			}
+
+			var resto2 = soma2 % 11;
+			var digito2 = resto2 < 2 ? 0 : 11 - resto2;
+
+			return parseInt(documento.charAt(13), 10) === digito2;
+		}
+
+		return false;
+	};
+
 	var limparEndereco = function () {
 		if (inputLogradouro) inputLogradouro.value = '';
 		if (inputBairro) inputBairro.value = '';
@@ -537,8 +403,35 @@ document.addEventListener('DOMContentLoaded', function () {
 	if (inputCnpjCpf) {
 		inputCnpjCpf.addEventListener('input', function () {
 			this.value = aplicarMascaraCnpjCpf(this.value);
+			this.setCustomValidity('');
 		});
+
+		inputCnpjCpf.addEventListener('blur', function () {
+			var valorAtual = (this.value || '').trim();
+			if (valorAtual === '') {
+				this.setCustomValidity('');
+				return;
+			}
+
+			this.setCustomValidity(validarCpfCnpjCliente(valorAtual) ? '' : 'Informe um CPF ou CNPJ válido.');
+		});
+
 		inputCnpjCpf.value = aplicarMascaraCnpjCpf(inputCnpjCpf.value);
+	}
+
+	var formFornecedor = document.querySelector('form[method="POST"]');
+	if (formFornecedor && inputCnpjCpf) {
+		formFornecedor.addEventListener('submit', function (e) {
+			var valorAtual = (inputCnpjCpf.value || '').trim();
+			inputCnpjCpf.value = aplicarMascaraCnpjCpf(valorAtual);
+
+			if (valorAtual !== '' && !validarCpfCnpjCliente(valorAtual)) {
+				e.preventDefault();
+				inputCnpjCpf.setCustomValidity('Informe um CPF ou CNPJ válido.');
+				inputCnpjCpf.reportValidity();
+				inputCnpjCpf.focus();
+			}
+		});
 	}
 
 	if (inputEmailPedidos) {

@@ -1,43 +1,20 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Produtos\ProdutoController;
 
 $produtos = [];
 $erro_consulta = null;
 $usuario_id = (int) ($_SESSION['usuario_id'] ?? 0);
 
+$produtoController = new ProdutoController($pdo);
+
 if ($usuario_id <= 0) {
 	$erro_consulta = 'Não foi possível identificar o usuário logado para listar os produtos.';
 } else {
 	try {
-		$stmt = $pdo->prepare("SELECT
-				p.id,
-				mp.id AS mapa_id,
-				s.sku AS sku_codigo,
-				c.nome AS categoria_nome,
-				COALESCE(NULLIF(p.nome, ''), m.nome_original) AS miniatura_nome,
-				p.markup,
-				COALESCE(i_m.unidades_produzidas, i_t.unidades_produzidas, 0) AS unidades_produzidas,
-				cu.custo_total AS custo_total,
-				cu.custo_por_unidade AS custo_unidade,
-				p.preco_lojista,
-				p.preco_consumidor_final,
-				p.lucro_lojista,
-				p.lucro_consumidor_final,
-				p.imagem_capa,
-				p.data_cadastro
-			FROM produtos p
-			LEFT JOIN sku s ON s.produto_id = p.id
-			LEFT JOIN categorias c ON c.id = p.categoria
-			LEFT JOIN custos cu ON cu.produto_id = p.id
-			LEFT JOIN miniaturas m ON m.produto_id = p.id
-			LEFT JOIN mapas mp ON mp.produto_id = p.id AND mp.usuario_id = p.usuario_id
-			LEFT JOIN torres t ON t.produto_id = p.id
-			LEFT JOIN impressoes i_m ON i_m.id = m.id_impressao
-			LEFT JOIN impressoes i_t ON i_t.id = t.id_impressao
-			WHERE p.usuario_id = ?
-			ORDER BY p.id DESC");
-		$stmt->execute([$usuario_id]);
-		$produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+		$produtos = $produtoController->listarPorUsuario($usuario_id);
 	} catch (Throwable $e) {
 		$erro_consulta = 'Não foi possível carregar os produtos no momento.';
 	}
@@ -112,8 +89,13 @@ if ($usuario_id <= 0) {
 							: strtolower($categoriaNome);
 
 						$hrefEditar = '?pagina=produtos&acao=editar&id=' . (int) $produto['id'];
+						$hrefVisualizar = '';
 						if ($categoriaNormalizada === 'mapas' && (int) ($produto['mapa_id'] ?? 0) > 0) {
 							$hrefEditar = '?pagina=mapas&acao=editar&id=' . (int) $produto['mapa_id'] . '&fluxo=mapas';
+						}
+						if (($categoriaNormalizada === 'torre de dados' || $categoriaNormalizada === 'torres de dados' || $categoriaNormalizada === 'torres') && (int) ($produto['torre_id'] ?? 0) > 0) {
+							$hrefEditar = '?pagina=torres&acao=editar&id=' . (int) $produto['torre_id'];
+							$hrefVisualizar = '?pagina=torres&acao=visualizar&id=' . (int) $produto['torre_id'];
 						}
 						?>
 						<tr>
@@ -124,7 +106,16 @@ if ($usuario_id <= 0) {
 									<span class="text-muted">-</span>
 								<?php endif; ?>
 							</td>
-							<td><?= htmlspecialchars((string) ($produto['sku_codigo'] ?? '-')) ?></td>
+							<td>
+								<?php $skuCodigo = trim((string) ($produto['sku_codigo'] ?? '')); ?>
+								<?php if ($skuCodigo !== ''): ?>
+									<button type="button" class="btn btn-link p-0 align-baseline sku-copy" data-sku="<?= htmlspecialchars($skuCodigo) ?>" title="Clique para copiar o SKU">
+										<?= htmlspecialchars($skuCodigo) ?>
+									</button>
+								<?php else: ?>
+									<span class="text-muted">-</span>
+								<?php endif; ?>
+							</td>
 							<td><?= htmlspecialchars((string) ($produto['miniatura_nome'] ?? 'Produto sem nome')) ?></td>
 							<td><?= htmlspecialchars((string) ($produto['categoria_nome'] ?? '-')) ?></td>
 							<td><span class="badge badge-secondary">R$ <?= number_format((float) ($produto['custo_unidade'] ?? 0), 2, ',', '.') ?></span></td>
@@ -141,6 +132,11 @@ if ($usuario_id <= 0) {
 								<?php endif; ?>
 							</td>
 							<td class="text-right">
+								<?php if ($hrefVisualizar !== ''): ?>
+									<a class="btn btn-secondary btn-sm" href="<?= htmlspecialchars($hrefVisualizar, ENT_QUOTES, 'UTF-8') ?>">
+										<i class="fas fa-eye"></i> Visualizar
+									</a>
+								<?php endif; ?>
 								<a class="btn btn-info btn-sm" href="<?= htmlspecialchars($hrefEditar, ENT_QUOTES, 'UTF-8') ?>">
 									<i class="fas fa-pencil-alt"></i> Editar
 								</a>
@@ -157,6 +153,8 @@ if ($usuario_id <= 0) {
 		<?php endif; ?>
 	</div>
 </div>
+
+<div id="sku-copy-toast-container" style="position: fixed; top: 70px; right: 20px; z-index: 1060; width: 360px; max-width: calc(100vw - 40px);"></div>
 
 <div id="preview-capa-hover" class="preview-capa-hover">
 	<img src="" alt="Pré-visualização da capa">
@@ -272,5 +270,60 @@ document.addEventListener('DOMContentLoaded', function () {
 			});
 		});
 	}
+
+	document.querySelectorAll('.sku-copy').forEach(function(botaoSku) {
+		botaoSku.addEventListener('click', async function(e) {
+			e.preventDefault();
+			var sku = this.getAttribute('data-sku') || '';
+			if (!sku) {
+				return;
+			}
+
+			var mostrarAlertaCopiaSku = function(tipo, mensagem) {
+				var container = document.getElementById('sku-copy-toast-container');
+				if (!container) {
+					return;
+				}
+
+				container.innerHTML = '';
+
+				var alerta = document.createElement('div');
+				alerta.className = 'alert alert-' + tipo + ' alert-dismissible fade show shadow';
+				alerta.setAttribute('role', 'alert');
+				alerta.innerHTML =
+					'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+					'<h5><i class="icon fas fa-check"></i> Copiado!</h5>' +
+					mensagem;
+
+				container.appendChild(alerta);
+
+				setTimeout(function() {
+					if (typeof window.jQuery !== 'undefined' && window.jQuery(alerta).alert) {
+						window.jQuery(alerta).alert('close');
+					} else if (alerta.parentNode) {
+						alerta.parentNode.removeChild(alerta);
+					}
+				}, 2500);
+			};
+
+			try {
+				await navigator.clipboard.writeText(sku);
+				mostrarAlertaCopiaSku('success', 'O SKU foi copiado para a área de transferência.');
+			} catch (err) {
+				var campoAuxiliar = document.createElement('input');
+				campoAuxiliar.value = sku;
+				document.body.appendChild(campoAuxiliar);
+				campoAuxiliar.select();
+				var copiou = document.execCommand('copy');
+				document.body.removeChild(campoAuxiliar);
+
+				if (copiou) {
+					mostrarAlertaCopiaSku('success', 'O SKU foi copiado para a área de transferência.');
+				} else {
+					mostrarAlertaCopiaSku('danger', 'Não foi possível copiar automaticamente.');
+				}
+			}
+		});
+	});
 });
 </script>

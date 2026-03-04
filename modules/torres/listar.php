@@ -1,29 +1,20 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
+require_once __DIR__ . '/../../app/autoload.php';
+
+use App\Torres\TorreController;
 
 $usuario_id = (int) ($_SESSION['usuario_id'] ?? 0);
 $torres = [];
 $erro_consulta = null;
 
+$torreController = new TorreController($pdo);
+
 if ($usuario_id <= 0) {
     $erro_consulta = 'Não foi possível identificar o usuário logado para listar as torres.';
 } else {
     try {
-        $stmt = $pdo->prepare("SELECT
-            t.id,
-            t.nome_original,
-            p.id AS produto_id,
-            p.nome,
-            p.imagem_capa,
-            p.preco_lojista,
-            p.preco_consumidor_final,
-            p.data_cadastro
-        FROM torres t
-        INNER JOIN produtos p ON p.id = t.produto_id
-        WHERE t.usuario_id = ?
-        ORDER BY t.id DESC");
-        $stmt->execute([$usuario_id]);
-        $torres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $torres = $torreController->listarPorUsuario($usuario_id);
     } catch (Throwable $e) {
         $erro_consulta = 'Não foi possível carregar as torres no momento.';
     }

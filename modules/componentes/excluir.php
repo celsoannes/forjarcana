@@ -27,11 +27,13 @@ if (!empty($componente['imagem'])) {
     $prefix = preg_replace('/_media$/', '', $prefix); // Remove o sufixo _media
 
     // Exclui todos os tamanhos
-    $tipos = ['thumb', 'pequena', 'media', 'grande'];
+    $tipos = ['thumb', 'thumbnail', 'pequena', 'media', 'grande'];
     foreach ($tipos as $tipo) {
-        $arquivo = "$baseDir/{$prefix}_{$tipo}.png";
-        if (file_exists($arquivo)) {
-            unlink($arquivo);
+        foreach (['png', 'webp'] as $extensao) {
+            $arquivo = "$baseDir/{$prefix}_{$tipo}.{$extensao}";
+            if (file_exists($arquivo)) {
+                unlink($arquivo);
+            }
         }
     }
 }
