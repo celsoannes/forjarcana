@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../app/db.php';
 require_once __DIR__ . '/../../app/upload_imagem.php';
 require_once __DIR__ . '/../../app/autoload.php';
+require_once __DIR__ . '/../../app/componentes/impressora_material_cards.php';
 
 use App\Miniaturas\MiniaturaController;
 
@@ -149,84 +150,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <?php if ($selecao_confirmacao): ?>
         <h5 class="mb-3">Seleção confirmada</h5>
-        <div class="selecao-grid mb-4">
-          <div class="selecao-card">
-            <div class="selecao-icon"><i class="fas fa-microscope"></i></div>
-            <div class="selecao-content">
-              <h2><?= htmlspecialchars($selecao_confirmacao['impressora']['marca'] . ' ' . $selecao_confirmacao['impressora']['modelo']) ?></h2>
-              <p>
-                <strong>Tipo:</strong> <?= htmlspecialchars($selecao_confirmacao['impressora']['tipo']) ?><br>
-                <strong>Etapa:</strong> Impressora selecionada
-              </p>
-            </div>
-          </div>
-
-          <div class="selecao-card">
-            <div class="selecao-icon">
-              <i class="<?= $selecao_confirmacao['material_tipo'] === 'Resina' ? 'fa-solid fa-bottle-water' : 'fas fa-compact-disc' ?>"></i>
-            </div>
-            <div class="selecao-content">
-              <h2><?= htmlspecialchars($selecao_confirmacao['material']['nome']) ?></h2>
-              <p>
-                <strong>Tipo:</strong> <?= htmlspecialchars($selecao_confirmacao['material_tipo']) ?><br>
-                <strong>Marca:</strong> <?= htmlspecialchars($selecao_confirmacao['material']['marca']) ?><br>
-                <strong>Cor:</strong> <?= htmlspecialchars($selecao_confirmacao['material']['cor']) ?>
-                <?php if (!empty($selecao_confirmacao['material']['tipo'])): ?>
-                  <br><strong>Subtipo:</strong> <?= htmlspecialchars($selecao_confirmacao['material']['tipo']) ?>
-                <?php endif; ?>
-              </p>
-            </div>
-          </div>
-        </div>
+        <?php
+          renderImpressoraMaterialCards([
+            'impressora_nome' => trim((string) (($selecao_confirmacao['impressora']['marca'] ?? '') . ' ' . ($selecao_confirmacao['impressora']['modelo'] ?? ''))),
+            'impressora_tipo' => (string) ($selecao_confirmacao['impressora']['tipo'] ?? '-'),
+            'impressora_detalhe_label' => 'Etapa',
+            'impressora_detalhe_valor' => 'Impressora selecionada',
+            'material_nome' => (string) ($selecao_confirmacao['material']['nome'] ?? '-'),
+            'material_tipo' => (string) ($selecao_confirmacao['material_tipo'] ?? '-'),
+            'material_marca' => (string) ($selecao_confirmacao['material']['marca'] ?? '-'),
+            'material_cor' => (string) ($selecao_confirmacao['material']['cor'] ?? '-'),
+            'material_subtipo' => (string) ($selecao_confirmacao['material']['tipo'] ?? ''),
+          ], 'mb-4');
+        ?>
       <?php elseif ($aviso_selecao): ?>
         <div class="alert alert-warning"><?= htmlspecialchars($aviso_selecao) ?></div>
       <?php endif; ?>
 
       <style>
-        .selecao-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 20px;
-        }
-
-        .selecao-card {
-          position: relative;
-          background: #fff;
-          border-radius: 12px;
-          padding: 28px 24px;
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-          border: 1px solid #e9ecef;
-          display: flex;
-          flex-direction: row;
-          align-items: flex-start;
-          gap: 16px;
-          min-height: 180px;
-        }
-
-        .selecao-icon {
-          font-size: 2.2rem;
-          color: #007bff;
-          margin-top: 2px;
-          flex-shrink: 0;
-        }
-
-        .selecao-content {
-          flex: 1;
-        }
-
-        .selecao-card h2 {
-          font-size: 1.35rem;
-          font-weight: 600;
-          margin-bottom: 10px;
-          color: #343a40;
-        }
-
-        .selecao-card p {
-          color: #6c757d;
-          font-size: 0.95rem;
-          margin-bottom: 0;
-        }
-
         .outras_caracteristicas-container {
           border: 1px solid #ced4da;
           border-radius: 0.25rem;
