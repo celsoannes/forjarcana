@@ -272,6 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'impressora_tipo' => $tipoImpressoraExibicao,
             'impressora_detalhe_label' => 'Custo Hora',
             'impressora_detalhe_valor' => 'R$ ' . number_format((float) ($torreVisualizacao['impressora_custo_hora'] ?? 0), 4, ',', '.'),
+            'material_id' => !empty($torreVisualizacao['filamento_id']) ? $torreVisualizacao['filamento_id'] : (!empty($torreVisualizacao['resina_id']) ? $torreVisualizacao['resina_id'] : null),
             'material_nome' => $materialNomeCard,
             'material_tipo' => $materialTipoCard,
             'material_marca' => $materialMarcaCard,

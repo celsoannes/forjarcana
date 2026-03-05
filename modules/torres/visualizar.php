@@ -213,6 +213,7 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
         'impressora_tipo' => $tipoImpressoraExibicao,
         'impressora_detalhe_label' => 'Custo Hora',
         'impressora_detalhe_valor' => 'R$ ' . number_format((float) ($torre['impressora_custo_hora'] ?? 0), 4, ',', '.'),
+        'material_id' => !empty($torre['filamento_id']) ? $torre['filamento_id'] : (!empty($torre['resina_id']) ? $torre['resina_id'] : null),
         'material_nome' => $materialNomeCard,
         'material_tipo' => $materialTipoCard,
         'material_marca' => $materialMarcaExibicao,

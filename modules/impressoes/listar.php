@@ -29,8 +29,11 @@ if ($impressora_id > 0) {
   <?php if ($impressoras): ?>
     <div class="impressoes-grid">
       <?php foreach ($impressoras as $impressora): ?>
-        <div class="impressao-card">
-          <div class="impressao-icon">
+        <?php
+          $cardLink = '?pagina=impressoes&impressora_id=' . (int) $impressora['id'] . ($fluxo_produtos ? '&fluxo=' . urlencode($fluxo) : '');
+        ?>
+        <a href="<?= $cardLink ?>" class="impressao-card impressao-card-link impressao-card-horizontal" style="display:flex; text-decoration:none; color:inherit; align-items:center;">
+          <div class="impressao-card-img">
             <?php
               // Buscar a capa da impressora
               $stmtCapa = $pdo->prepare('SELECT capa FROM impressoras WHERE id = ? LIMIT 1');
@@ -47,21 +50,20 @@ if ($impressora_id > 0) {
               }
             ?>
             <?php if ($impressoraCapaThumb !== ''): ?>
-              <img src="<?= htmlspecialchars($impressoraCapaThumb) ?>" alt="Capa da impressora" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;">
+              <img src="<?= htmlspecialchars($impressoraCapaThumb) ?>" alt="Capa da impressora" style="width:96px; height:96px; object-fit:cover; border-radius:12px; border:1px solid #dee2e6;">
             <?php else: ?>
-              <i class="fas fa-microscope"></i>
+              <i class="fas fa-microscope" style="font-size:3.5rem;"></i>
             <?php endif; ?>
           </div>
-          <h2><?= htmlspecialchars($impressora['marca'] . ' ' . $impressora['modelo']) ?></h2>
-          <p>
-            <strong>Tipo:</strong> <?= htmlspecialchars($impressora['tipo']) ?><br>
-            <strong>Depreciação:</strong> <?= htmlspecialchars($impressora['depreciacao']) ?>%<br>
-            <strong>Custo Hora:</strong> R$ <?= number_format((float) $impressora['custo_hora'], 4, ',', '.') ?>
-          </p>
-          <div class="impressao-actions">
-            <a href="?pagina=impressoes&impressora_id=<?= (int) $impressora['id'] ?><?= $fluxo_produtos ? '&fluxo=' . urlencode($fluxo) : '' ?>" class="btn-selecionar">Selecionar</a>
+          <div class="impressao-card-info">
+            <h2><?= htmlspecialchars($impressora['marca'] . ' ' . $impressora['modelo']) ?></h2>
+            <p>
+              <strong>Tipo:</strong> <?= htmlspecialchars($impressora['tipo']) ?><br>
+              <strong>Depreciação:</strong> <?= htmlspecialchars($impressora['depreciacao']) ?>%<br>
+              <strong>Custo Hora:</strong> R$ <?= number_format((float) $impressora['custo_hora'], 4, ',', '.') ?>
+            </p>
           </div>
-        </div>
+        </a>
       <?php endforeach; ?>
     </div>
   <?php else: ?>
@@ -77,7 +79,7 @@ if ($impressora_id > 0) {
 
   <?php if ($impressoraSelecionada['tipo'] === 'Resina'): ?>
     <?php
-    $stmtMateriais = $pdo->prepare("SELECT id, nome, marca, cor, preco_litro FROM resinas WHERE usuario_id = ? ORDER BY marca, nome");
+    $stmtMateriais = $pdo->prepare("SELECT id, nome, marca, cor, preco_kilo FROM resinas WHERE usuario_id = ? ORDER BY marca, nome");
     $stmtMateriais->execute([$usuario_id]);
     $materiais = $stmtMateriais->fetchAll(PDO::FETCH_ASSOC);
     ?>
@@ -85,22 +87,45 @@ if ($impressora_id > 0) {
     <?php if ($materiais): ?>
       <div class="impressoes-grid">
         <?php foreach ($materiais as $material): ?>
-          <div class="impressao-card">
-            <div class="impressao-icon"><i class="fa-solid fa-bottle-water"></i></div>
-            <h2><?= htmlspecialchars($material['nome']) ?></h2>
-            <p>
-              <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
-              <strong>Cor:</strong> <?= htmlspecialchars($material['cor']) ?><br>
-              <strong>Preço/Litro:</strong> R$ <?= number_format((float) $material['preco_litro'], 2, ',', '.') ?>
-            </p>
-            <div class="impressao-actions">
-              <a href="<?= $fluxo_miniaturas
-                ? '?pagina=miniaturas&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']
-                : ($fluxo_torres
-                  ? '?pagina=torres&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']
-                  : '?pagina=impressoes&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']) ?>" class="btn-selecionar"><?= $fluxo_miniaturas ? 'Ir para Miniaturas' : ($fluxo_torres ? 'Ir para Torres' : 'Selecionar') ?></a>
+          <?php
+            $cardLink = $fluxo_miniaturas
+              ? '?pagina=miniaturas&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']
+              : ($fluxo_torres
+                ? '?pagina=torres&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']
+                : '?pagina=impressoes&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&resina_id=' . (int) $material['id']);
+            // Buscar thumb da resina
+            $resinaCapaThumb = '';
+            if (!empty($material['id'])) {
+              $stmtCapa = $pdo->prepare('SELECT capa FROM resinas WHERE id = ? LIMIT 1');
+              $stmtCapa->execute([$material['id']]);
+              $rowCapa = $stmtCapa->fetch(PDO::FETCH_ASSOC);
+              $resinaCapa = ($rowCapa && !empty($rowCapa['capa'])) ? trim((string)$rowCapa['capa']) : '';
+              if ($resinaCapa !== '') {
+                if (preg_match('/_media\\.webp$/', $resinaCapa)) {
+                  $resinaCapaThumb = preg_replace('/_media\\.webp$/', '_thumbnail.webp', $resinaCapa);
+                } else {
+                  $resinaCapaThumb = $resinaCapa;
+                }
+              }
+            }
+          ?>
+          <a href="<?= $cardLink ?>" class="impressao-card impressao-card-horizontal impressao-card-link">
+            <div class="impressao-card-img">
+              <?php if ($resinaCapaThumb !== ''): ?>
+                <img src="<?= htmlspecialchars($resinaCapaThumb) ?>" alt="Capa da resina" style="width:96px; height:96px; object-fit:cover; border-radius:12px; border:1px solid #dee2e6;">
+              <?php else: ?>
+                <i class="fa-solid fa-bottle-water"></i>
+              <?php endif; ?>
             </div>
-          </div>
+            <div class="impressao-card-info">
+              <h2><?= htmlspecialchars($material['nome']) ?></h2>
+              <p>
+                <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
+                <strong>Cor:</strong> <?= htmlspecialchars($material['cor']) ?><br>
+                <strong>Preço/Kg:</strong> R$ <?= number_format((float) $material['preco_kilo'], 2, ',', '.') ?>
+              </p>
+            </div>
+          </a>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
@@ -117,22 +142,45 @@ if ($impressora_id > 0) {
     <?php if ($materiais): ?>
       <div class="impressoes-grid">
         <?php foreach ($materiais as $material): ?>
-          <div class="impressao-card">
-            <div class="impressao-icon"><i class="fas fa-compact-disc"></i></div>
-            <h2><?= htmlspecialchars($material['tipo'] . ' ' . $material['nome']) ?></h2>
-            <p>
-              <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
-              <strong>Cor:</strong> <?= htmlspecialchars($material['cor']) ?><br>
-              <strong>Preço/Kg:</strong> R$ <?= number_format((float) $material['preco_kilo'], 2, ',', '.') ?>
-            </p>
-            <div class="impressao-actions">
-              <a href="<?= $fluxo_miniaturas
-                ? '?pagina=miniaturas&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']
-                : ($fluxo_torres
-                  ? '?pagina=torres&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']
-                  : '?pagina=impressoes&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']) ?>" class="btn-selecionar"><?= $fluxo_miniaturas ? 'Ir para Miniaturas' : ($fluxo_torres ? 'Ir para Torres' : 'Selecionar') ?></a>
+          <?php
+            $cardLink = $fluxo_miniaturas
+              ? '?pagina=miniaturas&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']
+              : ($fluxo_torres
+                ? '?pagina=torres&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']
+                : '?pagina=impressoes&acao=adicionar&impressora_id=' . (int) $impressoraSelecionada['id'] . '&filamento_id=' . (int) $material['id']);
+            // Buscar thumb do filamento
+            $filamentoCapaThumb = '';
+            if (!empty($material['id'])) {
+              $stmtCapa = $pdo->prepare('SELECT capa FROM filamento WHERE id = ? LIMIT 1');
+              $stmtCapa->execute([$material['id']]);
+              $rowCapa = $stmtCapa->fetch(PDO::FETCH_ASSOC);
+              $filamentoCapa = ($rowCapa && !empty($rowCapa['capa'])) ? trim((string)$rowCapa['capa']) : '';
+              if ($filamentoCapa !== '') {
+                if (preg_match('/_media\\.webp$/', $filamentoCapa)) {
+                  $filamentoCapaThumb = preg_replace('/_media\\.webp$/', '_thumbnail.webp', $filamentoCapa);
+                } else {
+                  $filamentoCapaThumb = $filamentoCapa;
+                }
+              }
+            }
+          ?>
+          <a href="<?= $cardLink ?>" class="impressao-card impressao-card-horizontal impressao-card-link">
+            <div class="impressao-card-img">
+              <?php if ($filamentoCapaThumb !== ''): ?>
+                <img src="<?= htmlspecialchars($filamentoCapaThumb) ?>" alt="Capa do filamento" style="width:96px; height:96px; object-fit:cover; border-radius:12px; border:1px solid #dee2e6;">
+              <?php else: ?>
+                <i class="fas fa-compact-disc" style="font-size:3.5rem;"></i>
+              <?php endif; ?>
             </div>
-          </div>
+            <div class="impressao-card-info">
+              <h2><?= htmlspecialchars($material['tipo'] . ' ' . $material['nome']) ?></h2>
+              <p>
+                <strong>Marca:</strong> <?= htmlspecialchars($material['marca']) ?><br>
+                <strong>Cor:</strong> <?= htmlspecialchars($material['cor']) ?><br>
+                <strong>Preço/Kg:</strong> R$ <?= number_format((float) $material['preco_kilo'], 2, ',', '.') ?>
+              </p>
+            </div>
+          </a>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
@@ -150,7 +198,20 @@ if ($impressora_id > 0) {
   gap: 20px;
 }
 
-.impressao-card {
+
+/* Card padrão e link */
+.impressao-card, .impressao-card-link {
+  .impressao-card-link {
+    text-decoration: none !important;
+    color: inherit !important;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .impressao-card-link:hover, .impressao-card-link:focus {
+    box-shadow: 0 14px 26px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+    text-decoration: none !important;
+    color: inherit !important;
+  }
   position: relative;
   background: #fff;
   border-radius: 12px;
@@ -161,6 +222,35 @@ if ($impressora_id > 0) {
   display: flex;
   flex-direction: column;
   min-height: 320px;
+}
+
+.impressao-card-horizontal {
+  flex-direction: row;
+  align-items: center;
+  min-height: 120px;
+  padding: 18px 18px;
+}
+.impressao-card-img {
+  flex: 0 0 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 22px;
+}
+.impressao-card-img img,
+.impressao-card-img i {
+  display: block;
+  width: 96px;
+  height: 96px;
+  font-size: 3.5rem;
+  color: #007bff;
+  border-radius: 12px;
+}
+.impressao-card-info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .impressao-card:hover {

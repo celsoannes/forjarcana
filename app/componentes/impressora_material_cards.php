@@ -110,45 +110,64 @@ if (!function_exists('renderImpressoraMaterialCards')) {
             }
         }
 
-        echo '<div class="impressora-material-grid ' . $classesWrapperEscapadas . '">
-          <div class="impressora-material-card h-100">';
-        if ($impressoraCapaThumb !== '') {
-            echo '<div class="impressora-material-icon"><img src="' . htmlspecialchars($impressoraCapaThumb) . '" alt="Capa da impressora" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></div>';
-          } else {
-            // Se não houver capa, mostra o ícone
-            echo '<div class="impressora-material-icon"><i class="fas fa-microscope"></i></div>';
+        // Busca a capa do material (filamento ou resina) pelo material_id
+        $materialCapaThumb = '';
+        if (!empty($dados['material_id']) && isset($pdo)) {
+            if (strcasecmp($materialTipo, 'Resina') === 0) {
+                $stmtMat = $pdo->prepare('SELECT capa FROM resinas WHERE id = ? LIMIT 1');
+            } else {
+                $stmtMat = $pdo->prepare('SELECT capa FROM filamento WHERE id = ? LIMIT 1');
+            }
+            $stmtMat->execute([$dados['material_id']]);
+            $rowMat = $stmtMat->fetch(PDO::FETCH_ASSOC);
+            if ($rowMat && !empty($rowMat['capa'])) {
+                $materialCapa = trim((string) $rowMat['capa']);
+                if (preg_match('/_media\.webp$/', $materialCapa)) {
+                    $materialCapaThumb = preg_replace('/_media\.webp$/', '_thumbnail.webp', $materialCapa);
+                } else {
+                    $materialCapaThumb = $materialCapa;
+                }
+            }
         }
-        echo '<div class="impressora-material-content">
-              <h2>' . $impressoraNome . '</h2>
-              <p>
-                <strong>Tipo:</strong> ' . $impressoraTipo;
 
+        echo '<div class="impressora-material-grid ' . $classesWrapperEscapadas . '">';
+        // Card da impressora
+        echo '<div class="impressora-material-card h-100 impressora-material-card--impressora">';
+        if ($impressoraCapaThumb !== '') {
+            echo '<div class="impressora-material-icon"><img src="' . htmlspecialchars($impressoraCapaThumb) . '" alt="Capa da impressora" style="width:96px; height:96px; object-fit:cover; border-radius:12px; border:1px solid #dee2e6;"></div>';
+        } else {
+            echo '<div class="impressora-material-icon"><i class="fas fa-microscope" style="font-size:3.5rem;"></i></div>';
+        }
+        echo '<div class="impressora-material-content">';
+        echo '<h2>' . $impressoraNome . '</h2>';
+        echo '<p>';
+        echo '<strong>Tipo:</strong> ' . $impressoraTipo;
         if ($impressoraDetalheLabel !== '' && $impressoraDetalheValor !== '') {
             echo '<br><strong>' . $impressoraDetalheLabel . ':</strong> ' . $impressoraDetalheValor;
         }
+        echo '</p>';
+        echo '</div>';
+        echo '</div>';
 
-        echo '</p>
-            </div>
-          </div>
-
-          <div class="impressora-material-card h-100">
-            <div class="impressora-material-icon">
-              <i class="' . $iconeMaterial . '"></i>
-            </div>
-            <div class="impressora-material-content">
-              <h2>' . $materialNome . '</h2>
-              <p>
-                <strong>Tipo:</strong> ' . $materialTipoEscapado . '<br>
-                <strong>Marca:</strong> ' . $materialMarca . '<br>
-                <strong>Cor:</strong> ' . $materialCor;
-
-        if ($materialSubtipo !== '') {
-            echo '<br><strong>Subtipo:</strong> ' . $materialSubtipoEscapado;
+        // Card do material
+        echo '<div class="impressora-material-card h-100 impressora-material-card--material">';
+        echo '<div class="impressora-material-icon">';
+        if ($materialCapaThumb !== '') {
+            echo '<img src="' . htmlspecialchars($materialCapaThumb) . '" alt="Capa do material" style="width:96px; height:96px; object-fit:cover; border-radius:12px; border:1px solid #dee2e6;">';
+        } else {
+            echo '<i class="' . $iconeMaterial . '"></i>';
         }
-
-        echo '</p>
-            </div>
-          </div>
-        </div>';
+        echo '</div>';
+        echo '<div class="impressora-material-content" style="display:flex; flex-direction:column; justify-content:center;">';
+        echo '<h2>' . $materialNome . '</h2>';
+        echo '<p style="margin-bottom:0;">';
+        $tipoSubtipo = trim($materialTipoEscapado . ' ' . $materialSubtipoEscapado);
+        echo '<strong>Tipo:</strong> ' . htmlspecialchars($tipoSubtipo) . '<br>';
+        echo '<strong>Marca:</strong> ' . $materialMarca . '<br>';
+        echo '<strong>Cor:</strong> ' . $materialCor;
+        echo '</p>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
     }
 }

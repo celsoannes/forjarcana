@@ -53,7 +53,7 @@ class TorreRepository
 
     public function buscarResina(int $resinaId, int $usuarioId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, nome, marca, cor, preco_litro FROM resinas WHERE id = ? AND usuario_id = ?');
+        $stmt = $this->pdo->prepare('SELECT id, nome, marca, cor, preco_kilo FROM resinas WHERE id = ? AND usuario_id = ?');
         $stmt->execute([$resinaId, $usuarioId]);
         $resina = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -233,7 +233,7 @@ class TorreRepository
             res.nome AS resina_nome,
             res.marca AS resina_marca,
             res.cor AS resina_cor,
-            res.preco_litro AS resina_preco_litro,
+            res.preco_kilo AS resina_preco_kilo,
             e.nome AS estudio_nome,
             co.nome AS colecao_nome,
             tm.nome AS tematica_nome

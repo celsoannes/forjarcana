@@ -79,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'impressora_tipo' => (string) ($selecao_confirmacao['impressora']['tipo'] ?? '-'),
             'impressora_detalhe_label' => 'Custo Hora',
             'impressora_detalhe_valor' => 'R$ ' . number_format((float) ($selecao_confirmacao['impressora']['custo_hora'] ?? 0), 4, ',', '.'),
+            'material_id' => $selecao_confirmacao['material']['id'] ?? null,
             'material_nome' => (string) ($selecao_confirmacao['material']['nome'] ?? '-'),
             'material_tipo' => (string) ($selecao_confirmacao['material_tipo'] ?? '-'),
             'material_marca' => (string) ($selecao_confirmacao['material']['marca'] ?? '-'),
