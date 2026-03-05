@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . '/app/autoload.php';
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/helpers.php';
 require_once __DIR__ . '/app/db.php';
