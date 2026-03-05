@@ -182,6 +182,7 @@ class TorreRepository
         $stmt = $this->pdo->prepare("SELECT
             t.id,
             t.produto_id,
+            t.id_impressao,
             t.nome_original,
             t.tematica,
             t.capa,
@@ -215,16 +216,24 @@ class TorreRepository
             i.preco_venda_sugerido,
             i.preco_venda_sugerido_unidade,
             i.observacoes,
+            i.impressora_id,
+            i.filamento_id,
+            i.resina_id,
             imp.marca AS impressora_marca,
             imp.modelo AS impressora_modelo,
             imp.tipo AS impressora_tipo,
+            imp.potencia AS impressora_potencia,
+            imp.fator_uso AS impressora_fator_uso,
+            imp.custo_hora AS impressora_custo_hora,
             fil.nome AS filamento_nome,
             fil.marca AS filamento_marca,
             fil.cor AS filamento_cor,
             fil.tipo AS filamento_tipo,
+            fil.preco_kilo AS filamento_preco_kilo,
             res.nome AS resina_nome,
             res.marca AS resina_marca,
             res.cor AS resina_cor,
+            res.preco_litro AS resina_preco_litro,
             e.nome AS estudio_nome,
             co.nome AS colecao_nome,
             tm.nome AS tematica_nome
@@ -254,8 +263,51 @@ class TorreRepository
         $stmt->execute([$nomeOriginal, $id, $usuarioId]);
     }
 
+    public function atualizarMetadadosDaTorre(
+        int $id,
+        int $usuarioId,
+        ?int $estudioId,
+        ?int $colecaoId,
+        ?int $tematicaId,
+        ?string $tematicaNome,
+        ?string $outrasCaracteristicas
+    ): void {
+        $stmt = $this->pdo->prepare('UPDATE torres SET id_estudio = ?, id_colecao = ?, id_tematica = ?, tematica = ?, outras_caracteristicas = ? WHERE id = ? AND usuario_id = ?');
+        $stmt->execute([
+            $estudioId,
+            $colecaoId,
+            $tematicaId,
+            $tematicaNome,
+            $outrasCaracteristicas,
+            $id,
+            $usuarioId,
+        ]);
+    }
+
+    public function atualizarSkuDaTorre(int $id, int $usuarioId, string $sku): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE torres SET id_sku = ? WHERE id = ? AND usuario_id = ?');
+        $stmt->execute([$sku, $id, $usuarioId]);
+    }
+
+    public function atualizarOuInserirSkuDoProduto(int $produtoId, int $usuarioId, string $sku): void
+    {
+        $stmtUpdate = $this->pdo->prepare('UPDATE sku SET sku = ? WHERE produto_id = ? AND usuario_id = ?');
+        $stmtUpdate->execute([$sku, $produtoId, $usuarioId]);
+
+        if ($stmtUpdate->rowCount() > 0) {
+            return;
+        }
+
+        $stmtInsert = $this->pdo->prepare('INSERT INTO sku (produto_id, sku, usuario_id) VALUES (?, ?, ?)');
+        $stmtInsert->execute([$produtoId, $sku, $usuarioId]);
+    }
+
     public function atualizarProdutoDaTorre(int $produtoId, int $usuarioId, array $dados, array $compatibilidade): void
     {
+        $temLucroLojista = $this->temColuna('produtos', 'lucro_lojista');
+        $temLucroConsumidorFinal = $this->temColuna('produtos', 'lucro_consumidor_final');
+
         $setProduto = ['nome = ?', 'descricao = ?'];
         $valoresProduto = [
             $dados['nome'],
@@ -286,11 +338,87 @@ class TorreRepository
         $valoresProduto[] = $dados['preco_lojista'];
         $setProduto[] = 'preco_consumidor_final = ?';
         $valoresProduto[] = $dados['preco_consumidor_final'];
+
+        if ($temLucroLojista) {
+            $setProduto[] = 'lucro_lojista = ?';
+            $valoresProduto[] = (float) ($dados['lucro_lojista'] ?? 0);
+        }
+
+        if ($temLucroConsumidorFinal) {
+            $setProduto[] = 'lucro_consumidor_final = ?';
+            $valoresProduto[] = (float) ($dados['lucro_consumidor_final'] ?? 0);
+        }
+
         $valoresProduto[] = $produtoId;
         $valoresProduto[] = $usuarioId;
 
         $stmt = $this->pdo->prepare('UPDATE produtos SET ' . implode(', ', $setProduto) . ' WHERE id = ? AND usuario_id = ?');
         $stmt->execute($valoresProduto);
+    }
+
+    public function atualizarMidiaDaTorre(int $id, int $usuarioId, ?string $capa, ?string $imagensJson): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE torres SET capa = ?, imagens = ? WHERE id = ? AND usuario_id = ?');
+        $stmt->execute([$capa, $imagensJson, $id, $usuarioId]);
+    }
+
+    public function atualizarMidiaDoProduto(int $produtoId, int $usuarioId, ?string $capa, ?string $imagensJson): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE produtos SET imagem_capa = ?, imagens = ? WHERE id = ? AND usuario_id = ?');
+        $stmt->execute([$capa, $imagensJson, $produtoId, $usuarioId]);
+    }
+
+    public function atualizarCustosDoProduto(int $produtoId, float $custoTotal, float $custoPorUnidade): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE custos SET custo_total = ?, custo_por_unidade = ? WHERE produto_id = ?');
+        $stmt->execute([$custoTotal, $custoPorUnidade, $produtoId]);
+    }
+
+    public function atualizarImpressaoDaTorre(int $impressaoId, int $usuarioId, array $dados): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE impressoes SET
+            tempo_impressao = ?,
+            unidades_produzidas = ?,
+            markup = ?,
+            taxa_falha = ?,
+            valor_energia = ?,
+            peso_material = ?,
+            custo_material = ?,
+            custo_lavagem_alcool = ?,
+            custo_energia = ?,
+            depreciacao = ?,
+            custo_total_impressao = ?,
+            custo_por_unidade = ?,
+            lucro_total_impressao = ?,
+            lucro_por_unidade = ?,
+            porcentagem_lucro = ?,
+            preco_venda_sugerido = ?,
+            preco_venda_sugerido_unidade = ?,
+            observacoes = ?
+            WHERE id = ? AND usuario_id = ?');
+
+        $stmt->execute([
+            $dados['tempo_impressao'],
+            $dados['unidades_produzidas'],
+            $dados['markup'],
+            $dados['taxa_falha'],
+            $dados['valor_energia'],
+            $dados['peso_material'],
+            $dados['custo_material'],
+            $dados['custo_lavagem_alcool'],
+            $dados['custo_energia'],
+            $dados['depreciacao'],
+            $dados['custo_total_impressao'],
+            $dados['custo_por_unidade'],
+            $dados['lucro_total_impressao'],
+            $dados['lucro_por_unidade'],
+            $dados['porcentagem_lucro'],
+            $dados['preco_venda_sugerido'],
+            $dados['preco_venda_sugerido_unidade'],
+            $dados['observacoes'],
+            $impressaoId,
+            $usuarioId,
+        ]);
     }
 
     public function excluirProduto(int $produtoId, int $usuarioId): bool

@@ -407,8 +407,8 @@ class TorreService
         $outrasCaracteristicas = trim((string) ($dados['outras_caracteristicas'] ?? ''));
         $descricaoProduto = trim((string) ($dados['descricao_produto'] ?? ''));
         $observacoes = trim((string) ($dados['observacoes'] ?? ''));
-        $markupLojista = (float) ($dados['markup_lojista'] ?? 0);
         $markupConsumidorFinal = (float) ($dados['markup_consumidor_final'] ?? 0);
+        $markupLojista = (float) ($dados['markup_lojista'] ?? $markupConsumidorFinal);
         $taxaFalha = (float) ($dados['taxa_falha'] ?? 0);
         $gramas = (float) ($dados['gramas'] ?? 0);
         $tempoTotalMin = (int) ($dados['tempo_total_min'] ?? 0);
@@ -444,10 +444,10 @@ class TorreService
             $lucroTotal = round($precoVendaSugerido - $custoTotalImpressao, 2);
             $lucroPorUnidade = $unidadesProduzidas > 0 ? round($lucroTotal / $unidadesProduzidas, 2) : 0.00;
 
-            $precoLojista = round($custoPorUnidade * $markupLojista, 2);
             $precoConsumidorFinal = $precoVendaSugeridoUnidade;
-            $lucroLojista = round($precoLojista - $custoPorUnidade, 2);
             $lucroConsumidorFinal = round($precoConsumidorFinal - $custoPorUnidade, 2);
+            $precoLojista = round($custoPorUnidade + ($lucroConsumidorFinal / 2), 2);
+            $lucroLojista = round($precoLojista - $custoPorUnidade, 2);
 
             $stmtColunasProdutos = $this->pdo->query('SHOW COLUMNS FROM produtos');
             $colunasProdutosRaw = $stmtColunasProdutos ? $stmtColunasProdutos->fetchAll(PDO::FETCH_ASSOC) : [];
@@ -518,7 +518,7 @@ class TorreService
             $tematicaIdTorre = (int) ($tematicaResolvida['id'] ?? 0);
             $tematicaNomeTorre = (string) ($tematicaResolvida['nome'] ?? $tematica);
             $estudioNomeParaSku = (string) ($estudioResolvido['nome'] ?? $estudio);
-            $skuCodigoTorre = $this->gerarSkuTorre($estudioNomeParaSku);
+            $skuCodigoTorre = $this->gerarSkuTorre($nome, $estudioNomeParaSku);
 
             $stmtInsertSku = $this->pdo->prepare('INSERT INTO sku (produto_id, sku, usuario_id) VALUES (?, ?, ?)');
             $stmtInsertSku->execute([$produtoId, $skuCodigoTorre, $usuarioId]);
@@ -592,29 +592,180 @@ class TorreService
         }
     }
 
-    public function editar(int $id, int $usuarioId, array $dados, array $compatibilidade, int $produtoId): array
+    public function editar(int $id, int $usuarioId, array $dados, array $compatibilidade, int $produtoId, array $files = [], string $usuarioUuid = ''): array
     {
+        $torreAtual = $this->repository->buscarParaVisualizacao($id, $usuarioId);
+        if (!$torreAtual) {
+            return ['sucesso' => false, 'erro' => 'Torre não encontrada.'];
+        }
+
         $nome = trim((string) ($dados['nome'] ?? ''));
+        $nomeAtualPersistido = trim((string) ($torreAtual['produto_nome'] ?? ''));
         $nomeOriginal = trim((string) ($dados['nome_original'] ?? ''));
-        $descricao = trim((string) ($dados['descricao'] ?? ''));
+        $estudio = trim((string) ($dados['estudio'] ?? ($torreAtual['estudio_nome'] ?? '')));
+        $estudioAtualPersistido = trim((string) ($torreAtual['estudio_nome'] ?? ''));
+        $colecaoEntrada = trim((string) ($dados['colecao'] ?? ($torreAtual['colecao_nome'] ?? '')));
+        $colecaoItens = $this->normalizarListaTags($colecaoEntrada);
+        $colecao = (string) ($colecaoItens[0] ?? '');
+        $tematica = trim((string) ($dados['tematica'] ?? (($torreAtual['tematica_nome'] ?? '') !== '' ? $torreAtual['tematica_nome'] : ($torreAtual['tematica'] ?? ''))));
+        $outrasCaracteristicas = trim((string) ($dados['outras_caracteristicas'] ?? ($torreAtual['outras_caracteristicas'] ?? '')));
+        $descricao = trim((string) ($dados['descricao'] ?? ($dados['descricao_produto'] ?? '')));
         $observacoes = trim((string) ($dados['observacoes'] ?? ''));
-        $markupLojista = (float) str_replace(',', '.', trim((string) ($dados['markup_lojista'] ?? '0')));
-        $markupConsumidorFinal = (float) str_replace(',', '.', trim((string) ($dados['markup_consumidor_final'] ?? '0')));
-        $precoLojista = (float) str_replace(',', '.', trim((string) ($dados['preco_lojista'] ?? '0')));
-        $precoConsumidorFinal = (float) str_replace(',', '.', trim((string) ($dados['preco_consumidor_final'] ?? '0')));
+        $markupConsumidorFinal = (float) str_replace(',', '.', trim((string) ($dados['markup_consumidor_final'] ?? ($torreAtual['markup_impressao'] ?? '5'))));
+        $markupLojista = (float) str_replace(',', '.', trim((string) ($dados['markup_lojista'] ?? (string) $markupConsumidorFinal)));
+        $precoConsumidorInformado = trim((string) ($dados['preco_consumidor_final'] ?? ''));
+
+        $gramas = (float) str_replace(',', '.', trim((string) ($dados['gramas'] ?? ($torreAtual['peso_material'] ?? 0))));
+        $tempoDias = (int) ($dados['tempo_dias'] ?? 0);
+        $tempoHoras = (int) ($dados['tempo_horas'] ?? 0);
+        $tempoMinutos = (int) ($dados['tempo_minutos'] ?? 0);
+        $tempoTotalMin = ($tempoDias * 24 * 60) + ($tempoHoras * 60) + $tempoMinutos;
+        $unidadesProduzidas = (int) ($dados['unidades_produzidas'] ?? ($torreAtual['unidades_produzidas'] ?? 0));
+        $taxaFalha = (float) str_replace(',', '.', trim((string) ($dados['taxa_falha'] ?? ($torreAtual['taxa_falha'] ?? 10))));
 
         if ($nome === '') {
             return ['sucesso' => false, 'erro' => 'Preencha o nome da torre.'];
         }
 
-        if ($markupLojista < 0 || $markupConsumidorFinal < 0 || $precoLojista < 0 || $precoConsumidorFinal < 0) {
-            return ['sucesso' => false, 'erro' => 'Informe valores numéricos válidos (maiores ou iguais a zero).'];
+        if ($markupConsumidorFinal < 0) {
+            return ['sucesso' => false, 'erro' => 'Informe um valor de markup válido (maior ou igual a zero).'];
         }
+
+        if ($gramas <= 0 || $tempoTotalMin <= 0 || $unidadesProduzidas <= 0 || $taxaFalha <= 0) {
+            return ['sucesso' => false, 'erro' => 'Preencha os dados técnicos com valores válidos (gramas, tempo, unidades e taxa de falha).'];
+        }
+
+        $fotoAtual = trim((string) ($dados['foto_existente'] ?? ($torreAtual['capa'] ?? '')));
+
+        $extrairImagens = static function (string $json): array {
+            $resultado = [];
+            if (trim($json) === '') {
+                return $resultado;
+            }
+
+            $lista = json_decode($json, true);
+            if (!is_array($lista)) {
+                return $resultado;
+            }
+
+            foreach ($lista as $item) {
+                if (is_string($item) && trim($item) !== '') {
+                    $resultado[] = trim($item);
+                    continue;
+                }
+
+                if (is_array($item)) {
+                    if (!empty($item['grande']) && is_string($item['grande'])) {
+                        $resultado[] = trim($item['grande']);
+                        continue;
+                    }
+
+                    if (!empty($item['url']) && is_string($item['url'])) {
+                        $resultado[] = trim($item['url']);
+                    }
+                }
+            }
+
+            return array_values(array_filter($resultado, static function ($img) {
+                return is_string($img) && $img !== '';
+            }));
+        };
+
+        $imagensAtuais = $extrairImagens((string) ($dados['imagens_existentes'] ?? ($torreAtual['imagens'] ?? '')));
+
+        if ($usuarioUuid === '' && $usuarioId > 0) {
+            $usuarioUuid = (string) ($this->repository->buscarUuidUsuario($usuarioId) ?? '');
+        }
+
+        if (!empty($files) && $usuarioUuid === '') {
+            return ['sucesso' => false, 'erro' => 'Não foi possível identificar o UUID do usuário para upload das imagens.'];
+        }
+
+        if (!empty($files)) {
+            $resultadoUpload = $this->processarUploadsAdicao($files, $usuarioUuid, $fotoAtual !== '' ? $fotoAtual : null, $imagensAtuais);
+            $erroUpload = (string) ($resultadoUpload['erro'] ?? '');
+            if ($erroUpload !== '') {
+                return ['sucesso' => false, 'erro' => $erroUpload];
+            }
+
+            $fotoAtual = (string) ($resultadoUpload['foto'] ?? $fotoAtual);
+            $imagensAtuais = is_array($resultadoUpload['imagens'] ?? null) ? $resultadoUpload['imagens'] : $imagensAtuais;
+        }
+
+        $materialTipo = ((int) ($torreAtual['filamento_id'] ?? 0) > 0) ? 'Filamento' : 'Resina';
+        $selecaoConfirmacao = [
+            'impressora' => [
+                'potencia' => (float) ($torreAtual['impressora_potencia'] ?? 0),
+                'fator_uso' => (float) ($torreAtual['impressora_fator_uso'] ?? 1),
+                'custo_hora' => (float) ($torreAtual['impressora_custo_hora'] ?? 0),
+            ],
+            'material_tipo' => $materialTipo,
+            'material' => $materialTipo === 'Filamento'
+                ? ['preco_kilo' => (float) ($torreAtual['filamento_preco_kilo'] ?? 0)]
+                : ['preco_litro' => (float) ($torreAtual['resina_preco_litro'] ?? 0)],
+        ];
+
+        $custosCalculados = $this->calcularCustosImpressao($usuarioId, $selecaoConfirmacao, $gramas, $tempoTotalMin, $taxaFalha);
+
+        $custoTotalImpressao = (float) ($custosCalculados['custo_total_impressao'] ?? 0);
+        $custoPorUnidade = $unidadesProduzidas > 0 ? round($custoTotalImpressao / $unidadesProduzidas, 2) : 0.0;
+        $precoVendaSugerido = round($custoTotalImpressao * $markupConsumidorFinal, 2);
+        $precoVendaSugeridoUnidade = $unidadesProduzidas > 0 ? round($precoVendaSugerido / $unidadesProduzidas, 2) : 0.0;
+        $lucroTotalImpressao = round($precoVendaSugerido - $custoTotalImpressao, 2);
+        $lucroPorUnidade = $unidadesProduzidas > 0 ? round($lucroTotalImpressao / $unidadesProduzidas, 2) : 0.0;
+        $porcentagemLucro = $custoTotalImpressao > 0 ? (int) round(($lucroTotalImpressao / $custoTotalImpressao) * 100) : 0;
+
+        $precoConsumidorFinal = $precoConsumidorInformado === ''
+            ? $precoVendaSugeridoUnidade
+            : (float) str_replace(',', '.', $precoConsumidorInformado);
+
+        if ($precoConsumidorFinal < 0) {
+            return ['sucesso' => false, 'erro' => 'Informe um preço de consumidor final válido (maior ou igual a zero).'];
+        }
+
+        $lucroConsumidorFinal = round($precoConsumidorFinal - $custoPorUnidade, 2);
+        $precoLojista = round($custoPorUnidade + ($lucroConsumidorFinal / 2), 2);
+        $lucroLojista = round($precoLojista - $custoPorUnidade, 2);
+        $imagensJson = !empty($imagensAtuais) ? json_encode(array_values($imagensAtuais), JSON_UNESCAPED_UNICODE) : null;
 
         try {
             $this->pdo->beginTransaction();
 
             $this->repository->atualizarNomeOriginal($id, $usuarioId, $nomeOriginal !== '' ? $nomeOriginal : null);
+
+            $estudioResolvido = $this->resolverEstudio($usuarioId, $estudio);
+            $estudioIdTorre = (int) ($estudioResolvido['id'] ?? 0);
+
+            $colecaoResolvida = $this->resolverColecao($usuarioId, $estudioIdTorre, $colecao);
+            $colecaoIdTorre = (int) ($colecaoResolvida['id'] ?? 0);
+
+            $tematicaResolvida = $this->resolverTematica($tematica);
+            $tematicaIdTorre = (int) ($tematicaResolvida['id'] ?? 0);
+            $tematicaNomeTorre = (string) ($tematicaResolvida['nome'] ?? $tematica);
+
+            $this->repository->atualizarMetadadosDaTorre(
+                $id,
+                $usuarioId,
+                $estudioIdTorre > 0 ? $estudioIdTorre : null,
+                $colecaoIdTorre > 0 ? $colecaoIdTorre : null,
+                $tematicaIdTorre > 0 ? $tematicaIdTorre : null,
+                $tematicaNomeTorre !== '' ? $tematicaNomeTorre : null,
+                $outrasCaracteristicas !== '' ? $outrasCaracteristicas : null
+            );
+
+            $nomeFoiAlterado = $nome !== $nomeAtualPersistido;
+            $estudioFoiAlterado = $estudio !== $estudioAtualPersistido;
+            if ($nomeFoiAlterado || $estudioFoiAlterado) {
+                $estudioNomeParaSku = (string) ($estudioResolvido['nome'] ?? $estudio);
+                $novoSkuCodigoTorre = $this->gerarSkuTorre($nome, $estudioNomeParaSku);
+
+                $this->repository->atualizarOuInserirSkuDoProduto($produtoId, $usuarioId, $novoSkuCodigoTorre);
+                $this->repository->atualizarSkuDaTorre($id, $usuarioId, $novoSkuCodigoTorre);
+            }
+
+            $this->repository->atualizarMidiaDaTorre($id, $usuarioId, $fotoAtual !== '' ? $fotoAtual : null, $imagensJson);
+            $this->repository->atualizarMidiaDoProduto($produtoId, $usuarioId, $fotoAtual !== '' ? $fotoAtual : null, $imagensJson);
+
             $this->repository->atualizarProdutoDaTorre(
                 $produtoId,
                 $usuarioId,
@@ -626,9 +777,37 @@ class TorreService
                     'markup_consumidor_final' => $markupConsumidorFinal,
                     'preco_lojista' => $precoLojista,
                     'preco_consumidor_final' => $precoConsumidorFinal,
+                    'lucro_lojista' => $lucroLojista,
+                    'lucro_consumidor_final' => $lucroConsumidorFinal,
                 ],
                 $compatibilidade
             );
+
+            $this->repository->atualizarCustosDoProduto($produtoId, $custoTotalImpressao, $custoPorUnidade);
+
+            $impressaoId = (int) ($torreAtual['id_impressao'] ?? 0);
+            if ($impressaoId > 0) {
+                $this->repository->atualizarImpressaoDaTorre($impressaoId, $usuarioId, [
+                    'tempo_impressao' => $tempoTotalMin,
+                    'unidades_produzidas' => $unidadesProduzidas,
+                    'markup' => max(1, (int) round($markupConsumidorFinal)),
+                    'taxa_falha' => max(1, (int) round($taxaFalha)),
+                    'valor_energia' => (float) ($custosCalculados['valor_kwh'] ?? 1.0),
+                    'peso_material' => max(1, (int) round($gramas)),
+                    'custo_material' => round((float) ($custosCalculados['custo_material'] ?? 0), 2),
+                    'custo_lavagem_alcool' => round((float) ($custosCalculados['custo_lavagem_alcool'] ?? 0), 2),
+                    'custo_energia' => round((float) ($custosCalculados['custo_energia'] ?? 0), 2),
+                    'depreciacao' => round((float) ($custosCalculados['custo_depreciacao'] ?? 0), 2),
+                    'custo_total_impressao' => $custoTotalImpressao,
+                    'custo_por_unidade' => $custoPorUnidade,
+                    'lucro_total_impressao' => $lucroTotalImpressao,
+                    'lucro_por_unidade' => $lucroPorUnidade,
+                    'porcentagem_lucro' => $porcentagemLucro,
+                    'preco_venda_sugerido' => $precoVendaSugerido,
+                    'preco_venda_sugerido_unidade' => $precoVendaSugeridoUnidade,
+                    'observacoes' => $observacoes !== '' ? $observacoes : null,
+                ]);
+            }
 
             $this->pdo->commit();
 
@@ -839,14 +1018,14 @@ class TorreService
         ];
     }
 
-    private function gerarSiglaEstudio(string $estudioNome): string
+    private function normalizarPalavrasParaSigla(string $texto): array
     {
-        $estudioNome = trim($estudioNome);
-        if ($estudioNome === '') {
-            return 'XXX';
+        $texto = trim($texto);
+        if ($texto === '') {
+            return [];
         }
 
-        $partesOriginais = preg_split('/\s+/', $estudioNome) ?: [];
+        $partesOriginais = preg_split('/\s+/', $texto) ?: [];
         $partes = [];
 
         foreach ($partesOriginais as $parteOriginal) {
@@ -869,6 +1048,13 @@ class TorreService
             $partes[] = $normalizada;
         }
 
+        return $partes;
+    }
+
+    private function gerarGrupoSkuPorTexto(string $texto): string
+    {
+        $partes = $this->normalizarPalavrasParaSigla($texto);
+
         if (empty($partes)) {
             return 'XXX';
         }
@@ -885,18 +1071,24 @@ class TorreService
         return $iniciais;
     }
 
-    private function gerarSkuTorre(string $estudioNome): string
+    private function gerarCodigoNumericoSkuUnico(): string
     {
-        $prefixo = 'TOR-' . $this->gerarSiglaEstudio($estudioNome);
-
         do {
             $numero = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $sku = $prefixo . '-' . $numero;
-            $stmtSku = $this->pdo->prepare('SELECT COUNT(*) FROM sku WHERE sku = ?');
-            $stmtSku->execute([$sku]);
-            $existe = (int) $stmtSku->fetchColumn() > 0;
+            $stmtCodigo = $this->pdo->prepare('SELECT COUNT(*) FROM sku WHERE RIGHT(sku, 6) = ?');
+            $stmtCodigo->execute([$numero]);
+            $existe = (int) $stmtCodigo->fetchColumn() > 0;
         } while ($existe);
 
-        return $sku;
+        return $numero;
+    }
+
+    private function gerarSkuTorre(string $nomeTorre, string $estudioNome): string
+    {
+        $grupoNome = $this->gerarGrupoSkuPorTexto($nomeTorre);
+        $grupoEstudio = $this->gerarGrupoSkuPorTexto($estudioNome);
+        $codigoNumerico = $this->gerarCodigoNumericoSkuUnico();
+
+        return 'TOR-' . $grupoNome . '-' . $grupoEstudio . '-' . $codigoNumerico;
     }
 }

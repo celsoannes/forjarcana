@@ -114,7 +114,7 @@ class TorreController
         return $this->service->buscarParaVisualizacao($id, $usuarioId);
     }
 
-    public function processarEdicao(int $id, int $usuarioId, int $produtoId, array $dados, array $compatibilidade): array
+    public function processarEdicao(int $id, int $usuarioId, int $produtoId, array $dados, array $compatibilidade, array $files = [], string $usuarioUuid = ''): array
     {
         if ($usuarioId <= 0) {
             return ['sucesso' => false, 'erro' => 'Usuário não autenticado.'];
@@ -124,7 +124,7 @@ class TorreController
             return ['sucesso' => false, 'erro' => 'Torre inválida.'];
         }
 
-        return $this->service->editar($id, $usuarioId, $dados, $compatibilidade, $produtoId);
+        return $this->service->editar($id, $usuarioId, $dados, $compatibilidade, $produtoId, $files, $usuarioUuid);
     }
 
     public function excluir(int $id, int $usuarioId, string $raizProjeto): array
