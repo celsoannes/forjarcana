@@ -45,6 +45,12 @@ if ($usuario_id <= 0) {
 	.img-capa-thumb {
 		cursor: zoom-in;
 	}
+
+	.badge-preco-destaque {
+		font-size: 0.95rem;
+		font-weight: 700;
+		padding: 0.55em 0.75em;
+	}
 </style>
 
 <div class="card">
@@ -92,6 +98,7 @@ if ($usuario_id <= 0) {
 						$hrefVisualizar = '';
 						if ($categoriaNormalizada === 'mapas' && (int) ($produto['mapa_id'] ?? 0) > 0) {
 							$hrefEditar = '?pagina=mapas&acao=editar&id=' . (int) $produto['mapa_id'] . '&fluxo=mapas';
+							$hrefVisualizar = '?pagina=mapas&acao=visualizar&id=' . (int) $produto['mapa_id'];
 						}
 						if (($categoriaNormalizada === 'torre de dados' || $categoriaNormalizada === 'torres de dados' || $categoriaNormalizada === 'torres') && (int) ($produto['torre_id'] ?? 0) > 0) {
 							$hrefEditar = '?pagina=torres&acao=editar&id=' . (int) $produto['torre_id'];
@@ -120,9 +127,9 @@ if ($usuario_id <= 0) {
 							<td><?= htmlspecialchars((string) ($produto['categoria_nome'] ?? '-')) ?></td>
 							<td><span class="badge badge-secondary">R$ <?= number_format((float) ($produto['custo_unidade'] ?? 0), 2, ',', '.') ?></span></td>
 							<td><?= number_format((float) ($produto['markup'] ?? 0), 2, ',', '.') ?></td>
-							<td><span class="badge badge-primary">R$ <?= number_format((float) ($produto['preco_lojista'] ?? 0), 2, ',', '.') ?></span></td>
+							<td><span class="badge badge-primary badge-preco-destaque">R$ <?= number_format((float) ($produto['preco_lojista'] ?? 0), 2, ',', '.') ?></span></td>
 							<td><span class="badge badge-info">R$ <?= number_format((float) ($produto['lucro_lojista'] ?? 0), 2, ',', '.') ?></span></td>
-							<td><span class="badge badge-success">R$ <?= number_format((float) ($produto['preco_consumidor_final'] ?? 0), 2, ',', '.') ?></span></td>
+							<td><span class="badge badge-success badge-preco-destaque">R$ <?= number_format((float) ($produto['preco_consumidor_final'] ?? 0), 2, ',', '.') ?></span></td>
 							<td><span class="badge badge-warning">R$ <?= number_format((float) ($produto['lucro_consumidor_final'] ?? 0), 2, ',', '.') ?></span></td>
 							<td>
 								<?php if (!empty($produto['data_cadastro'])): ?>
