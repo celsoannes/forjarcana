@@ -19,6 +19,22 @@ if (!$filamento) {
     exit;
 }
 
+// Excluir imagens associadas (thumbnail, media, grande) se houver capa
+$capa = $filamento['capa'] ?? '';
+if ($capa && strpos($capa, 'uploads/') === 0) {
+    $caminhoAbsoluto = __DIR__ . '/../../' . $capa;
+    $padroes = [
+        preg_replace('/_media\\.webp$/', '_media.webp', $caminhoAbsoluto),
+        preg_replace('/_media\\.webp$/', '_thumbnail.webp', $caminhoAbsoluto),
+        preg_replace('/_media\\.webp$/', '_grande.webp', $caminhoAbsoluto),
+    ];
+    foreach ($padroes as $arquivo) {
+        if ($arquivo && file_exists($arquivo)) {
+            @unlink($arquivo);
+        }
+    }
+}
+
 try {
     $stmt = $pdo->prepare("DELETE FROM filamento WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $usuario_id]);

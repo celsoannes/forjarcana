@@ -21,6 +21,7 @@ class FilamentoService
             'cor' => trim((string) ($post['cor'] ?? '')),
             'tipo' => trim((string) ($post['tipo'] ?? '')),
             'preco_kilo' => trim((string) ($post['preco_kilo'] ?? '')),
+            'link_compra' => trim((string) ($post['link_compra'] ?? '')),
         ];
     }
 
@@ -34,6 +35,7 @@ class FilamentoService
             'cor' => trim((string) ($post['cor'] ?? '')),
             'tipo' => trim((string) ($post['tipo'] ?? '')),
             'preco_kilo' => (float) $precoKiloRaw,
+            'link_compra' => trim((string) ($post['link_compra'] ?? '')),
         ];
     }
 
@@ -47,6 +49,11 @@ class FilamentoService
 
         if ($nome === '' || $marca === '' || $cor === '' || $tipo === '' || $precoKilo <= 0) {
             return 'Preencha todos os campos obrigatórios.';
+        }
+        // link_compra é opcional, mas se vier, deve ser URL válida
+        $linkCompra = trim((string) ($dados['link_compra'] ?? ''));
+        if ($linkCompra !== '' && !filter_var($linkCompra, FILTER_VALIDATE_URL)) {
+            return 'O link de compra informado não é um URL válido.';
         }
 
         return '';
@@ -66,6 +73,8 @@ class FilamentoService
                 'cor' => (string) ($dados['cor'] ?? ''),
                 'tipo' => (string) ($dados['tipo'] ?? ''),
                 'preco_kilo' => (float) ($dados['preco_kilo'] ?? 0),
+                'link_compra' => (string) ($dados['link_compra'] ?? ''),
+                'capa' => array_key_exists('capa', $dados) ? $dados['capa'] : null,
             ]);
 
             return ['sucesso' => true, 'erro' => ''];
@@ -74,7 +83,7 @@ class FilamentoService
         }
     }
 
-    public function processarFluxoAdicao(int $usuarioId, array $post): array
+    public function processarFluxoAdicao(int $usuarioId, array $post, ?string $caminhoCapa = null): array
     {
         $dados = $this->parseDadosAdicao($post);
         $erro = $this->validarDadosAdicao($dados);
@@ -84,6 +93,10 @@ class FilamentoService
                 'sucesso' => false,
                 'erro' => $erro,
             ];
+        }
+
+        if ($caminhoCapa) {
+            $dados['capa'] = $caminhoCapa;
         }
 
         $resultadoCadastro = $this->processarCadastroAdicao($usuarioId, $dados);
@@ -99,4 +112,4 @@ class FilamentoService
             'erro' => trim((string) ($resultadoCadastro['erro'] ?? 'Erro ao cadastrar.')),
         ];
     }
-}
+    }

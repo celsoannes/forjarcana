@@ -22,11 +22,13 @@ $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <table class="table table-hover text-nowrap">
         <thead>
           <tr>
+            <th>Capa</th>
             <th>Nome</th>
             <th>Marca</th>
             <th>Cor</th>
             <th>Tipo</th>
             <th>Preço/Kg (R$)</th>
+            <th>Link de Compra</th>
             <th>Última Atualização</th>
             <th class="text-right">Ações</th>
           </tr>
@@ -34,6 +36,18 @@ $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <tbody>
           <?php foreach ($filamentos as $filamento): ?>
             <tr>
+              <td>
+                <?php
+                  $capa = $filamento['capa'] ?? '';
+                  if ($capa) {
+                    $thumbnail = preg_replace('/_media\\.webp$/', '_thumbnail.webp', $capa);
+                    $media = preg_replace('/_thumbnail\\.webp$/', '_media.webp', $thumbnail);
+                    echo '<img src="' . htmlspecialchars($thumbnail) . '" data-preview-src="' . htmlspecialchars($media) . '" alt="Capa" class="img-capa-thumb" style="max-width:60px; max-height:60px; border-radius:6px; object-fit:cover;">';
+                  } else {
+                    echo '<span class="text-muted">Sem capa</span>';
+                  }
+                ?>
+              </td>
               <td><?= htmlspecialchars($filamento['nome']) ?></td>
               <td><?= htmlspecialchars($filamento['marca']) ?></td>
               <td>
@@ -45,6 +59,15 @@ $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
               </td>
               <td><?= htmlspecialchars($filamento['tipo']) ?></td>
               <td><?= number_format($filamento['preco_kilo'], 2, ',', '.') ?></td>
+              <td>
+                <?php if (!empty($filamento['link_compra'])): ?>
+                  <a href="<?= htmlspecialchars($filamento['link_compra']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-link p-0" title="Abrir link de compra">
+                    <i class="fas fa-link"></i> Link
+                  </a>
+                <?php else: ?>
+                  <span class="text-muted">-</span>
+                <?php endif; ?>
+              </td>
               <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($filamento['ultima_atualizacao']))) ?></td>
               <td class="text-right">
                 <a class="btn btn-info btn-sm" href="?pagina=filamentos&acao=editar&id=<?= $filamento['id'] ?>">
@@ -56,6 +79,49 @@ $filamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
               </td>
             </tr>
           <?php endforeach; ?>
+        </table>
+            <div id="preview-capa-hover-filamento" class="preview-capa-hover" style="position: fixed; display: none; z-index: 1080; pointer-events: none; background: #fff; padding: 6px; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+              <img src="" alt="Pré-visualização da capa" style="display: block; width: 220px; height: 220px; object-fit: cover; border-radius: 4px;">
+            </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          var preview = document.getElementById('preview-capa-hover-filamento');
+          if (!preview) return;
+          var previewImg = preview.querySelector('img');
+          if (!previewImg) return;
+
+          function posicionarPreview(evento) {
+            var offsetX = 18;
+            var offsetY = 18;
+            var largura = 232;
+            var altura = 232;
+            var x = evento.clientX + offsetX;
+            var y = evento.clientY + offsetY;
+            if (x + largura > window.innerWidth) x = evento.clientX - largura - 12;
+            if (y + altura > window.innerHeight) y = evento.clientY - altura - 12;
+            preview.style.left = x + 'px';
+            preview.style.top = y + 'px';
+          }
+
+          document.querySelectorAll('.img-capa-thumb[data-preview-src]').forEach(function (thumb) {
+            thumb.addEventListener('mouseenter', function (evento) {
+              var src = this.getAttribute('data-preview-src') || '';
+              if (!src) return;
+              previewImg.src = src;
+              preview.style.display = 'block';
+              posicionarPreview(evento);
+            });
+            thumb.addEventListener('mousemove', function (evento) {
+              if (preview.style.display === 'block') posicionarPreview(evento);
+            });
+            thumb.addEventListener('mouseleave', function () {
+              preview.style.display = 'none';
+              previewImg.src = '';
+            });
+          });
+        });
+        </script>
         </tbody>
       </table>
     <?php else: ?>

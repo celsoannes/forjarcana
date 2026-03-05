@@ -5,6 +5,8 @@ CREATE TABLE filamento (
     cor VARCHAR(50) NOT NULL,
     tipo ENUM('ABS', 'PLA', 'PET-G') NOT NULL,
     preco_kilo DECIMAL(10,2) NOT NULL,
+    link_compra VARCHAR(500) NULL,
+    capa VARCHAR(255) DEFAULT NULL,
     ultima_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     usuario_id INT UNSIGNED NOT NULL,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE

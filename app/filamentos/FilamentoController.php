@@ -18,8 +18,8 @@ class FilamentoController
         return $this->service->montarEstadoFormularioAdicao($post);
     }
 
-    public function processarFluxoAdicao(int $usuarioId, array $post): array
+    public function processarFluxoAdicao(int $usuarioId, array $post, ?string $caminhoCapa = null): array
     {
-        return $this->service->processarFluxoAdicao($usuarioId, $post);
+        return $this->service->processarFluxoAdicao($usuarioId, $post, $caminhoCapa);
     }
 }
