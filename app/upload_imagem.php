@@ -69,7 +69,6 @@ function uploadImagem($file, $uuid, $baseDir, $sizes = null, $prefix = 'foto', $
     if (!$sizes) {
         $sizes = [
             'thumbnail' => [150, 150, 'crop'],
-            'pequena'   => [300, 300, 'proporcional'],
             'media'     => [300, 300, 'proporcional'],
             'grande'    => [1024, 1024, 'proporcional']
         ];
