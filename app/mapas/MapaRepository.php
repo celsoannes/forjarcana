@@ -69,8 +69,15 @@ class MapaRepository
 
     public function tabelaTemColuna(string $tabela, string $coluna): bool
     {
-        $stmt = $this->pdo->prepare('SHOW COLUMNS FROM ' . $tabela . ' LIKE ?');
-        $stmt->execute([$coluna]);
+                $stmt = $this->pdo->prepare(
+                        'SELECT 1
+                         FROM information_schema.COLUMNS
+                         WHERE TABLE_SCHEMA = DATABASE()
+                             AND TABLE_NAME = ?
+                             AND COLUMN_NAME = ?
+                         LIMIT 1'
+                );
+                $stmt->execute([$tabela, $coluna]);
 
         return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
     }
