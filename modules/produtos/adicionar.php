@@ -4,51 +4,36 @@
   </div>
   <div class="card-body">
     <div class="produtos-grid">
-      <div class="produto-card">
+      <a href="?pagina=impressoes&fluxo=miniaturas" class="produto-card" style="text-decoration:none; color:inherit;">
         <div class="produto-icon"><i class="fas fa-dragon"></i></div>
         <h2>Miniaturas</h2>
         <p>Escolha esta categoria para miniaturas de RPG, figuras e colecionáveis.</p>
-        <div class="produto-actions">
-          <a href="?pagina=impressoes&fluxo=miniaturas" class="btn-escolher">Escolher</a>
-        </div>
-      </div>
+      </a>
 
-      <div class="produto-card">
+      <a href="?pagina=mapas&acao=adicionar&fluxo=mapas" class="produto-card" style="text-decoration:none; color:inherit;">
         <div class="produto-icon"><i class="fas fa-map-marked-alt"></i></div>
         <h2>Mapas</h2>
         <p>Categoria para mapas de campanha, cenários e ambientações.</p>
-        <div class="produto-actions">
-          <a href="?pagina=mapas&acao=adicionar&fluxo=mapas" class="btn-escolher">Escolher</a>
-        </div>
-      </div>
+      </a>
 
       <div class="produto-card disabled">
         <div class="coming-soon">Em breve</div>
         <div class="produto-icon"><i class="fas fa-dice-d20"></i></div>
         <h2>Dados</h2>
         <p>Categoria para conjuntos de dados e acessórios relacionados.</p>
-        <div class="produto-actions">
-          <span class="btn-escolher disabled-btn">Escolher</span>
-        </div>
       </div>
 
-      <div class="produto-card">
+      <a href="?pagina=impressoes&fluxo=torres" class="produto-card" style="text-decoration:none; color:inherit;">
         <div class="produto-icon"><i class="fas fa-dungeon"></i></div>
         <h2>Torre de Dados</h2>
         <p>Categoria para torres de dados em diferentes estilos e materiais.</p>
-        <div class="produto-actions">
-          <a href="?pagina=impressoes&fluxo=torres" class="btn-escolher">Escolher</a>
-        </div>
-      </div>
+      </a>
 
       <div class="produto-card disabled">
         <div class="coming-soon">Em breve</div>
         <div class="produto-icon"><i class="fas fa-key"></i></div>
         <h2>Chaveiros</h2>
         <p>Categoria para chaveiros temáticos e personalizados.</p>
-        <div class="produto-actions">
-          <span class="btn-escolher disabled-btn">Escolher</span>
-        </div>
       </div>
 
       <div class="produto-card disabled">
@@ -56,9 +41,6 @@
         <div class="produto-icon"><i class="fas fa-image"></i></div>
         <h2>Quadros</h2>
         <p>Categoria para quadros decorativos e artes para coleção.</p>
-        <div class="produto-actions">
-          <span class="btn-escolher disabled-btn">Escolher</span>
-        </div>
       </div>
     </div>
   </div>
