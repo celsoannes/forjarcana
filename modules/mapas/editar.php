@@ -580,14 +580,6 @@ $urlCancelar = ($fluxo_origem === 'mapas') ? '?pagina=produtos' : '?pagina=mapas
 			<?php endif; ?>
 
 			<div class="form-row">
-				<div class="form-group col-md-4">
-					<label>SKU Atual</label>
-					<input type="text" class="form-control" value="<?= htmlspecialchars((string) $skuAtual) ?>" disabled>
-					<small class="form-text text-muted">SKU será alterado apenas se Nome, Formato da Grade, Largura ou Comprimento mudarem.</small>
-				</div>
-			</div>
-
-			<div class="form-row">
 				<div class="col-md-3">
 					<div class="form-group h-100">
 						<label for="foto">Capa</label>
