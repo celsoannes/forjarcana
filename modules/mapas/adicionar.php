@@ -193,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="card-footer">
       <button type="submit" class="btn btn-primary">Salvar</button>
-      <a href="?pagina=mapas" class="btn btn-secondary">Cancelar</a>
+      <a href="?pagina=produtos" class="btn btn-secondary">Cancelar</a>
     </div>
   </form>
 </div>
