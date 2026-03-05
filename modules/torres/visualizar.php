@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../app/db.php';
 require_once __DIR__ . '/../../app/autoload.php';
+require_once __DIR__ . '/../../app/componentes/impressora_material_cards.php';
 
 use App\Torres\TorreController;
 
@@ -108,6 +109,8 @@ $detalheMaterialParteDireita = implode(' ', array_values(array_filter([
 $materialMarcaExibicao = $materialMarcaDetalhamento !== '' ? $materialMarcaDetalhamento : '-';
 $materialNomeExibicao = $detalheMaterialParteDireita !== '' ? $detalheMaterialParteDireita : '-';
 $materialCorExibicao = $materialCorDetalhamento !== '' ? $materialCorDetalhamento : '-';
+$materialNomeCard = $materialNomeDetalhamento !== '' ? $materialNomeDetalhamento : $materialNomeExibicao;
+$materialTipoCard = $materialTipoDetalhamento !== '' ? $materialTipoDetalhamento : '-';
 
 if ($materialMarcaDetalhamento !== '' && $detalheMaterialParteDireita !== '') {
   $materialTextoDetalhamento = $materialMarcaDetalhamento . ' - ' . $detalheMaterialParteDireita;
@@ -203,8 +206,22 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
   </div>
 
   <div class="card-body">
-    <div class="row">
-      <div class="col-md-6 mb-3 mb-md-0">
+    <?php
+      renderImpressoraMaterialCards([
+        'impressora_nome' => trim((string) (($torre['impressora_marca'] ?? '') . ' ' . ($torre['impressora_modelo'] ?? ''))),
+        'impressora_tipo' => $tipoImpressoraExibicao,
+        'impressora_detalhe_label' => 'Custo Hora',
+        'impressora_detalhe_valor' => 'R$ ' . number_format((float) ($torre['impressora_custo_hora'] ?? 0), 4, ',', '.'),
+        'material_nome' => $materialNomeCard,
+        'material_tipo' => $materialTipoCard,
+        'material_marca' => $materialMarcaExibicao,
+        'material_cor' => $materialCorExibicao,
+        'material_subtipo' => $materialSubtipoDetalhamento,
+      ], 'mb-4');
+    ?>
+
+    <div class="row mt-3">
+      <div class="col-md-4 mb-3 mb-md-0">
         <?php if ($imagemPrincipal !== ''): ?>
           <div class="mb-2 text-center">
             <img id="torreImagemPrincipal" src="<?= htmlspecialchars($imagemPrincipal) ?>" alt="Imagem da torre" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #dee2e6; display: block;">
@@ -225,7 +242,7 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
         <?php endif; ?>
       </div>
 
-      <div class="col-md-6">
+      <div class="col-md-8">
         <h4 class="mb-3"><?= htmlspecialchars((string) ($torre['produto_nome'] ?: 'Torre sem nome')) ?></h4>
         <p class="mb-1"><strong>SKU:</strong> <?= htmlspecialchars((string) ($torre['sku_codigo'] ?? '-')) ?></p>
         <p class="mb-1"><strong>Nome Original:</strong> <?= htmlspecialchars((string) ($torre['nome_original'] ?? '-')) ?></p>
@@ -235,26 +252,18 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
         <p class="mb-1"><strong>Descrição:</strong> <?= htmlspecialchars($descricaoLinhaTexto !== '' ? $descricaoLinhaTexto : '-') ?></p>
 
         <hr class="my-3">
-        <h5 class="mb-3">Impressora 3D</h5>
-        <p class="mb-1"><strong>Marca:</strong> <?= htmlspecialchars((string) ($torre['impressora_marca'] ?? '-')) ?></p>
-        <p class="mb-1"><strong>Modelo:</strong> <?= htmlspecialchars((string) ($torre['impressora_modelo'] ?? '-')) ?></p>
-        <p class="mb-1"><strong>Tipo:</strong> <?= htmlspecialchars($tipoImpressoraExibicao) ?></p>
-
-        <hr class="my-3">
-        <h5 class="mb-3">Consumível</h5>
-        <p class="mb-1"><strong>Marca:</strong> <?= htmlspecialchars($materialMarcaExibicao) ?></p>
-        <p class="mb-1"><strong>Nome:</strong> <?= htmlspecialchars($materialNomeExibicao) ?></p>
-        <p class="mb-1"><strong>Cor:</strong> <?= htmlspecialchars($materialCorExibicao) ?></p>
-
-        <hr class="my-3">
         <h5 class="mb-3">Detalhamento do Cálculo</h5>
         <p class="mb-1"><strong>Peso Material (g):</strong> <?= number_format((float) ($torre['peso_material'] ?? 0), 0, ',', '.') ?></p>
         <p class="mb-1"><strong>Tempo de Impressão:</strong> <?= (int) $dias ?>d <?= (int) $horas ?>h <?= (int) $minutos ?>min (<?= (int) $tempoMinutos ?> min)</p>
         <p class="mb-1"><strong>Unidades Produzidas:</strong> <?= (int) ($torre['unidades_produzidas'] ?? 0) ?></p>
         <p class="mb-1"><strong>Taxa de Falha:</strong> <?= number_format($taxaFalhaPercentual, 0, ',', '.') ?>%</p>
-        <p class="mb-0"><strong>Markup:</strong> <?= number_format($markupAplicadoExibicao, 2, ',', '.') ?></p>
+        <p class="mb-1"><strong>Markup:</strong> <?= number_format($markupAplicadoExibicao, 2, ',', '.') ?></p>
+        <p class="mb-0"><strong>Observações:</strong> <?= htmlspecialchars((string) (($torre['observacoes'] ?? '') !== '' ? $torre['observacoes'] : '-')) ?></p>
       </div>
     </div>
+
+    <hr class="my-4">
+    <h5 class="mb-3">Resumo Financeiro</h5>
 
     <div class="row">
       <div class="col-12">
@@ -335,7 +344,7 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
         </div>
       </div>
 
-      <div class="col-12">
+      <div class="col-12 mt-2">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Lucro</h3>
@@ -371,9 +380,9 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
       </div>
     </div>
 
-    <h5 class="mt-4 mb-3">Resumo Produto</h5>
+    <h5 class="mt-4 mb-3">Preços e Margem</h5>
     <div class="row">
-      <div class="col-12">
+      <div class="col-12 col-md-6">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Lojista</h3>
@@ -406,7 +415,7 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
           </div>
         </div>
       </div>
-      <div class="col-12 mt-2">
+      <div class="col-12 col-md-6 mt-2 mt-md-0">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Consumidor Final</h3>
