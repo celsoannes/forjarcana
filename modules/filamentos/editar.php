@@ -254,7 +254,10 @@ window.addEventListener('DOMContentLoaded', function () {
       inputFoto.value = '';
       // Limpa o src da imagem e mostra placeholder
       previewImagem.src = '';
-      renderizarCapaExistente();
+      previewImagem.classList.add('d-none');
+      capaPlaceholder.classList.remove('d-none');
+      capaPlaceholder.style.display = 'flex';
+      removeCapaBtn.classList.add('d-none');
     });
   }
 });

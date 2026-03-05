@@ -19,6 +19,33 @@ if (!$resina) {
     exit;
 }
 
+// Apaga imagens vinculadas (capa) se existirem
+if (!empty($resina['capa'])) {
+    $capaPath = $resina['capa'];
+    // Exemplo: uploads/usuarios/{uuid}/resina_{hash}_media.webp
+    $capaFullPath = __DIR__ . '/../../' . $capaPath;
+    $dir = dirname($capaFullPath);
+    $basename = basename($capaFullPath);
+    // Pega prefixo e hash
+    if (preg_match('/^(resina)_([a-f0-9]+)_media\.webp$/', $basename, $m)) {
+        $prefix = $m[1];
+        $hash = $m[2];
+        // Apaga todos os tamanhos conhecidos
+        $tipos = ['media', 'thumbnail', 'grande'];
+        foreach ($tipos as $tipo) {
+            $file = $dir . "/{$prefix}_{$hash}_{$tipo}.webp";
+            if (file_exists($file)) {
+                @unlink($file);
+            }
+        }
+    } else {
+        // Se não bater o padrão, apaga só o arquivo principal
+        if (file_exists($capaFullPath)) {
+            @unlink($capaFullPath);
+        }
+    }
+}
+
 try {
     $stmt = $pdo->prepare("DELETE FROM resinas WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $usuario_id]);

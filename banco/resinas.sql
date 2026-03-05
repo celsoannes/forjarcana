@@ -3,7 +3,9 @@ CREATE TABLE resinas (
     nome VARCHAR(100) NOT NULL,
     marca VARCHAR(100) NOT NULL,
     cor VARCHAR(50) NOT NULL,
-    preco_litro DECIMAL(10,2) NOT NULL,
+    preco_kilo DECIMAL(10,2) NOT NULL,
+    link_compra VARCHAR(500) NULL,
+    capa VARCHAR(255) DEFAULT NULL,
     usuario_id INT UNSIGNED NOT NULL,
     ultima_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
