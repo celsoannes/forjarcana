@@ -19,6 +19,18 @@ function getTituloPagina($pagina) {
         return 'Produtos - Adicionar Torre de Dados';
     }
 
+    if ($pagina === 'torres' && $acao === 'visualizar') {
+        return 'Produtos - Visualizar Torre de Dados';
+    }
+
+    if ($pagina === 'torres' && $acao === 'editar') {
+        return 'Produtos - Editar Torre de Dados';
+    }
+
+    if ($pagina === 'mapas' && $acao === 'visualizar') {
+        return 'Produtos - Visualizar Mapa';
+    }
+
     switch ($pagina) {
         case 'usuarios':
             return 'Usuários';
@@ -78,6 +90,26 @@ function getBreadcrumbPagina($pagina) {
 
     if ($pagina === 'torres' && $acao === 'adicionar') {
         return 'Produtos / Adicionar Torre de Dados';
+    }
+
+    if ($pagina === 'torres' && $acao === 'visualizar') {
+        return 'Produtos / Visualizar Torre de Dados';
+    }
+
+    if ($pagina === 'torres' && $acao === 'editar') {
+        return 'Produtos / Editar Torre de Dados';
+    }
+
+    if ($pagina === 'mapas' && $acao === 'adicionar') {
+        return 'Produtos / Adicionar Mapa';
+    }
+
+    if ($pagina === 'mapas' && $acao === 'editar') {
+        return 'Produtos / Editar Mapa';
+    }
+
+    if ($pagina === 'mapas' && $acao === 'visualizar') {
+        return 'Produtos / Visualizar Mapa';
     }
 
     switch ($pagina) {
