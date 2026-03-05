@@ -265,19 +265,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
       <?php endif; ?>
 
-      <?php
-        renderImpressoraMaterialCards([
-          'impressora_nome' => trim((string) (($torreVisualizacao['impressora_marca'] ?? '') . ' ' . ($torreVisualizacao['impressora_modelo'] ?? ''))),
-          'impressora_tipo' => $tipoImpressoraExibicao,
-          'impressora_detalhe_label' => 'Custo Hora',
-          'impressora_detalhe_valor' => 'R$ ' . number_format((float) ($torreVisualizacao['impressora_custo_hora'] ?? 0), 4, ',', '.'),
-          'material_nome' => ($materialNomeCard !== '' ? $materialNomeCard : '-'),
-          'material_tipo' => $materialTipoCard,
-          'material_marca' => ($materialMarcaCard !== '' ? $materialMarcaCard : '-'),
-          'material_cor' => ($materialCorCard !== '' ? $materialCorCard : '-'),
-          'material_subtipo' => $materialSubtipoCard,
-        ], 'mb-4');
-      ?>
+        <?php
+          renderImpressoraMaterialCards([
+            'impressora_id' => $torreVisualizacao['impressora_id'] ?? null,
+            'impressora_nome' => trim((string) (($torreVisualizacao['impressora_marca'] ?? '') . ' ' . ($torreVisualizacao['impressora_modelo'] ?? ''))),
+            'impressora_tipo' => $tipoImpressoraExibicao,
+            'impressora_detalhe_label' => 'Custo Hora',
+            'impressora_detalhe_valor' => 'R$ ' . number_format((float) ($torreVisualizacao['impressora_custo_hora'] ?? 0), 4, ',', '.'),
+            'material_nome' => $materialNomeCard,
+            'material_tipo' => $materialTipoCard,
+            'material_marca' => $materialMarcaCard,
+            'material_cor' => $materialCorCard,
+            'material_subtipo' => $materialSubtipoCard,
+          ], 'mb-4');
+        ?>
 
       <div class="form-row">
         <div class="col-md-3">

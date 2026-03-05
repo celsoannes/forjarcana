@@ -208,6 +208,7 @@ $imagemPrincipal = $galeriaItens[0]['grande'] ?? '';
   <div class="card-body">
     <?php
       renderImpressoraMaterialCards([
+        'impressora_id' => $torre['impressora_id'] ?? null,
         'impressora_nome' => trim((string) (($torre['impressora_marca'] ?? '') . ' ' . ($torre['impressora_modelo'] ?? ''))),
         'impressora_tipo' => $tipoImpressoraExibicao,
         'impressora_detalhe_label' => 'Custo Hora',

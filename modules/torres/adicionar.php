@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php if ($selecao_confirmacao): ?>
         <?php
           renderImpressoraMaterialCards([
+            'impressora_id' => $selecao_confirmacao['impressora']['id'] ?? null,
             'impressora_nome' => trim((string) (($selecao_confirmacao['impressora']['marca'] ?? '') . ' ' . ($selecao_confirmacao['impressora']['modelo'] ?? ''))),
             'impressora_tipo' => (string) ($selecao_confirmacao['impressora']['tipo'] ?? '-'),
             'impressora_detalhe_label' => 'Custo Hora',
@@ -88,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php elseif ($aviso_selecao): ?>
         <div class="alert alert-warning"><?= htmlspecialchars($aviso_selecao) ?></div>
       <?php endif; ?>
+
+        <!-- Card de impressora/material só deve aparecer na seleção de confirmação ou no formulário, não duplicado -->
 
       <style>
         .outras_caracteristicas-container,
@@ -253,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <input type="file" class="custom-file-input" id="fotos" name="fotos[]" accept=".jpg,.png,.webp" multiple>
           <label class="custom-file-label" for="fotos" data-browse="Escolher arquivo">Nenhum arquivo escolhido</label>
         </div>
-        <small class="form-text text-muted">Formatos: JPG, PNG, WEBP (max 2MB por arquivo)</small>
+        <small class="form-text text-muted">Formatos: JPG, PNG, WEBP (max 5MB por arquivo)</small>
         <div class="mt-2 d-none" id="preview-imagens-container"></div>
       </div>
 

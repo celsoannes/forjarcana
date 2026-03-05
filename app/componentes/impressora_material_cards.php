@@ -63,6 +63,7 @@ if (!function_exists('renderImpressoraMaterialCardsStyles')) {
 if (!function_exists('renderImpressoraMaterialCards')) {
     function renderImpressoraMaterialCards(array $dados, string $classesWrapper = 'mb-4'): void
     {
+        global $pdo;
         renderImpressoraMaterialCardsStyles();
 
         $impressoraNome = htmlspecialchars((string) ($dados['impressora_nome'] ?? '-'));
@@ -90,10 +91,34 @@ if (!function_exists('renderImpressoraMaterialCards')) {
 
         $classesWrapperEscapadas = htmlspecialchars(trim($classesWrapper));
 
+        // Busca a capa da impressora pelo impressora_id, se não for passado explicitamente
+        $impressoraCapa = isset($dados['impressora_capa']) ? trim((string) $dados['impressora_capa']) : '';
+        if ($impressoraCapa === '' && !empty($dados['impressora_id']) && isset($pdo)) {
+            $stmtCapa = $pdo->prepare('SELECT capa FROM impressoras WHERE id = ? LIMIT 1');
+            $stmtCapa->execute([$dados['impressora_id']]);
+            $rowCapa = $stmtCapa->fetch(PDO::FETCH_ASSOC);
+            if ($rowCapa && !empty($rowCapa['capa'])) {
+                $impressoraCapa = trim((string) $rowCapa['capa']);
+            }
+        }
+        $impressoraCapaThumb = '';
+        if ($impressoraCapa !== '') {
+            if (preg_match('/_media\\.webp$/', $impressoraCapa)) {
+                $impressoraCapaThumb = preg_replace('/_media\\.webp$/', '_thumbnail.webp', $impressoraCapa);
+            } else {
+                $impressoraCapaThumb = $impressoraCapa;
+            }
+        }
+
         echo '<div class="impressora-material-grid ' . $classesWrapperEscapadas . '">
-          <div class="impressora-material-card h-100">
-            <div class="impressora-material-icon"><i class="fas fa-microscope"></i></div>
-            <div class="impressora-material-content">
+          <div class="impressora-material-card h-100">';
+        if ($impressoraCapaThumb !== '') {
+            echo '<div class="impressora-material-icon"><img src="' . htmlspecialchars($impressoraCapaThumb) . '" alt="Capa da impressora" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></div>';
+          } else {
+            // Se não houver capa, mostra o ícone
+            echo '<div class="impressora-material-icon"><i class="fas fa-microscope"></i></div>';
+        }
+        echo '<div class="impressora-material-content">
               <h2>' . $impressoraNome . '</h2>
               <p>
                 <strong>Tipo:</strong> ' . $impressoraTipo;

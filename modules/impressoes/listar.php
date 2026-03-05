@@ -31,7 +31,26 @@ if ($impressora_id > 0) {
       <?php foreach ($impressoras as $impressora): ?>
         <div class="impressao-card">
           <div class="impressao-icon">
-            <i class="fas fa-microscope"></i>
+            <?php
+              // Buscar a capa da impressora
+              $stmtCapa = $pdo->prepare('SELECT capa FROM impressoras WHERE id = ? LIMIT 1');
+              $stmtCapa->execute([$impressora['id']]);
+              $rowCapa = $stmtCapa->fetch(PDO::FETCH_ASSOC);
+              $impressoraCapa = ($rowCapa && !empty($rowCapa['capa'])) ? trim((string)$rowCapa['capa']) : '';
+              $impressoraCapaThumb = '';
+              if ($impressoraCapa !== '') {
+                if (preg_match('/_media\\.webp$/', $impressoraCapa)) {
+                  $impressoraCapaThumb = preg_replace('/_media\\.webp$/', '_thumbnail.webp', $impressoraCapa);
+                } else {
+                  $impressoraCapaThumb = $impressoraCapa;
+                }
+              }
+            ?>
+            <?php if ($impressoraCapaThumb !== ''): ?>
+              <img src="<?= htmlspecialchars($impressoraCapaThumb) ?>" alt="Capa da impressora" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;">
+            <?php else: ?>
+              <i class="fas fa-microscope"></i>
+            <?php endif; ?>
           </div>
           <h2><?= htmlspecialchars($impressora['marca'] . ' ' . $impressora['modelo']) ?></h2>
           <p>
