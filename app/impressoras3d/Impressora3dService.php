@@ -114,7 +114,6 @@ class Impressora3dService
             require_once __DIR__ . '/../upload_imagem.php';
             $tamanhosUpload = [
                 'thumbnail' => [150, 150, 'crop'],
-                'pequena' => [300, 300, 'proporcional'],
                 'media' => [300, 300, 'proporcional'],
                 'grande' => [1024, 1024, 'proporcional'],
             ];

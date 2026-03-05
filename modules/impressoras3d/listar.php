@@ -21,6 +21,7 @@ $impressoras = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <table class="table table-hover text-nowrap">
         <thead>
           <tr>
+            <th>Capa</th>
             <th>Marca</th>
             <th>Modelo</th>
             <th>Tipo</th>
@@ -37,6 +38,19 @@ $impressoras = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <tbody>
           <?php foreach ($impressoras as $imp): ?>
             <tr>
+                <td>
+                  <?php
+                    $capa = $imp['capa'] ?? '';
+                    if ($capa) {
+                      $thumbnail = preg_replace('/_media\.webp$/', '_thumbnail.webp', $capa);
+                      $media = preg_replace('/_thumbnail\.webp$/', '_media.webp', $thumbnail);
+                      echo '<img src="' . htmlspecialchars($thumbnail) . '" data-preview-src="' . htmlspecialchars($media) . '" alt="Capa" class="img-capa-thumb" style="max-width:60px; max-height:60px; border-radius:6px; object-fit:cover;">';
+                    } else {
+                      echo '<span class="text-muted">Sem capa</span>';
+                    }
+                  
+                  ?>
+                </td>
               <td><?= htmlspecialchars($imp['marca']) ?></td>
               <td><?= htmlspecialchars($imp['modelo']) ?></td>
               <td><?= htmlspecialchars($imp['tipo']) ?></td>
@@ -63,6 +77,49 @@ $impressoras = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <div class="text-center p-4">Nenhuma impressora cadastrada.</div>
     <?php endif; ?>
   </div>
+<!-- Preview da capa ao passar o mouse -->
+<div id="preview-capa-hover" class="preview-capa-hover" style="position: fixed; display: none; z-index: 1080; pointer-events: none; background: #fff; padding: 6px; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+  <img src="" alt="Pré-visualização da capa" style="display: block; width: 220px; height: 220px; object-fit: cover; border-radius: 4px;">
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var preview = document.getElementById('preview-capa-hover');
+  if (!preview) return;
+  var previewImg = preview.querySelector('img');
+  if (!previewImg) return;
+
+  function posicionarPreview(evento) {
+    var offsetX = 18;
+    var offsetY = 18;
+    var largura = 232;
+    var altura = 232;
+    var x = evento.clientX + offsetX;
+    var y = evento.clientY + offsetY;
+    if (x + largura > window.innerWidth) x = evento.clientX - largura - 12;
+    if (y + altura > window.innerHeight) y = evento.clientY - altura - 12;
+    preview.style.left = x + 'px';
+    preview.style.top = y + 'px';
+  }
+
+  document.querySelectorAll('.img-capa-thumb[data-preview-src]').forEach(function (thumb) {
+    thumb.addEventListener('mouseenter', function (evento) {
+      var src = this.getAttribute('data-preview-src') || '';
+      if (!src) return;
+      previewImg.src = src;
+      preview.style.display = 'block';
+      posicionarPreview(evento);
+    });
+    thumb.addEventListener('mousemove', function (evento) {
+      if (preview.style.display === 'block') posicionarPreview(evento);
+    });
+    thumb.addEventListener('mouseleave', function () {
+      preview.style.display = 'none';
+      previewImg.src = '';
+    });
+  });
+});
+</script>
 </div>
 
 <!-- Modal de confirmação de exclusão -->

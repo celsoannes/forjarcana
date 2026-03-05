@@ -19,6 +19,18 @@ if (!$impressora) {
     exit;
 }
 
+// Excluir imagens de capa, se existirem
+if (!empty($impressora['capa'])) {
+    $caminhoBase = preg_replace('/_media\.webp$/', '', $impressora['capa']);
+    $tamanhos = ['media', 'thumbnail', 'grande'];
+    foreach ($tamanhos as $tamanho) {
+        $arquivo = __DIR__ . '/../../' . $caminhoBase . "_{$tamanho}.webp";
+        if (file_exists($arquivo)) {
+            @unlink($arquivo);
+        }
+    }
+}
+
 try {
     $stmt = $pdo->prepare("DELETE FROM impressoras WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $usuario_id]);
