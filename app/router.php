@@ -167,6 +167,9 @@ switch ($pagina) {
             case 'adicionar':
                 include __DIR__ . '/../modules/mapas/adicionar.php';
                 break;
+            case 'visualizar':
+                include __DIR__ . '/../modules/mapas/visualizar.php';
+                break;
             case 'editar':
                 include __DIR__ . '/../modules/mapas/editar.php';
                 break;
