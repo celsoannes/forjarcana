@@ -8,6 +8,7 @@ CREATE TABLE impressoras (
     fator_uso DECIMAL(4,2) NOT NULL DEFAULT 0.5,
     depreciacao INT NOT NULL, -- porcentagem, ex: 10 para 10%
     tempo_vida_util INT NOT NULL,
+    capa VARCHAR(255) DEFAULT NULL,
     custo_hora DECIMAL(10,4) AS ((preco_aquisicao / tempo_vida_util) * (depreciacao / 100)) STORED,
     ultima_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     usuario_id INT UNSIGNED NOT NULL,
