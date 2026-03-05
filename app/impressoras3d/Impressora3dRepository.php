@@ -13,9 +13,14 @@ class Impressora3dRepository
         $this->pdo = $pdo;
     }
 
+    public function getPdo(): PDO
+    {
+        return $this->pdo;
+    }
+
     public function inserirImpressora(array $dados): int
     {
-        $stmt = $this->pdo->prepare('INSERT INTO impressoras (usuario_id, marca, modelo, tipo, preco_aquisicao, potencia, depreciacao, tempo_vida_util, ultima_atualizacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())');
+        $stmt = $this->pdo->prepare('INSERT INTO impressoras (usuario_id, marca, modelo, tipo, preco_aquisicao, potencia, depreciacao, tempo_vida_util, capa, ultima_atualizacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())');
         $stmt->execute([
             (int) ($dados['usuario_id'] ?? 0),
             (string) ($dados['marca'] ?? ''),
@@ -25,6 +30,7 @@ class Impressora3dRepository
             (int) ($dados['potencia'] ?? 0),
             (int) ($dados['depreciacao'] ?? 0),
             (int) ($dados['tempo_vida_util'] ?? 0),
+            isset($dados['capa']) ? $dados['capa'] : null,
         ]);
 
         return (int) $this->pdo->lastInsertId();

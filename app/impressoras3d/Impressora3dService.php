@@ -56,7 +56,7 @@ class Impressora3dService
         return '';
     }
 
-    public function processarCadastroAdicao(int $usuarioId, array $dados): array
+    public function processarCadastroAdicao(int $usuarioId, array $dados, ?string $capa = null): array
     {
         if ($usuarioId <= 0) {
             return ['sucesso' => false, 'erro' => 'Usuário inválido para cadastro da impressora.'];
@@ -72,6 +72,7 @@ class Impressora3dService
                 'potencia' => (int) ($dados['potencia'] ?? 0),
                 'depreciacao' => (int) ($dados['depreciacao'] ?? 0),
                 'tempo_vida_util' => (int) ($dados['tempo_vida_util'] ?? 0),
+                'capa' => $capa,
             ]);
 
             return ['sucesso' => true, 'erro' => ''];
@@ -80,7 +81,7 @@ class Impressora3dService
         }
     }
 
-    public function processarFluxoAdicao(int $usuarioId, array $post): array
+    public function processarFluxoAdicao(int $usuarioId, array $post, array $files = []): array
     {
         $dados = $this->parseDadosAdicao($post);
         $erro = $this->validarDadosAdicao($dados);
@@ -92,7 +93,46 @@ class Impressora3dService
             ];
         }
 
-        $resultadoCadastro = $this->processarCadastroAdicao($usuarioId, $dados);
+        // Buscar o uuid do usuário para usar na pasta
+
+        $usuarioUuid = null;
+        try {
+            require_once __DIR__ . '/../usuarios/UsuarioRepository.php';
+            $pdo = $this->repository->getPdo();
+            $usuarioRepo = new \App\Usuarios\UsuarioRepository($pdo);
+            $usuarioUuid = $usuarioRepo->buscarUuidPorId($usuarioId);
+            if (!$usuarioUuid) {
+                error_log('[IMPRESSORA3D] UUID do usuário não encontrado para ID: ' . $usuarioId);
+            }
+        } catch (\Throwable $e) {
+            error_log('[IMPRESSORA3D] Erro ao buscar UUID do usuário: ' . $e->getMessage());
+            $usuarioUuid = null;
+        }
+
+        $caminhoCapa = null;
+        if ($usuarioUuid && isset($files['foto']) && $files['foto']['error'] === UPLOAD_ERR_OK) {
+            require_once __DIR__ . '/../upload_imagem.php';
+            $tamanhosUpload = [
+                'thumbnail' => [150, 150, 'crop'],
+                'pequena' => [300, 300, 'proporcional'],
+                'media' => [300, 300, 'proporcional'],
+                'grande' => [1024, 1024, 'proporcional'],
+            ];
+            // Corrigir pasta base para 'usuarios' (igual torres)
+            $caminho = uploadImagem($files['foto'], $usuarioUuid, 'usuarios', $tamanhosUpload, 'impressora', false);
+            if ($caminho) {
+                $caminhoCapa = $caminho;
+                error_log('[IMPRESSORA3D] Upload de capa realizado: ' . $caminhoCapa);
+            } else {
+                error_log('[IMPRESSORA3D] Falha no uploadImagem para impressora, uuid: ' . $usuarioUuid);
+            }
+        } else {
+            if (!$usuarioUuid) error_log('[IMPRESSORA3D] Não fez upload: uuid do usuário vazio');
+            if (!isset($files['foto'])) error_log('[IMPRESSORA3D] Não fez upload: campo foto não enviado');
+            if (isset($files['foto']) && $files['foto']['error'] !== UPLOAD_ERR_OK) error_log('[IMPRESSORA3D] Não fez upload: erro no arquivo foto: ' . $files['foto']['error']);
+        }
+
+        $resultadoCadastro = $this->processarCadastroAdicao($usuarioId, $dados, $caminhoCapa);
         if (!empty($resultadoCadastro['sucesso'])) {
             return [
                 'sucesso' => true,

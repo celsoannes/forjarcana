@@ -18,8 +18,8 @@ class Impressora3dController
         return $this->service->montarEstadoFormularioAdicao($post);
     }
 
-    public function processarFluxoAdicao(int $usuarioId, array $post): array
+    public function processarFluxoAdicao(int $usuarioId, array $post, array $files = []): array
     {
-        return $this->service->processarFluxoAdicao($usuarioId, $post);
+        return $this->service->processarFluxoAdicao($usuarioId, $post, $files);
     }
 }
