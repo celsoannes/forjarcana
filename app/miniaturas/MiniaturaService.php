@@ -530,6 +530,21 @@ class MiniaturaService
             $lucroPorUnidade = $unidadesProduzidas > 0 ? round($lucroTotalImpressao / $unidadesProduzidas, 2) : 0.0;
             $porcentagemLucro = $custoTotalImpressao > 0 ? (int) round(($lucroTotalImpressao / $custoTotalImpressao) * 100) : 0;
 
+            // Cálculo dos campos de preço e lucro para produtos
+            $precoConsumidorFinal = $precoVendaSugeridoUnidade;
+            $lucroConsumidorFinal = round($precoConsumidorFinal - $custoPorUnidade, 2);
+            $precoLojista = round($custoPorUnidade + ($lucroConsumidorFinal / 2), 2);
+            $lucroLojista = round($precoLojista - $custoPorUnidade, 2);
+
+            // Atualizar tabela produtos com os valores calculados
+            $this->repository->atualizarCamposLucroPrecoProduto(
+                $produtoId,
+                $lucroLojista,
+                $lucroConsumidorFinal,
+                $precoLojista,
+                $precoConsumidorFinal
+            );
+
             $impressoesParams = [
                 'produto_id' => $produtoId,
                 'impressora_id' => (int)($dados['impressora_id'] ?? 1),

@@ -5,6 +5,12 @@ use PDO;
 
 class MiniaturaRepository
 {
+    public function atualizarCamposLucroPrecoProduto(int $produtoId, float $lucroLojista, float $lucroConsumidorFinal, float $precoLojista, float $precoConsumidorFinal): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE produtos SET lucro_lojista = ?, lucro_consumidor_final = ?, preco_lojista = ?, preco_consumidor_final = ? WHERE id = ?');
+        $stmt->execute([$lucroLojista, $lucroConsumidorFinal, $precoLojista, $precoConsumidorFinal, $produtoId]);
+    }
+    
     public function inserirMiniatura(array $dados): int
     {
         $stmt = $this->pdo->prepare('INSERT INTO miniaturas (id_sku, produto_id, usuario_id, id_impressao, nome_original, id_estudio, id_colecao, tematica, raca, classe, genero, criatura, papel, tamanho, base, pintada, arma_principal, arma_secundaria, armadura, outras_caracteristicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
