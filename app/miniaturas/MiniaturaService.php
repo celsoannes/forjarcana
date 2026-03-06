@@ -4,6 +4,7 @@ namespace App\Miniaturas;
 
 
 require_once __DIR__ . '/../upload_imagem.php';
+require_once __DIR__ . '/MiniaturaImagemService.php';
 
 use PDO;
 
@@ -939,14 +940,26 @@ class MiniaturaService
         return str_pad(substr($normalizado, 0, 3), 3, 'X');
     }
 
-    // Implementação para evitar erro fatal ao chamar processarUploadsAdicao
+    // Implementação real usando MiniaturaImagemService
     public function processarUploadsAdicao(string $usuarioUuid, string $fotoExistente, string $imagensExistentesRaw, array $files): array
     {
-        // Implemente aqui o processamento real de uploads se necessário
+        $imagensAtuais = [];
+        if ($imagensExistentesRaw !== '') {
+            $imagensExistentes = json_decode($imagensExistentesRaw, true);
+            if (is_array($imagensExistentes)) {
+                foreach ($imagensExistentes as $imagemExistente) {
+                    if (is_string($imagemExistente) && trim($imagemExistente) !== '') {
+                        $imagensAtuais[] = trim($imagemExistente);
+                    }
+                }
+            }
+        }
+        $service = new MiniaturaImagemService();
+        $resultado = $service->processarUploadsAdicao($files, $usuarioUuid, $fotoExistente, $imagensAtuais);
         return [
-            'erro' => null,
-            'foto' => $fotoExistente,
-            'imagens' => [],
+            'erro' => $resultado['erro'] ?? null,
+            'foto' => $resultado['foto'] ?? $fotoExistente,
+            'imagens' => $resultado['imagens'] ?? [],
             'avisos_upload' => [],
         ];
     }
