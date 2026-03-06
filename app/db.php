@@ -14,6 +14,7 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 } catch (\PDOException $e) {
     die('Erro ao conectar ao banco de dados: ' . $e->getMessage());
 }

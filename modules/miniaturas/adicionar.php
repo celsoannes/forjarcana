@@ -100,8 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tempo_total_min = (int) ($dadosPost['tempo_total_min'] ?? 0);
     $unidades_produzidas = (int) ($dadosPost['unidades_produzidas'] ?? 0);
     $taxa_falha = (float) ($dadosPost['taxa_falha'] ?? 0);
-    $markup_lojista = (string) ($dadosPost['markup_lojista'] ?? '2');
-    $markup_consumidor_final = (string) ($dadosPost['markup_consumidor_final'] ?? '5');
+    $markup = (string) ($dadosPost['markup'] ?? '5');
     $observacoes = (string) ($dadosPost['observacoes'] ?? '');
     $descricao_produto = (string) ($dadosPost['descricao_produto'] ?? '');
 
@@ -511,7 +510,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <input type="file" class="custom-file-input" id="fotos" name="fotos[]" accept=".jpg,.png,.webp" multiple>
           <label class="custom-file-label" for="fotos" data-browse="Escolher arquivo">Nenhum arquivo escolhido</label>
         </div>
-        <small class="form-text text-muted">Formatos: JPG, PNG, WEBP (max 2MB por arquivo)</small>
+        <small class="form-text text-muted">Formatos: JPG, PNG, WEBP (max 5MB por arquivo)</small>
         <div class="mt-2 d-none" id="preview-imagens-container"></div>
       </div>
 
@@ -575,11 +574,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <input type="number" step="0.01" min="0" class="form-control" id="taxa_falha" name="taxa_falha" value="<?= htmlspecialchars((string) ($dadosFormulario['taxa_falha'] ?? '10')) ?>">
             </div>
             <div class="form-group col-md-4">
-              <label for="markup_consumidor_final">Markup Consumidor Final</label>
-              <select class="form-control" id="markup_consumidor_final" name="markup_consumidor_final">
+              <label for="markup">Markup</label>
+              <select class="form-control" id="markup" name="markup">
                 <option value="">-- Selecione --</option>
                 <?php for ($i = 1; $i <= 10; $i++): ?>
-                  <option value="<?= $i ?>" <?= (string)($dadosFormulario['markup_consumidor_final'] ?? '5') === (string)$i ? 'selected' : '' ?>><?= $i ?></option>
+                  <option value="<?= $i ?>" <?= (string)($dadosFormulario['markup'] ?? '5') === (string)$i ? 'selected' : '' ?>><?= $i ?></option>
                 <?php endfor; ?>
               </select>
             </div>
@@ -759,9 +758,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Mapeamento nome->id para estúdios
+  var estudiosMap = {};
   var estudiosNomesDisponiveis = Array.isArray(estudiosDisponiveis)
     ? Array.from(new Set(estudiosDisponiveis
       .map(function (itemEstudio) {
+        if (itemEstudio && typeof itemEstudio.nome === 'string' && itemEstudio.nome.trim() !== '' && itemEstudio.id) {
+          estudiosMap[itemEstudio.nome.trim()] = itemEstudio.id;
+        }
         return itemEstudio && typeof itemEstudio.nome === 'string' ? itemEstudio.nome.trim() : '';
       })
       .filter(function (nomeEstudio) {
@@ -1185,6 +1189,34 @@ document.addEventListener('DOMContentLoaded', function () {
     localSuggestions: estudiosNomesDisponiveis,
     minChars: 0,
     showOnFocus: true
+  });
+  // Sempre atualizar o id_estudio ao selecionar sugestão e ao sair do campo
+  inputEstudio.addEventListener('input', function () {
+    var termo = this.value.trim();
+    var hiddenIdEstudio = document.getElementById('id_estudio');
+    if (estudiosMap[termo]) {
+      hiddenIdEstudio.value = estudiosMap[termo];
+    } else {
+      hiddenIdEstudio.value = '';
+    }
+  });
+  estudioSugestoesList.addEventListener('click', function (e) {
+    if (e.target && e.target.tagName === 'LI') {
+      var nome = e.target.textContent;
+      if (estudiosMap[nome]) {
+        document.getElementById('id_estudio').value = estudiosMap[nome];
+        inputEstudio.value = nome;
+      }
+    }
+  });
+  inputEstudio.addEventListener('blur', function () {
+    setTimeout(function () { // timeout para permitir click na sugestão
+      var termo = inputEstudio.value.trim();
+      var hiddenIdEstudio = document.getElementById('id_estudio');
+      if (!estudiosMap[termo]) {
+        hiddenIdEstudio.value = '';
+      }
+    }, 200);
   });
 
   initAutocompleteField(inputArmaPrincipal, armaPrincipalSugestoesList, {

@@ -6,6 +6,16 @@ use PDO;
 
 class MiniaturaRepository
 {
+    public function inserirImpressao(array $dados): int
+    {
+        $stmt = $this->pdo->prepare('INSERT INTO impressoes (
+            produto_id, impressora_id, tempo_impressao, unidades_produzidas, markup, taxa_falha, valor_energia, peso_material, custo_material, custo_lavagem_alcool, custo_energia, depreciacao, custo_total_impressao, custo_por_unidade, lucro_total_impressao, lucro_por_unidade, porcentagem_lucro, preco_venda_sugerido, preco_venda_sugerido_unidade, observacoes, usuario_id, filamento_id, resina_id
+        ) VALUES (
+            :produto_id, :impressora_id, :tempo_impressao, :unidades_produzidas, :markup, :taxa_falha, :valor_energia, :peso_material, :custo_material, :custo_lavagem_alcool, :custo_energia, :depreciacao, :custo_total_impressao, :custo_por_unidade, :lucro_total_impressao, :lucro_por_unidade, :porcentagem_lucro, :preco_venda_sugerido, :preco_venda_sugerido_unidade, :observacoes, :usuario_id, :filamento_id, :resina_id
+        )');
+        $stmt->execute($dados);
+        return (int) $this->pdo->lastInsertId();
+    }
     private PDO $pdo;
 
     public function __construct(PDO $pdo)
@@ -333,20 +343,13 @@ class MiniaturaRepository
 
     public function inserirProduto(array $dados): int
     {
-        $stmt = $this->pdo->prepare('INSERT INTO produtos (usuario_id, nome, categoria, imagem_capa, imagens, descricao, observacoes, markup_lojista, markup_consumidor_final, preco_lojista, preco_consumidor_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([
-            $dados['usuario_id'],
-            $dados['nome'],
-            $dados['categoria'],
-            $dados['imagem_capa'],
-            $dados['imagens'],
-            $dados['descricao'],
-            $dados['observacoes'],
-            $dados['markup_lojista'],
-            $dados['markup_consumidor_final'],
-            $dados['preco_lojista'],
-            $dados['preco_consumidor_final'],
-        ]);
+        $dadosIndexado = array_values($dados);
+        $dadosString = array_map(fn($v) => is_null($v) ? null : (string)$v, $dadosIndexado);
+        $sql = 'INSERT INTO produtos (usuario_id, nome, categoria, imagem_capa, imagens, descricao, markup, lucro_lojista, lucro_consumidor_final, preco_lojista, preco_consumidor_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        error_log('DEBUG inserirProduto (Repository) SQL: ' . $sql);
+        error_log('DEBUG inserirProduto (Repository) count: ' . count($dadosString) . ' | conteudo: ' . var_export($dadosString, true));
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($dadosString);
 
         return (int) $this->pdo->lastInsertId();
     }
@@ -365,29 +368,30 @@ class MiniaturaRepository
 
     public function inserirMiniatura(array $dados): int
     {
-        $stmt = $this->pdo->prepare('INSERT INTO miniaturas (id_sku, produto_id, usuario_id, nome_original, id_estudio, id_colecao, id_tematica, tematica, raca, classe, genero, criatura, papel, tamanho, base, pintada, arma_principal, arma_secundaria, armadura, outras_caracteristicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([
-            $dados['id_sku'],
-            $dados['produto_id'],
-            $dados['usuario_id'],
-            $dados['nome_original'],
-            $dados['id_estudio'],
-            $dados['id_colecao'],
-            $dados['id_tematica'],
-            $dados['tematica'],
-            $dados['raca'],
-            $dados['classe'],
-            $dados['genero'],
-            $dados['criatura'],
-            $dados['papel'],
-            $dados['tamanho'],
-            $dados['base'],
-            $dados['pintada'],
-            $dados['arma_principal'],
-            $dados['arma_secundaria'],
-            $dados['armadura'],
-            $dados['outras_caracteristicas'],
-        ]);
+        $stmt = $this->pdo->prepare('INSERT INTO miniaturas (id_sku, produto_id, usuario_id, id_impressao, nome_original, id_estudio, id_colecao, tematica, raca, classe, genero, criatura, papel, tamanho, base, pintada, arma_principal, arma_secundaria, armadura, outras_caracteristicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $params = [
+            $dados['id_sku'] ?? null,                // 1
+            $dados['produto_id'] ?? null,             // 2
+            $dados['usuario_id'] ?? null,             // 3
+            array_key_exists('id_impressao', $dados) ? $dados['id_impressao'] : null, // 4
+            $dados['nome_original'] ?? null,          // 5
+            $dados['id_estudio'] ?? null,             // 6
+            array_key_exists('id_colecao', $dados) ? $dados['id_colecao'] : null, // 7
+            array_key_exists('tematica', $dados) ? $dados['tematica'] : null, // 8
+            array_key_exists('raca', $dados) ? $dados['raca'] : null, // 9
+            array_key_exists('classe', $dados) ? $dados['classe'] : null, // 10
+            array_key_exists('genero', $dados) ? $dados['genero'] : null, // 11
+            array_key_exists('criatura', $dados) ? $dados['criatura'] : null, // 12
+            array_key_exists('papel', $dados) ? $dados['papel'] : null, // 13
+            array_key_exists('tamanho', $dados) ? $dados['tamanho'] : null, // 14
+            array_key_exists('base', $dados) ? $dados['base'] : null, // 15
+            array_key_exists('pintada', $dados) ? $dados['pintada'] : null, // 16
+            array_key_exists('arma_principal', $dados) ? $dados['arma_principal'] : null, // 17
+            array_key_exists('arma_secundaria', $dados) ? $dados['arma_secundaria'] : null, // 18
+            array_key_exists('armadura', $dados) ? $dados['armadura'] : null, // 19
+            array_key_exists('outras_caracteristicas', $dados) ? $dados['outras_caracteristicas'] : null, // 20
+        ];
+        $stmt->execute($params);
 
         return (int) $this->pdo->lastInsertId();
     }

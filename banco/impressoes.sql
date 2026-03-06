@@ -1,5 +1,6 @@
 CREATE TABLE impressoes (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    produto_id INT UNSIGNED NOT NULL,
     impressora_id INT UNSIGNED NOT NULL,
     tempo_impressao INT NOT NULL,
     unidades_produzidas INT NOT NULL,
@@ -24,6 +25,7 @@ CREATE TABLE impressoes (
     usuario_id INT UNSIGNED NOT NULL,
     filamento_id INT UNSIGNED NULL,
     resina_id INT UNSIGNED NULL,
+    FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE,
     FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (filamento_id) REFERENCES filamento(id) ON DELETE CASCADE,

@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS torres (
 	nome_original VARCHAR(150) NULL,
 	id_estudio INT UNSIGNED NULL,
 	id_colecao INT UNSIGNED NULL,
-	id_tematica INT UNSIGNED NULL,
 	tematica VARCHAR(50) NULL,
 	capa VARCHAR(255) NULL,
 	imagens TEXT NULL,
@@ -18,7 +17,6 @@ CREATE TABLE IF NOT EXISTS torres (
 	CONSTRAINT fk_torres_impressao FOREIGN KEY (id_impressao) REFERENCES impressoes(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	CONSTRAINT fk_torres_estudio FOREIGN KEY (id_estudio) REFERENCES estudios(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 	CONSTRAINT fk_torres_colecao FOREIGN KEY (id_colecao) REFERENCES colecoes(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-	CONSTRAINT fk_torres_tematica FOREIGN KEY (id_tematica) REFERENCES tematicas(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 	CONSTRAINT fk_torres_sku FOREIGN KEY (id_sku, usuario_id) REFERENCES sku(sku, usuario_id) ON UPDATE CASCADE ON DELETE RESTRICT,
 	UNIQUE KEY uk_torres_sku_usuario (id_sku, usuario_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
