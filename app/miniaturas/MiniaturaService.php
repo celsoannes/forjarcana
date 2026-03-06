@@ -397,8 +397,39 @@ class MiniaturaService
             // Inserir custos (igual torres)
             $this->repository->inserirCusto($produtoId, $custoTotalImpressao, $custoPorUnidade);
 
-            // Gerar SKU automático simples (pode ser aprimorado depois)
-            $skuCodigo = 'SKU-' . strtoupper(bin2hex(random_bytes(4)));
+
+            // Gerar SKU conforme regra solicitada
+            $estudioNome = isset($dados['estudio']) ? trim((string)$dados['estudio']) : '';
+            $raca = isset($dados['raca']) ? trim((string)$dados['raca']) : '';
+            $classe = isset($dados['classe']) ? trim((string)$dados['classe']) : '';
+
+            // Bloco 2: Estúdio
+            $siglaEstudio = '';
+            if ($estudioNome !== '') {
+                $partes = preg_split('/\s+/u', $estudioNome);
+                if (count($partes) === 1) {
+                    $siglaEstudio = strtoupper(substr($partes[0], 0, 3));
+                } else {
+                    foreach ($partes as $parte) {
+                        $siglaEstudio .= strtoupper(substr($parte, 0, 1));
+                    }
+                }
+            } else {
+                $siglaEstudio = 'XXX';
+            }
+
+            // Bloco 3: Raça
+            $siglaRaca = $raca !== '' ? strtoupper(substr($raca, 0, 3)) : 'XXX';
+            // Bloco 4: Classe
+            $siglaClasse = $classe !== '' ? strtoupper(substr($classe, 0, 3)) : 'XXX';
+
+            // Bloco 5: número aleatório de 6 dígitos não repetido
+            do {
+                $numero = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                $skuCodigo = 'MIN-' . $siglaEstudio . '-' . $siglaRaca . '-' . $siglaClasse . '-' . $numero;
+                $existe = $this->repository->contarSkuPorCodigo($skuCodigo) > 0;
+            } while ($existe);
+
             $this->repository->inserirSku($produtoId, $skuCodigo, $usuarioId);
 
             // Inserir na tabela impressoes (dados mínimos obrigatórios)
