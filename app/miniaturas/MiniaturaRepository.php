@@ -48,8 +48,14 @@ class MiniaturaRepository
 
     public function inserirCusto(int $produtoId, float $custoTotal, float $custoPorUnidade): void
     {
-        $stmt = $this->pdo->prepare('INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)');
-        $stmt->execute([$produtoId, $custoTotal, $custoPorUnidade]);
+        // Tenta atualizar primeiro
+        $stmtUpdate = $this->pdo->prepare('UPDATE custos SET custo_total = ?, custo_por_unidade = ? WHERE produto_id = ?');
+        $stmtUpdate->execute([$custoTotal, $custoPorUnidade, $produtoId]);
+        if ($stmtUpdate->rowCount() === 0) {
+            // Se não atualizou, insere
+            $stmtInsert = $this->pdo->prepare('INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)');
+            $stmtInsert->execute([$produtoId, $custoTotal, $custoPorUnidade]);
+        }
     }
     private PDO $pdo;
 

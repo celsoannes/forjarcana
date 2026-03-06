@@ -368,6 +368,7 @@ class MiniaturaService
             $categoriaId = $this->repository->inserirCategoria('Miniaturas');
         }
         $imagensJson = !empty($imagens) ? json_encode($imagens, JSON_UNESCAPED_UNICODE) : null;
+
         try {
             // Inserir produto
             $produtoId = $this->repository->inserirProduto([
@@ -384,8 +385,33 @@ class MiniaturaService
                 0, // preco_consumidor_final
             ]);
 
-
-            // ... cálculo dos custos ...
+            // Cálculo dos custos (material, energia, depreciação, lavagem)
+            $potencia = isset($dados['potencia']) ? (float)$dados['potencia'] : 0.0;
+            $fatorUso = isset($dados['fator_uso']) ? (float)$dados['fator_uso'] : 1.0;
+            $custoHora = isset($dados['custo_hora']) ? (float)$dados['custo_hora'] : 0.0;
+            $tempoTotalMin = isset($dados['tempo_total_min']) ? (int)$dados['tempo_total_min'] : 0;
+            $tempoTotalHoras = $tempoTotalMin / 60;
+            $custoEnergia = round((($potencia * $tempoTotalHoras * $fatorUso * ($dados['valor_kwh'] ?? 1.0)) / 1000), 2);
+            $custoDepreciacao = round((($custoHora / 60) * $tempoTotalMin), 2);
+            $custoMaterial = 0.0;
+            $custoLavagemAlcool = 0.0;
+            $materialTipo = '';
+            if (isset($dados['filamento_id']) && $dados['filamento_id']) {
+                $materialTipo = 'Filamento';
+            } elseif (isset($dados['resina_id']) && $dados['resina_id']) {
+                $materialTipo = 'Resina';
+            }
+            $gramas = isset($dados['gramas']) ? (float)$dados['gramas'] : 0.0;
+            if ($materialTipo === 'Filamento' && isset($dados['preco_kilo'])) {
+                $precoKilo = (float)$dados['preco_kilo'];
+                $custoMaterial = round((($gramas / 1000) * $precoKilo), 2);
+            } elseif ($materialTipo === 'Resina' && isset($dados['preco_litro'])) {
+                $precoLitro = (float)$dados['preco_litro'];
+                $custoMaterial = round((($gramas / 1000) * $precoLitro), 2);
+                // Buscar preço do álcool para lavagem
+                $precoLitroAlcool = $this->repository->buscarPrecoLitroAlcoolPorUsuario($usuarioId);
+                $custoLavagemAlcool = round((($precoLitroAlcool / 1000) * $gramas), 2);
+            }
 
             // Calcular custo_total_impressao e custo_por_unidade igual torres
             $taxaFalha = isset($dados['taxa_falha']) ? (float)$dados['taxa_falha'] : 0.0;
