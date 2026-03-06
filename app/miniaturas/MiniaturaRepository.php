@@ -1,11 +1,40 @@
 <?php
-
 namespace App\Miniaturas;
 
 use PDO;
 
 class MiniaturaRepository
 {
+    public function inserirMiniatura(array $dados): int
+    {
+        $stmt = $this->pdo->prepare('INSERT INTO miniaturas (id_sku, produto_id, usuario_id, id_impressao, nome_original, id_estudio, id_colecao, tematica, raca, classe, genero, criatura, papel, tamanho, base, pintada, arma_principal, arma_secundaria, armadura, outras_caracteristicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $params = [
+            $dados['id_sku'] ?? null,
+            $dados['produto_id'] ?? null,
+            $dados['usuario_id'] ?? null,
+            array_key_exists('id_impressao', $dados) ? $dados['id_impressao'] : null,
+            $dados['nome_original'] ?? null,
+            $dados['id_estudio'] ?? null,
+            array_key_exists('id_colecao', $dados) ? $dados['id_colecao'] : null,
+            array_key_exists('tematica', $dados) ? $dados['tematica'] : null,
+            array_key_exists('raca', $dados) ? $dados['raca'] : null,
+            array_key_exists('classe', $dados) ? $dados['classe'] : null,
+            array_key_exists('genero', $dados) ? $dados['genero'] : null,
+            array_key_exists('criatura', $dados) ? $dados['criatura'] : null,
+            array_key_exists('papel', $dados) ? $dados['papel'] : null,
+            array_key_exists('tamanho', $dados) ? $dados['tamanho'] : null,
+            array_key_exists('base', $dados) ? $dados['base'] : null,
+            array_key_exists('pintada', $dados) ? $dados['pintada'] : null,
+            array_key_exists('arma_principal', $dados) ? $dados['arma_principal'] : null,
+            array_key_exists('arma_secundaria', $dados) ? $dados['arma_secundaria'] : null,
+            array_key_exists('armadura', $dados) ? $dados['armadura'] : null,
+            array_key_exists('outras_caracteristicas', $dados) ? $dados['outras_caracteristicas'] : null,
+        ];
+        $stmt->execute($params);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
     public function inserirImpressao(array $dados): int
     {
         $stmt = $this->pdo->prepare('INSERT INTO impressoes (
@@ -15,6 +44,12 @@ class MiniaturaRepository
         )');
         $stmt->execute($dados);
         return (int) $this->pdo->lastInsertId();
+    }
+
+    public function inserirCusto(int $produtoId, float $custoTotal, float $custoPorUnidade): void
+    {
+        $stmt = $this->pdo->prepare('INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)');
+        $stmt->execute([$produtoId, $custoTotal, $custoPorUnidade]);
     }
     private PDO $pdo;
 
@@ -360,41 +395,6 @@ class MiniaturaRepository
         $stmt->execute([$produtoId, $skuCodigo, $usuarioId]);
     }
 
-    public function inserirCusto(int $produtoId, float $custoTotal, float $custoPorUnidade): void
-    {
-        $stmt = $this->pdo->prepare('INSERT INTO custos (produto_id, custo_total, custo_por_unidade) VALUES (?, ?, ?)');
-        $stmt->execute([$produtoId, $custoTotal, $custoPorUnidade]);
-    }
-
-    public function inserirMiniatura(array $dados): int
-    {
-        $stmt = $this->pdo->prepare('INSERT INTO miniaturas (id_sku, produto_id, usuario_id, id_impressao, nome_original, id_estudio, id_colecao, tematica, raca, classe, genero, criatura, papel, tamanho, base, pintada, arma_principal, arma_secundaria, armadura, outras_caracteristicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $params = [
-            $dados['id_sku'] ?? null,                // 1
-            $dados['produto_id'] ?? null,             // 2
-            $dados['usuario_id'] ?? null,             // 3
-            array_key_exists('id_impressao', $dados) ? $dados['id_impressao'] : null, // 4
-            $dados['nome_original'] ?? null,          // 5
-            $dados['id_estudio'] ?? null,             // 6
-            array_key_exists('id_colecao', $dados) ? $dados['id_colecao'] : null, // 7
-            array_key_exists('tematica', $dados) ? $dados['tematica'] : null, // 8
-            array_key_exists('raca', $dados) ? $dados['raca'] : null, // 9
-            array_key_exists('classe', $dados) ? $dados['classe'] : null, // 10
-            array_key_exists('genero', $dados) ? $dados['genero'] : null, // 11
-            array_key_exists('criatura', $dados) ? $dados['criatura'] : null, // 12
-            array_key_exists('papel', $dados) ? $dados['papel'] : null, // 13
-            array_key_exists('tamanho', $dados) ? $dados['tamanho'] : null, // 14
-            array_key_exists('base', $dados) ? $dados['base'] : null, // 15
-            array_key_exists('pintada', $dados) ? $dados['pintada'] : null, // 16
-            array_key_exists('arma_principal', $dados) ? $dados['arma_principal'] : null, // 17
-            array_key_exists('arma_secundaria', $dados) ? $dados['arma_secundaria'] : null, // 18
-            array_key_exists('armadura', $dados) ? $dados['armadura'] : null, // 19
-            array_key_exists('outras_caracteristicas', $dados) ? $dados['outras_caracteristicas'] : null, // 20
-        ];
-        $stmt->execute($params);
-
-        return (int) $this->pdo->lastInsertId();
-    }
 
     public function buscarValorKwhPorUsuario(int $usuarioId): ?float
     {

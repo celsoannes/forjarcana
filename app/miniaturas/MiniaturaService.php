@@ -383,6 +383,20 @@ class MiniaturaService
                 0, // preco_consumidor_final
             ]);
 
+
+            // ... cálculo dos custos ...
+
+            // Calcular custo_total_impressao e custo_por_unidade igual torres
+            $taxaFalha = isset($dados['taxa_falha']) ? (float)$dados['taxa_falha'] : 0.0;
+            $unidadesProduzidas = isset($dados['unidades_produzidas']) ? (int)$dados['unidades_produzidas'] : 1;
+            $baseCusto = $custoMaterial + $custoEnergia + $custoDepreciacao + $custoLavagemAlcool;
+            $custoTaxaFalha = round(($baseCusto * ($taxaFalha / 100)), 2);
+            $custoTotalImpressao = round($baseCusto + $custoTaxaFalha, 2);
+            $custoPorUnidade = $unidadesProduzidas > 0 ? round($custoTotalImpressao / $unidadesProduzidas, 2) : 0.0;
+
+            // Inserir custos (igual torres)
+            $this->repository->inserirCusto($produtoId, $custoTotalImpressao, $custoPorUnidade);
+
             // Gerar SKU automático simples (pode ser aprimorado depois)
             $skuCodigo = 'SKU-' . strtoupper(bin2hex(random_bytes(4)));
             $this->repository->inserirSku($produtoId, $skuCodigo, $usuarioId);
