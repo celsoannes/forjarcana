@@ -415,9 +415,11 @@ class MiniaturaService
             }
             $potencia = isset($dados['potencia']) ? (float)$dados['potencia'] : 0.0;
             $fatorUso = isset($dados['fator_uso']) ? (float)$dados['fator_uso'] : 1.0;
+            $custoHora = isset($dados['custo_hora']) ? (float)$dados['custo_hora'] : 0.0;
             $tempoTotalMin = isset($dados['tempo_total_min']) ? (int)$dados['tempo_total_min'] : 0;
             $tempoTotalHoras = $tempoTotalMin / 60;
             $custoEnergia = round((($potencia * $tempoTotalHoras * $fatorUso * $valorEnergia) / 1000), 2);
+            $custoDepreciacao = round((($custoHora / 60) * $tempoTotalMin), 2);
 
             // Calcular custo_material
             $custoMaterial = 0.0;
@@ -440,11 +442,27 @@ class MiniaturaService
                 $custoLavagemAlcool = round((($precoLitroAlcool / 1000) * $gramas), 2);
             }
 
+            // Calcular custo_total_impressao e custo_por_unidade igual torres
+            $taxaFalha = isset($dados['taxa_falha']) ? (float)$dados['taxa_falha'] : 0.0;
+            $unidadesProduzidas = isset($dados['unidades_produzidas']) ? (int)$dados['unidades_produzidas'] : 1;
+            $baseCusto = $custoMaterial + $custoEnergia + $custoDepreciacao + $custoLavagemAlcool;
+            $custoTaxaFalha = round(($baseCusto * ($taxaFalha / 100)), 2);
+            $custoTotalImpressao = round($baseCusto + $custoTaxaFalha, 2);
+            $custoPorUnidade = $unidadesProduzidas > 0 ? round($custoTotalImpressao / $unidadesProduzidas, 2) : 0.0;
+
+            // Cálculo dos campos de venda e lucro igual torres
+            $markup = isset($dados['markup']) ? (float)$dados['markup'] : 1.0;
+            $precoVendaSugerido = round($custoTotalImpressao * $markup, 2);
+            $precoVendaSugeridoUnidade = $unidadesProduzidas > 0 ? round($precoVendaSugerido / $unidadesProduzidas, 2) : 0.0;
+            $lucroTotalImpressao = round($precoVendaSugerido - $custoTotalImpressao, 2);
+            $lucroPorUnidade = $unidadesProduzidas > 0 ? round($lucroTotalImpressao / $unidadesProduzidas, 2) : 0.0;
+            $porcentagemLucro = $custoTotalImpressao > 0 ? (int) round(($lucroTotalImpressao / $custoTotalImpressao) * 100) : 0;
+
             $impressoesParams = [
                 'produto_id' => $produtoId,
                 'impressora_id' => (int)($dados['impressora_id'] ?? 1),
                 'tempo_impressao' => (int)($dados['tempo_total_min'] ?? 0),
-                'unidades_produzidas' => (int)($dados['unidades_produzidas'] ?? 1),
+                'unidades_produzidas' => $unidadesProduzidas,
                 'markup' => (int)($dados['markup'] ?? 1),
                 'taxa_falha' => (int)($dados['taxa_falha'] ?? 0),
                 'valor_energia' => $valorEnergia,
@@ -452,15 +470,15 @@ class MiniaturaService
                 'custo_material' => $custoMaterial,
                 'custo_lavagem_alcool' => $custoLavagemAlcool,
                 'custo_energia' => $custoEnergia,
-                'depreciacao' => 0,
-                'custo_total_impressao' => 0,
-                'custo_por_unidade' => 0,
-                'lucro_total_impressao' => 0,
-                'lucro_por_unidade' => 0,
-                'porcentagem_lucro' => 0,
-                'preco_venda_sugerido' => 0,
-                'preco_venda_sugerido_unidade' => 0,
-                'observacoes' => null,
+                'depreciacao' => $custoDepreciacao,
+                'custo_total_impressao' => $custoTotalImpressao,
+                'custo_por_unidade' => $custoPorUnidade,
+                'lucro_total_impressao' => $lucroTotalImpressao,
+                'lucro_por_unidade' => $lucroPorUnidade,
+                'porcentagem_lucro' => $porcentagemLucro,
+                'preco_venda_sugerido' => $precoVendaSugerido,
+                'preco_venda_sugerido_unidade' => $precoVendaSugeridoUnidade,
+                'observacoes' => isset($dados['observacoes']) && trim($dados['observacoes']) !== '' ? trim($dados['observacoes']) : null,
                 'usuario_id' => $usuarioId,
                 'filamento_id' => isset($dados['filamento_id']) ? (int)$dados['filamento_id'] : null,
                 'resina_id' => isset($dados['resina_id']) ? (int)$dados['resina_id'] : null,
